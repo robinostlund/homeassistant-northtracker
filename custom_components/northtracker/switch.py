@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.switch import (
+    SwitchDeviceClass,
     SwitchEntity,
     SwitchEntityDescription,
 )
@@ -16,10 +17,27 @@ from .entity import NorthTrackerEntity
 
 # ... (SWITCH_DESCRIPTIONS and async_setup_entry remain the same) ...
 SWITCH_DESCRIPTIONS: tuple[SwitchEntityDescription, ...] = (
-    SwitchEntityDescription(key="output_status_1", translation_key="output_1"),
-    SwitchEntityDescription(key="output_status_2", translation_key="output_2"),
-    SwitchEntityDescription(key="output_status_3", translation_key="output_3"),
-    SwitchEntityDescription(key="lock_status", translation_key="lock_status", icon="mdi:lock"),
+    SwitchEntityDescription(
+        key="output_status_1",
+        translation_key="output_1",
+        device_class=SwitchDeviceClass.SWITCH,  # Use SWITCH for generic on/off
+    ),
+    SwitchEntityDescription(
+        key="output_status_2",
+        translation_key="output_2",
+        device_class=SwitchDeviceClass.SWITCH,  # Use SWITCH for generic on/off
+    ),
+    SwitchEntityDescription(
+        key="output_status_3",
+        translation_key="output_3",
+        device_class=SwitchDeviceClass.SWITCH,  # Use SWITCH for generic on/off
+    ),
+    SwitchEntityDescription(
+        key="alarm_status",
+        translation_key="alarm",
+        icon="mdi:alarm-light",
+        device_class=SwitchDeviceClass.SWITCH,  # Use SWITCH for generic on/off
+    ),
 )
 
 

@@ -62,10 +62,26 @@ class NorthTracker:
     async def get_unit_details(self, device_id, device_type):
         url = f"{self.base_url}/user/terminal/edit-terminal"
         return await self._post_data(url, {"device_id": device_id, "device_type": device_type})
+    
+    # TODO: add support for the putput from this one
+    async def get_unit_features(self, device_imei):
+        url = f"{self.base_url}/user/terminal/get-unit-features"
+        return await self._post_data(url, {"Imei": device_imei})
 
     async def get_unit_lock_status(self, device_id):
         url = f"{self.base_url}/user/terminal/access/lockstatus"
         return await self._post_data(url, {"terminal_id": device_id})
+
+    async def input_turn_on(self, device_id, input_number):
+        url = f"{self.base_url}/user/terminal/dinsetting/sendmsgg"
+        payload = {"terminal_id": device_id, "dinnumber": input_number}
+        return await self._post_data(url, payload)
+    
+    async def input_turn_off(self, device_id, input_number):
+        url = f"{self.base_url}/user/terminal/dinsetting/sendmsgg"
+        payload = {"terminal_id": device_id, "dinnumber": input_number}
+        return await self._post_data(url, payload)
+
 
     async def output_turn_on(self, device_id, output_number):
         url = f"{self.base_url}/user/terminal/relaysetting/sendmsg"
@@ -145,6 +161,11 @@ class NorthTrackerDevice:
     @property
     def odometer(self):
         return self._device_data.get("Odometer", 0)
+    
+    @property
+    def alarm_status(self) -> bool:
+        # TODO: fix prroperly
+        return self._device_lock_data.get("lockedstatus", False)
 
     @property
     def lock_status(self) -> bool:

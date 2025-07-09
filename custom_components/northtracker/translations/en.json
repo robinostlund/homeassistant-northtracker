@@ -53,8 +53,8 @@
             "output_3": {
                 "name": "Output 3"
             },
-            "lock_status": {
-                "name": "Lock Status"
+            "alarm": {
+                "name": "Alarm"
             }
         },
         "binary_sensor": {

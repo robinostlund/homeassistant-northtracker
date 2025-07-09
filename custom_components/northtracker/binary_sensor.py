@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
@@ -17,10 +18,12 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(
         key="input_status_2",
         translation_key="input_2",
+        device_class=BinarySensorDeviceClass.SAFETY,
     ),
     BinarySensorEntityDescription(
         key="input_status_3",
         translation_key="input_3",
+        device_class=BinarySensorDeviceClass.SAFETY,
     ),
 )
 
