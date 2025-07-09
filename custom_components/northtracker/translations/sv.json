@@ -1,0 +1,52 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "North-Tracker Autentisering",
+                "description": "Vänligen ange dina inloggningsuppgifter för North-Tracker.",
+                "data": {
+                    "username": "Användarnamn",
+                    "password": "Lösenord",
+                    "scan_interval": "Uppdateringsintervall (minuter)"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Kunde inte ansluta till North-Tracker API. Kontrollera din nätverksanslutning.",
+            "invalid_auth": "Ogiltigt användarnamn eller lösenord. Vänligen försök igen."
+        },
+        "abort": {
+            "already_configured": "Detta North-Tracker-konto är redan konfigurerat."
+        }
+    },
+    "entity": {
+        "sensor": {
+            "last_seen": {
+                "name": "Senast sedd"
+            },
+            "battery_voltage": {
+                "name": "Batterispänning"
+            },
+            "odometer": {
+                "name": "Vägmätare"
+            },
+            "gps_signal": {
+                "name": "GPS-signal"
+            }
+        },
+        "switch": {
+            "output_1": {
+                "name": "Utgång 1"
+            },
+            "output_2": {
+                "name": "Utgång 2"
+            },
+            "output_3": {
+                "name": "Utgång 3"
+            },
+            "lock_status": {
+                "name": "Låsstatus"
+            }
+        }
+    }
+}
