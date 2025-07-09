@@ -1,5 +1,5 @@
 """Sensor platform for North-Tracker."""
-from __future_ import annotations
+from __future__ import annotations
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
