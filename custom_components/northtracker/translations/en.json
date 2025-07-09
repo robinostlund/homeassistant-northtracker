@@ -47,6 +47,14 @@
             "lock_status": {
                 "name": "Lock Status"
             }
+        },
+        "binary_sensor": {
+            "input_2": {
+                "name": "Input 2"
+            },
+            "input_3": {
+                "name": "Input 3"
+            }
         }
     }
 }
