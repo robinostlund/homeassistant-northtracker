@@ -227,7 +227,7 @@ class NorthTrackerDevice:
         return self._device_gps_data.get("NetworkQuality", 0)
     
     @property
-    def gps_battery(self) -> int:
+    def internal_battery(self) -> int:
         """Return GPS battery level."""
         battery_str = self._device_gps_data.get("BatteryPercentage", 0)
         if isinstance(battery_str, str):

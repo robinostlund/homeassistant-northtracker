@@ -36,8 +36,8 @@
             "network_signal": {
                 "name": "Nätverkssignal"
             },
-            "gps_battery": {
-                "name": "GPS-batteri"
+            "internal_battery": {
+                "name": "Internt batteri"
             },
             "report_frequency": {
                 "name": "Rapporteringsfrekvens"
