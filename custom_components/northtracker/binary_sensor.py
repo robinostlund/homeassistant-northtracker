@@ -40,11 +40,7 @@ async def async_setup_entry(
         for device_id, device in coordinator.data.items():
             if device_id not in added_devices:
                 for description in BINARY_SENSOR_DESCRIPTIONS:
-                    # Only add the entity if the device actually has this attribute
-                    if hasattr(device, description.key):
-                        new_entities.append(
-                            NorthTrackerBinarySensor(coordinator, device.id, description)
-                        )
+                    new_entities.append(NorthTrackerBinarySensor(coordinator, device.id, description))
                 added_devices.add(device_id)
 
         if new_entities:

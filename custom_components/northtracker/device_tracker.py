@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 from homeassistant.components.device_tracker import SourceType
-from homeassistant.components.device_tracker.config_entry import TrackerEntity
+from homeassistant.components.device_tracker.config_entry import (
+    TrackerEntity,
+    TrackerEntityDescription
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -38,7 +41,8 @@ async def async_setup_entry(
 class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
     """Defines a North-Tracker device tracker."""
 
-    _attr_name = None  # The device name is used as the entity name
+    # This tells the entity to use the "location" key from our translation files for its name.
+    _attr_translation_key = "location"
 
     def __init__(
         self,

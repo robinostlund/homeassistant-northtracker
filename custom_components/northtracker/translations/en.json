@@ -55,6 +55,11 @@
             "input_3": {
                 "name": "Input 3"
             }
+        },
+        "device_tracker": {
+            "location": {
+                "name": "Location"
+            }
         }
     }
 }

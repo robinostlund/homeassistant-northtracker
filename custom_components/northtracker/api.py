@@ -196,3 +196,8 @@ class NorthTrackerDevice:
     def speed(self) -> int:
         """Return current speed in km/h."""
         return self._device_gps_data.get("Speed", 0)
+    
+    @property
+    def course(self) -> int:
+        """Return course/heading of the device."""
+        return self._device_gps_data.get("Azimuth", 0)
