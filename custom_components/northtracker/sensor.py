@@ -71,7 +71,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
         device_class=SensorDeviceClass.BATTERY,
-        icon="mdi:battery",
+        # icon="mdi:battery",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
 )
