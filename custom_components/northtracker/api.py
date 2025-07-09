@@ -191,6 +191,17 @@ class NorthTrackerDevice:
     def gps_accuracy(self) -> int:
         """Return GPS accuracy."""
         return self._device_gps_data.get("GPSAccuracy", 0)
+    
+    @property
+    def network_signal(self) -> int:
+        """Return network signal strength."""
+        return self._device_gps_data.get("NetworkQuality", 0)
+    
+    @property
+    def gps_battery(self) -> int:
+        """Return GPS battery level."""
+        # TODO: this contains a percentage value, so we need to split this into a int
+        return self._device_gps_data.get("BatteryPercentage", 0)
 
     @property
     def speed(self) -> int:

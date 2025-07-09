@@ -32,6 +32,12 @@
             },
             "gps_signal": {
                 "name": "GPS Signal"
+            },
+            "network_signal": {
+                "name": "Network Signal"
+            },
+            "gps_battery": {
+                "name": "GPS Battery"
             }
         },
         "switch": {
