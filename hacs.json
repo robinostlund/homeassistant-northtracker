@@ -1,0 +1,11 @@
+{
+    "name": "North-Tracker",
+    "content_in_root": false,
+    "domains": [
+        "sensor",
+        "switch"
+    ],
+    "zip_release": false,
+    "filename": "",
+    "issues": "https://github.com/robinostlund/homeassistant-northtracker/issues"
+}

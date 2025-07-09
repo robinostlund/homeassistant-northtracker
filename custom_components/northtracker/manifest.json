@@ -1,0 +1,17 @@
+{
+    "domain": "northtracker",
+    "name": "North-Tracker",
+    "config_flow": true,
+    "documentation": "https://github.com/robinostlund/homeassistant-northtracker",
+    "iot_class": "cloud_polling",
+    "issue_tracker": "https://github.com/robinostlund/homeassistant-northtracker/issues",
+    "version": "1.0.0",
+    "codeowners": [
+        "@robinostlund"
+    ],
+    "requirements": [
+        "asyncio",
+        "aiohttp"
+    ],
+    "dependencies": []
+}
