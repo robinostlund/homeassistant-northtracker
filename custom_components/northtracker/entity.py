@@ -11,10 +11,10 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device: NorthTrackerDevice):
+    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int):
         """Initialize the North-Tracker entity."""
         super().__init__(coordinator)
-        self.device = device
+        self._device_id = device_id
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, str(self.device.id))},
             name=self.device.name,
@@ -22,3 +22,8 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
             model=self.device.model,
             sw_version=self.device.device_type,
         )
+
+    @property
+    def device(self) -> NorthTrackerDevice:
+        """Return the device object for this entity."""
+        return self.coordinator.data[self._device_id]

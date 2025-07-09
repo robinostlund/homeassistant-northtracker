@@ -1,8 +1,5 @@
 """Switch platform for North-Tracker."""
 from __future__ import annotations
-
-import async_timeout
-
 from typing import Any
 
 from homeassistant.components.switch import (
@@ -13,10 +10,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerDevice
 
 SWITCH_DESCRIPTIONS: tuple[SwitchEntityDescription, ...] = (
     SwitchEntityDescription(key="output_status_1", translation_key="output_1"),
@@ -34,7 +30,6 @@ async def async_setup_entry(
     """Set up the switch platform and discover new entities."""
     coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    # A set of device IDs that have already been added to HA
     added_devices = set()
 
     def discover_switches() -> None:
@@ -44,16 +39,13 @@ async def async_setup_entry(
             if device_id not in added_devices:
                 for description in SWITCH_DESCRIPTIONS:
                     if hasattr(device, description.key):
-                        new_switches.append(NorthTrackerSwitch(coordinator, device, description))
+                        new_switches.append(NorthTrackerSwitch(coordinator, device.id, description))
                 added_devices.add(device_id)
         
         if new_switches:
             async_add_entities(new_switches)
 
-    # Run the discovery function whenever the coordinator updates
     entry.async_on_unload(coordinator.async_add_listener(discover_switches))
-    
-    # Run it once at startup
     discover_switches()
 
 
@@ -63,13 +55,13 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
     def __init__(
         self,
         coordinator: NorthTrackerDataUpdateCoordinator,
-        device: NorthTrackerDevice,
+        device_id: int,
         description: SwitchEntityDescription,
     ) -> None:
         """Initialize the switch."""
-        super().__init__(coordinator, device)
+        super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = f"{device.id}_{description.key}"
+        self._attr_unique_id = f"{self._device_id}_{description.key}"
 
     @property
     def is_on(self) -> bool:

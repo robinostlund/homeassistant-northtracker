@@ -1,5 +1,5 @@
 """Sensor platform for North-Tracker."""
-from __future__ import annotations
+from __future_ import annotations
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -15,7 +15,6 @@ from homeassistant.helpers.typing import StateType
 from .const import DOMAIN
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerDevice
 
 SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
@@ -52,7 +51,6 @@ async def async_setup_entry(
     """Set up the sensor platform and discover new entities."""
     coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     
-    # A set of device IDs that have already been added to HA
     added_devices = set()
 
     def discover_sensors() -> None:
@@ -61,16 +59,13 @@ async def async_setup_entry(
         for device_id, device in coordinator.data.items():
             if device_id not in added_devices:
                 for description in SENSOR_DESCRIPTIONS:
-                    new_sensors.append(NorthTrackerSensor(coordinator, device, description))
+                    new_sensors.append(NorthTrackerSensor(coordinator, device.id, description))
                 added_devices.add(device_id)
         
         if new_sensors:
             async_add_entities(new_sensors)
 
-    # Run the discovery function whenever the coordinator updates
     entry.async_on_unload(coordinator.async_add_listener(discover_sensors))
-    
-    # Run it once at startup
     discover_sensors()
 
 
@@ -80,13 +75,13 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
     def __init__(
         self,
         coordinator: NorthTrackerDataUpdateCoordinator,
-        device: NorthTrackerDevice,
+        device_id: int,
         description: SensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, device)
+        super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = f"{device.id}_{description.key}"
+        self._attr_unique_id = f"{self._device_id}_{description.key}"
 
     @property
     def native_value(self) -> StateType:
