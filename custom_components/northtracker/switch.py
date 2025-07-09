@@ -35,16 +35,16 @@ async def async_setup_entry(
 
     def discover_switches() -> None:
         """Discover and add new switches."""
-        new_switches = []
+        new_entities = []
         for device_id, device in coordinator.data.items():
             if device_id not in added_devices:
                 for description in SWITCH_DESCRIPTIONS:
                     if hasattr(device, description.key):
-                        new_switches.append(NorthTrackerSwitch(coordinator, device.id, description))
+                        new_entities.append(NorthTrackerSwitch(coordinator, device.id, description))
                 added_devices.add(device_id)
         
-        if new_switches:
-            async_add_entities(new_switches)
+        if new_entities:
+            async_add_entities(new_entities)
 
     entry.async_on_unload(coordinator.async_add_listener(discover_switches))
     discover_switches()

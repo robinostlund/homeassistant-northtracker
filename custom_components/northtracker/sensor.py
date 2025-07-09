@@ -69,15 +69,15 @@ async def async_setup_entry(
 
     def discover_sensors() -> None:
         """Discover and add new sensors."""
-        new_sensors = []
+        new_entities = []
         for device_id, device in coordinator.data.items():
             if device_id not in added_devices:
                 for description in SENSOR_DESCRIPTIONS:
-                    new_sensors.append(NorthTrackerSensor(coordinator, device.id, description))
+                    new_entities.append(NorthTrackerSensor(coordinator, device.id, description))
                 added_devices.add(device_id)
         
-        if new_sensors:
-            async_add_entities(new_sensors)
+        if new_entities:
+            async_add_entities(new_entities)
 
     entry.async_on_unload(coordinator.async_add_listener(discover_sensors))
     discover_sensors()

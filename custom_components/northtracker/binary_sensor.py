@@ -43,7 +43,7 @@ async def async_setup_entry(
                     # Only add the entity if the device actually has this attribute
                     if hasattr(device, description.key):
                         new_entities.append(
-                            NorthTrackerBinarySensor(coordinator, device_id, description)
+                            NorthTrackerBinarySensor(coordinator, device.id, description)
                         )
                 added_devices.add(device_id)
 
