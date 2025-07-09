@@ -200,8 +200,14 @@ class NorthTrackerDevice:
     @property
     def gps_battery(self) -> int:
         """Return GPS battery level."""
-        # TODO: this contains a percentage value, so we need to split this into a int
-        return self._device_gps_data.get("BatteryPercentage", 0)
+        battery_str = self._device_gps_data.get("BatteryPercentage", 0)
+        if isinstance(battery_str, str):
+            try:
+                # Remove the '%' character and convert the string to an integer
+                return int(battery_str.strip(" %"))
+            except (ValueError, TypeError):
+                return None
+        return None
 
     @property
     def speed(self) -> int:
