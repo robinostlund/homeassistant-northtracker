@@ -15,28 +15,27 @@ from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 
-# ... (SWITCH_DESCRIPTIONS and async_setup_entry remain the same) ...
 SWITCH_DESCRIPTIONS: tuple[SwitchEntityDescription, ...] = (
     SwitchEntityDescription(
         key="output_status_1",
         translation_key="output_1",
-        device_class=SwitchDeviceClass.SWITCH,  # Use SWITCH for generic on/off
+        device_class=SwitchDeviceClass.SWITCH,
     ),
     SwitchEntityDescription(
         key="output_status_2",
         translation_key="output_2",
-        device_class=SwitchDeviceClass.SWITCH,  # Use SWITCH for generic on/off
+        device_class=SwitchDeviceClass.SWITCH,
     ),
     SwitchEntityDescription(
         key="output_status_3",
         translation_key="output_3",
-        device_class=SwitchDeviceClass.SWITCH,  # Use SWITCH for generic on/off
+        device_class=SwitchDeviceClass.SWITCH,
     ),
     SwitchEntityDescription(
         key="alarm_status",
         translation_key="alarm",
         icon="mdi:alarm-light",
-        device_class=SwitchDeviceClass.SWITCH,  # Use SWITCH for generic on/off
+        device_class=SwitchDeviceClass.SWITCH,
     ),
 )
 

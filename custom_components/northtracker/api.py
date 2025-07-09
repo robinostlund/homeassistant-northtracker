@@ -45,6 +45,10 @@ class NorthTracker:
             return True
         raise AuthenticationError("Login failed, please check username and password")
     
+    async def logout(self):
+        url = f"{self.base_url}/user/logout"
+        await self._post_data(url)
+    
     async def get_tracking_details(self):
         url = f"{self.base_url}/user/realtimetracking/get"
         return await self._get_data(url)
