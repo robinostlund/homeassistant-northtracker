@@ -28,18 +28,22 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         device_class=SensorDeviceClass.VOLTAGE,
         suggested_display_precision=2,
+        icon= "mdi:battery",
     ),
     SensorEntityDescription(
         key="odometer",
         translation_key="odometer",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
+        icon="mdi:counter",
     ),
     SensorEntityDescription(
         key="gps_signal",
         translation_key="gps_signal",
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
+        icon="mdi:signal",
+        entity_category="diagnostic",
     ),
 )
 

@@ -20,7 +20,7 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
             name=self.device.name,
             manufacturer="North-Tracker",
             model=self.device.model,
-            sw_version=self.device.device_type,
+            serial_number=self.device.imei,
         )
 
     @property

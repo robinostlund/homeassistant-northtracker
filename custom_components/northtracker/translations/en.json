@@ -1,0 +1,52 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "North-Tracker Authentication",
+                "description": "Please enter your North-Tracker credentials.",
+                "data": {
+                    "username": "Username",
+                    "password": "Password",
+                    "scan_interval": "Update Interval (minutes)"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Failed to connect to the North-Tracker API. Please check your network connection.",
+            "invalid_auth": "Invalid username or password. Please try again."
+        },
+        "abort": {
+            "already_configured": "This North-Tracker account is already configured."
+        }
+    },
+    "entity": {
+        "sensor": {
+            "last_seen": {
+                "name": "Last Seen"
+            },
+            "battery_voltage": {
+                "name": "Battery Voltage"
+            },
+            "odometer": {
+                "name": "Odometer"
+            },
+            "gps_signal": {
+                "name": "GPS Signal"
+            }
+        },
+        "switch": {
+            "output_1": {
+                "name": "Output 1"
+            },
+            "output_2": {
+                "name": "Output 2"
+            },
+            "output_3": {
+                "name": "Output 3"
+            },
+            "lock_status": {
+                "name": "Lock Status"
+            }
+        }
+    }
+}

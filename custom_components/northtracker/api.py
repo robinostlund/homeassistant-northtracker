@@ -96,28 +96,53 @@ class NorthTrackerDevice:
             self._device_lock_data = resp_lock.data
 
     @property
-    def id(self): return self._device_data.get("ID", 0)
+    def id(self):
+        return self._device_data.get("ID", 0)
+    
     @property
-    def name(self): return self._device_data.get("NameOnly", "")
+    def name(self):
+        return self._device_data.get("NameOnly", "")
+
     @property
-    def device_type(self): return self._device_data.get("DeviceType", "")
+    def device_type(self):
+        return self._device_data.get("DeviceType", "")
+
     @property
-    def imei(self): return self._device_data.get("Imei", "")
+    def imei(self):
+        return self._device_data.get("Imei", "")
+
     @property
-    def model(self): return self._device_data.get("GpsModel", "")
+    def model(self):
+        return self._device_data.get("GpsModel", "")
+
     @property
-    def gps_signal(self): return self._device_data.get("GPS", 0)
+    def gps_signal(self):
+        return self._device_data.get("GPS", 0)
+
     @property
-    def last_seen(self): return self._device_data.get("LastSeen")
+    def last_seen(self):
+        return self._device_data.get("LastSeen")
+
     @property
-    def battery_voltage(self): return self._device_data.get("BatteryVoltage")
+    def battery_voltage(self):
+        return self._device_data.get("BatteryVoltage")
+
     @property
-    def odometer(self): return self._device_data.get("Odometer", 0)
+    def odometer(self):
+        return self._device_data.get("Odometer", 0)
+
     @property
-    def lock_status(self) -> bool: return self._device_lock_data.get("lockedstatus", False)
+    def lock_status(self) -> bool:
+        return self._device_lock_data.get("lockedstatus", False)
+
     @property
-    def output_status_1(self) -> bool: return self._device_data.get("Dout1Status") == "On"
+    def output_status_1(self) -> bool:
+        return self._device_data.get("Dout1Status") == "On"
+
     @property
-    def output_status_2(self) -> bool: return self._device_data.get("Dout2Status") == "On"
+    def output_status_2(self) -> bool:
+        return self._device_data.get("Dout2Status") == "On"
+
     @property
-    def output_status_3(self) -> bool: return self._device_data.get("Dout3Status") == "On"
+    def output_status_3(self) -> bool:
+        return self._device_data.get("Dout3Status") == "On"
