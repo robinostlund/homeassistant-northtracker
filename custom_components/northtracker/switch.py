@@ -10,10 +10,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 
+# ... (SWITCH_DESCRIPTIONS and async_setup_entry remain the same) ...
 SWITCH_DESCRIPTIONS: tuple[SwitchEntityDescription, ...] = (
     SwitchEntityDescription(key="output_status_1", translation_key="output_1"),
     SwitchEntityDescription(key="output_status_2", translation_key="output_2"),
@@ -78,6 +79,7 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         output_number = output_map.get(self.entity_description.key)
 
         if output_number:
+            LOGGER.info("Turning ON output %d for device '%s'", output_number, self.device.name)
             await self.device.tracker.output_turn_on(self.device.id, output_number)
             await self.coordinator.async_request_refresh()
 
@@ -91,5 +93,6 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         output_number = output_map.get(self.entity_description.key)
         
         if output_number:
+            LOGGER.info("Turning OFF output %d for device '%s'", output_number, self.device.name)
             await self.device.tracker.output_turn_off(self.device.id, output_number)
             await self.coordinator.async_request_refresh()

@@ -5,7 +5,8 @@ from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_SCAN_INTERVAL
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import NorthTracker, AuthenticationError
-from .const import DOMAIN, DEFAULT_UPDATE_INTERVAL
+from .const import DOMAIN, DEFAULT_UPDATE_INTERVAL, LOGGER
+
 
 class NorthTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for North-Tracker."""
@@ -20,13 +21,16 @@ class NorthTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             api = NorthTracker(session)
             try:
                 await api.login(user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
+                LOGGER.info("Authentication successful for %s", user_input[CONF_USERNAME])
                 return self.async_create_entry(
                     title=user_input[CONF_USERNAME],
                     data=user_input
                 )
             except AuthenticationError:
+                LOGGER.warning("Authentication failed for %s: Invalid credentials", user_input[CONF_USERNAME])
                 errors["base"] = "invalid_auth"
             except Exception:
+                LOGGER.exception("Unexpected error connecting to North-Tracker API")
                 errors["base"] = "cannot_connect"
 
         return self.async_show_form(
