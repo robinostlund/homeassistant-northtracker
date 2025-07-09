@@ -73,6 +73,16 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.BATTERY,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    SensorEntityDescription(
+        key="report_frequency",
+        translation_key="report_frequency",
+        state_class=SensorStateClass.MEASUREMENT,
+        # TODO: Determine the correct unit for report frequency
+        #native_unit_of_measurement=UnitOfLength.KILOMETERS,
+        #device_class=SensorDeviceClass.DISTANCE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:counter",
+    ),
 )
 
 async def async_setup_entry(

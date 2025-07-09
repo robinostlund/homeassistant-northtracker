@@ -151,6 +151,10 @@ class NorthTrackerDevice:
         return self._device_lock_data.get("lockedstatus", False)
     
     @property
+    def report_frequency(self) -> int:
+        return int(self._device_data_extra.get("terminal").get("ReportFrequency", 0))
+    
+    @property
     def input_status_2(self) -> bool:
         """Return the state of digital input 2."""
         return self._device_data.get("Din2Status") == "On"

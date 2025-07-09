@@ -38,6 +38,9 @@
             },
             "gps_battery": {
                 "name": "GPS-batteri"
+            },
+            "report_frequency": {
+                "name": "Rapporteringsfrekvens"
             }
         },
         "switch": {
