@@ -134,6 +134,16 @@ class NorthTrackerDevice:
     @property
     def lock_status(self) -> bool:
         return self._device_lock_data.get("lockedstatus", False)
+    
+    @property
+    def input_status_2(self) -> bool:
+        """Return the state of digital input 2."""
+        return self._device_data.get("Din2Status") == "On"
+
+    @property
+    def input_status_3(self) -> bool:
+        """Return the state of digital input 3."""
+        return self._device_data.get("Din3Status") == "On"
 
     @property
     def output_status_1(self) -> bool:
