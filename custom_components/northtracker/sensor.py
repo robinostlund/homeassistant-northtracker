@@ -13,6 +13,7 @@ from homeassistant.const import (
     EntityCategory,
     UnitOfElectricPotential,
     UnitOfLength,
+    UnitOfTime
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -77,9 +78,9 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         key="report_frequency",
         translation_key="report_frequency",
         state_class=SensorStateClass.MEASUREMENT,
-        # TODO: Determine the correct unit for report frequency
-        #native_unit_of_measurement=UnitOfLength.KILOMETERS,
-        #device_class=SensorDeviceClass.DISTANCE,
+        native_unit_of_measurement=UnitOfTime.SECONDS
+        suggested_unit_of_measurement=UnitOfTime.MINUTES,
+        device_class=SensorDeviceClass.DURATION,
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:counter",
     ),

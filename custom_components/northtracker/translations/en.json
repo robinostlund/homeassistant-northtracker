@@ -38,6 +38,9 @@
             },
             "gps_battery": {
                 "name": "GPS Battery"
+            },
+            "report_frequency": {
+                "name": "Report Frequency"
             }
         },
         "switch": {
