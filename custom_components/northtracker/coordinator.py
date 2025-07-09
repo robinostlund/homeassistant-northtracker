@@ -49,10 +49,13 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
             resp_realtime = await self.api.get_realtime_tracking()
             if resp_realtime.success:
                 # Update each device with its location data
+                LOGGER.debug("Successfully fetched gps details")
                 for gps_data in resp_realtime.data.get("gps", []):
                     device_id = gps_data.get("TrackerID")
                     if device_id in devices:
                         devices[device_id].update_gps_data(gps_data)
+            else:
+                LOGGER.warning("Failed to fetch real-time location data")
 
             # 3. Fetch extra (non-location) details for each device
             for device in devices.values():
