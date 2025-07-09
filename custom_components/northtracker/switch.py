@@ -31,17 +31,30 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the switch platform."""
+    """Set up the switch platform and discover new entities."""
     coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    entities: list[NorthTrackerSwitch] = []
 
-    for device in coordinator.data.values():
-        for description in SWITCH_DESCRIPTIONS:
-            # Only add switches if the underlying attribute exists
-            if hasattr(device, description.key):
-                entities.append(NorthTrackerSwitch(coordinator, device, description))
+    # A set of device IDs that have already been added to HA
+    added_devices = set()
 
-    async_add_entities(entities)
+    def discover_switches() -> None:
+        """Discover and add new switches."""
+        new_switches = []
+        for device_id, device in coordinator.data.items():
+            if device_id not in added_devices:
+                for description in SWITCH_DESCRIPTIONS:
+                    if hasattr(device, description.key):
+                        new_switches.append(NorthTrackerSwitch(coordinator, device, description))
+                added_devices.add(device_id)
+        
+        if new_switches:
+            async_add_entities(new_switches)
+
+    # Run the discovery function whenever the coordinator updates
+    entry.async_on_unload(coordinator.async_add_listener(discover_switches))
+    
+    # Run it once at startup
+    discover_switches()
 
 
 class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):

@@ -49,15 +49,29 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the sensor platform."""
+    """Set up the sensor platform and discover new entities."""
     coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    entities: list[NorthTrackerSensor] = []
+    
+    # A set of device IDs that have already been added to HA
+    added_devices = set()
 
-    for device in coordinator.data.values():
-        for description in SENSOR_DESCRIPTIONS:
-            entities.append(NorthTrackerSensor(coordinator, device, description))
+    def discover_sensors() -> None:
+        """Discover and add new sensors."""
+        new_sensors = []
+        for device_id, device in coordinator.data.items():
+            if device_id not in added_devices:
+                for description in SENSOR_DESCRIPTIONS:
+                    new_sensors.append(NorthTrackerSensor(coordinator, device, description))
+                added_devices.add(device_id)
+        
+        if new_sensors:
+            async_add_entities(new_sensors)
 
-    async_add_entities(entities)
+    # Run the discovery function whenever the coordinator updates
+    entry.async_on_unload(coordinator.async_add_listener(discover_sensors))
+    
+    # Run it once at startup
+    discover_sensors()
 
 
 class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
