@@ -7,7 +7,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, UnitOfElectricPotential, UnitOfLength
+from homeassistant.const import PERCENTAGE, UnitOfElectricPotential, UnitOfLength, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -43,7 +43,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
         icon="mdi:signal",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC
     ),
 )
 
