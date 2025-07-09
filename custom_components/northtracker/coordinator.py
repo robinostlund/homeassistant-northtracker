@@ -34,19 +34,29 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                 self.config_entry.data[CONF_PASSWORD]
             )
 
-            # Get all device details
-            resp = await self.api.get_all_units_details()
-            if not resp.success:
+            # 1. Get the base list of all devices
+            resp_details = await self.api.get_all_units_details()
+            if not resp_details.success:
                 raise UpdateFailed("Failed to fetch device list from API")
             
-            units = resp.data.get("units", [])
-            LOGGER.info("Successfully fetched data, found %d units", len(units))
+            units = resp_details.data.get("units", [])
+            LOGGER.info("Successfully fetched base details, found %d units", len(units))
 
-            devices = {}
-            for unit_data in units:
-                device = NorthTrackerDevice(self.api, unit_data)
-                await device.async_update()  # Fetch extra details for each device
-                devices[device.id] = device
+            # Create device objects from the base details
+            devices = {unit_data['ID']: NorthTrackerDevice(self.api, unit_data) for unit_data in units}
+
+            # 2. Get real-time location data
+            resp_realtime = await self.api.get_realtime_tracking()
+            if resp_realtime.success:
+                # Update each device with its location data
+                for gps_data in resp_realtime.data.get("gps", []):
+                    device_id = gps_data.get("TrackerID")
+                    if device_id in devices:
+                        devices[device_id].update_gps_data(gps_data)
+
+            # 3. Fetch extra (non-location) details for each device
+            for device in devices.values():
+                await device.async_update()
             
             return devices
 

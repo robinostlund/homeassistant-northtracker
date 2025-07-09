@@ -44,9 +44,19 @@ class NorthTracker:
             self.http_headers["Authorization"] = f"Bearer {resp.data.get('user', {}).get('token', '')}"
             return True
         raise AuthenticationError("Login failed, please check username and password")
+    
+    async def get_tracking_details(self):
+        url = f"{self.base_url}/user/realtimetracking/get"
+        return await self._get_data(url)
 
     async def get_all_units_details(self):
         url = f"{self.base_url}/user/terminal/get-all-units-details"
+        return await self._get_data(url)
+
+    async def get_realtime_tracking(self):
+        """Fetch real-time location data for all devices."""
+        url = f"{self.base_url}/user/realtimetracking/get?lang=en"
+        # url = f"{self.base_url}/user/realtimetracking/get"
         return await self._get_data(url)
 
     async def get_unit_details(self, device_id, device_type):
@@ -85,6 +95,7 @@ class NorthTrackerDevice:
         self._device_data = device_data
         self._device_data_extra = {}
         self._device_lock_data = {}
+        self._device_gps_data = {}
 
     async def async_update(self):
         resp_details = await self.tracker.get_unit_details(self.id, self.device_type)
@@ -94,6 +105,10 @@ class NorthTrackerDevice:
         resp_lock = await self.tracker.get_unit_lock_status(self.id)
         if resp_lock.success:
             self._device_lock_data = resp_lock.data
+
+    def update_gps_data(self, gps_data: dict):
+        """Update the device with real-time location data."""
+        self._device_gps_data = gps_data
 
     @property
     def id(self):
@@ -156,3 +171,28 @@ class NorthTrackerDevice:
     @property
     def output_status_3(self) -> bool:
         return self._device_data.get("Dout3Status") == "On"
+    
+    @property
+    def has_position(self) -> bool:
+        """Return true if the device has a valid GPS position."""
+        return self._device_gps_data.get("HasPosition", False)
+
+    @property
+    def latitude(self) -> float | None:
+        """Return latitude of the device."""
+        return self._device_gps_data.get("Latitude") if self.has_position else None
+
+    @property
+    def longitude(self) -> float | None:
+        """Return longitude of the device."""
+        return self._device_gps_data.get("Longitude") if self.has_position else None
+
+    @property
+    def gps_accuracy(self) -> int:
+        """Return GPS accuracy."""
+        return self._device_gps_data.get("GPSAccuracy", 0)
+
+    @property
+    def speed(self) -> int:
+        """Return current speed in km/h."""
+        return self._device_gps_data.get("Speed", 0)
