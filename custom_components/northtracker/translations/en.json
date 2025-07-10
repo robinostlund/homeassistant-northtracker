@@ -93,22 +93,22 @@
         },
         "binary_sensor": {
             "input_1": {
-                "name": "Input 1"
+                "name": "Alert on Input 1"
             },
             "input_2": {
-                "name": "Input 2"
+                "name": "Alert on Input 2"
             },
             "input_3": {
-                "name": "Input 3"
+                "name": "Alert on Input 3"
             },
             "input_4": {
-                "name": "Input 4"
+                "name": "Alert on Input 4"
             },
             "input_5": {
-                "name": "Input 5"
+                "name": "Alert on Input 5"
             },
             "input_6": {
-                "name": "Input 6"
+                "name": "Alert on Input 6"
             },
             "bluetooth": {
                 "name": "Bluetooth"

@@ -93,22 +93,22 @@
         },
         "binary_sensor": {
             "input_1": {
-                "name": "Ingång 1"
+                "name": "Larma på Ingång 1"
             },
             "input_2": {
-                "name": "Ingång 2"
+                "name": "Larma på Ingång 2"
             },
             "input_3": {
-                "name": "Ingång 3"
+                "name": "Larma på Ingång 3"
             },
             "input_4": {
-                "name": "Ingång 4"
+                "name": "Larma på Ingång 4"
             },
             "input_5": {
-                "name": "Ingång 5"
+                "name": "Larma på Ingång 5"
             },
             "input_6": {
-                "name": "Ingång 6"
+                "name": "Larma på Ingång 6"
             },
             "bluetooth": {
                 "name": "Bluetooth"

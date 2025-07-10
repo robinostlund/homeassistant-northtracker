@@ -19,7 +19,7 @@ BINARY_SENSOR_TEMPLATES: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(
         key="input_status",
         translation_key="input",
-        device_class=BinarySensorDeviceClass.SAFETY,
+        device_class=BinarySensorDeviceClass.RUNNING,
     ),
 )
 
@@ -52,8 +52,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                     description = BinarySensorEntityDescription(
                         key=f"input_status_{input_num}",
                         translation_key=f"input_{input_num}",
-                        device_class=BinarySensorDeviceClass.SAFETY,
+                        device_class=BinarySensorDeviceClass.RUNNING,
                         name=f"Input {input_num}",
+                        #icon="mdi:monitor"
                     )
                     binary_sensor_entity = NorthTrackerBinarySensor(coordinator, device.id, description, input_num)
                     new_entities.append(binary_sensor_entity)
