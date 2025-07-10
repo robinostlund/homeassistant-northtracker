@@ -303,7 +303,7 @@ class NorthTracker:
         """Turn on a digital input (enable alert)."""
         LOGGER.debug("Sending turn ON command for device %d, input %d", device_id, input_number)
         url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
-        payload = {"terminal_id": device_id, "dinnumber": input_number}
+        payload = {"terminal_id": device_id, "dinNumber": str(input_number)}
         response = await self._post_data(url, payload)
         if response.success:
             LOGGER.debug("Successfully sent turn ON command for device %d, input %d", device_id, input_number)
@@ -315,7 +315,7 @@ class NorthTracker:
         """Turn off a digital input (disable alert)."""
         LOGGER.debug("Sending turn OFF command for device %d, input %d", device_id, input_number)
         url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
-        payload = {"terminal_id": device_id, "dinnumber": input_number}
+        payload = {"terminal_id": device_id, "dinNumber": str(input_number)}
         response = await self._post_data(url, payload)
         if response.success:
             LOGGER.debug("Successfully sent turn OFF command for device %d, input %d", device_id, input_number)
@@ -327,7 +327,7 @@ class NorthTracker:
         """Turn on a digital output."""
         LOGGER.debug("Sending turn ON command for device %d, output %d", device_id, output_number)
         url = f"{self.base_url}/user/terminal/relaysetting/sendmsg"
-        payload = {"terminal_id": device_id, "doutnumber": output_number, "doutvalue": 1}
+        payload = {"terminal_id": device_id, "doutnumber": str(output_number), "doutvalue": 1}
         response = await self._post_data(url, payload)
         if response.success:
             LOGGER.debug("Successfully sent turn ON command for device %d, output %d", device_id, output_number)
@@ -339,7 +339,7 @@ class NorthTracker:
         """Turn off a digital output."""
         LOGGER.debug("Sending turn OFF command for device %d, output %d", device_id, output_number)
         url = f"{self.base_url}/user/terminal/relaysetting/sendmsg"
-        payload = {"terminal_id": device_id, "doutnumber": output_number, "doutvalue": 0}
+        payload = {"terminal_id": device_id, "doutnumber": str(output_number), "doutvalue": 0}
         response = await self._post_data(url, payload)
         if response.success:
             LOGGER.debug("Successfully sent turn OFF command for device %d, output %d", device_id, output_number)
