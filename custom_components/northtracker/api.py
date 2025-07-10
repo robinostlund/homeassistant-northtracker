@@ -300,27 +300,29 @@ class NorthTracker:
         return response
 
     async def input_turn_on(self, device_id: int, input_number: int) -> NorthTrackerResponse:
-        """Turn on a digital input (enable alert)."""
-        LOGGER.debug("Sending turn ON command for device %d, input %d", device_id, input_number)
+        """Toggle digital input alert (API will activate if currently deactivated)."""
+        LOGGER.debug("Sending input toggle command for device %d, input %d (expecting activation)", device_id, input_number)
         url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
         payload = {"terminal_id": device_id, "dinNumber": str(input_number)}
         response = await self._post_data(url, payload)
         if response.success:
-            LOGGER.debug("Successfully sent turn ON command for device %d, input %d", device_id, input_number)
+            action = response.data
+            LOGGER.info("Input %d toggle successful for device %d: %s", input_number, device_id, action)
         else:
-            LOGGER.warning("Failed to send turn ON command for device %d, input %d", device_id, input_number)
+            LOGGER.warning("Failed to toggle input %d for device %d", input_number, device_id)
         return response
     
     async def input_turn_off(self, device_id: int, input_number: int) -> NorthTrackerResponse:
-        """Turn off a digital input (disable alert)."""
-        LOGGER.debug("Sending turn OFF command for device %d, input %d", device_id, input_number)
+        """Toggle digital input alert (API will deactivate if currently activated)."""
+        LOGGER.debug("Sending input toggle command for device %d, input %d (expecting deactivation)", device_id, input_number)
         url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
         payload = {"terminal_id": device_id, "dinNumber": str(input_number)}
         response = await self._post_data(url, payload)
         if response.success:
-            LOGGER.debug("Successfully sent turn OFF command for device %d, input %d", device_id, input_number)
+            action = response.data
+            LOGGER.info("Input %d toggle successful for device %d: %s", input_number, device_id, action)
         else:
-            LOGGER.warning("Failed to send turn OFF command for device %d, input %d", device_id, input_number)
+            LOGGER.warning("Failed to toggle input %d for device %d", input_number, device_id)
         return response
 
     async def output_turn_on(self, device_id: int, output_number: int) -> NorthTrackerResponse:
@@ -360,7 +362,7 @@ class NorthTrackerResponse:
         return self.response_data.get("success", False)
 
     @property
-    def data(self) -> dict[str, Any]:
+    def data(self) -> Any:
         """Return the data portion of the response."""
         return self.response_data.get("data", {})
 
