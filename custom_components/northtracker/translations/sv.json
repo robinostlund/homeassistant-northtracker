@@ -33,9 +33,9 @@
             "cannot_connect": "Kunde inte ansluta till North-Tracker API. Kontrollera din nätverksanslutning.",
             "invalid_auth": "Ogiltigt användarnamn eller lösenord. Vänligen försök igen.",
             "rate_limit": "Hastighetsgräns överskriden. Vänligen vänta några minuter och försök igen.",
-            "scan_interval_too_low": "Uppdateringsintervall måste vara minst 5 minuter.",
+            "scan_interval_too_low": "Uppdateringsintervall måste vara minst 1 minuter.",
             "scan_interval_too_high": "Uppdateringsintervall kan inte överstiga 24 timmar (1440 minuter).",
-            "scan_interval_invalid": "Uppdateringsintervall måste vara mellan 5 och 1440 minuter.",
+            "scan_interval_invalid": "Uppdateringsintervall måste vara mellan 1 och 1440 minuter.",
             "unknown": "Oväntat fel uppstod. Vänligen försök igen."
         },
         "abort": {

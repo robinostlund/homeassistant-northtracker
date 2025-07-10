@@ -449,6 +449,16 @@ class NorthTrackerDevice:
         return bool(self._device_data.get("ID"))
 
     @property
+    def available_inputs(self) -> list[int]:
+        """Return list of available digital input numbers."""
+        return self._available_inputs
+
+    @property
+    def available_outputs(self) -> list[int]:
+        """Return list of available digital output numbers."""
+        return self._available_outputs
+
+    @property
     def id(self) -> int:
         """Return the device ID."""
         return self._device_data.get("ID", 0)

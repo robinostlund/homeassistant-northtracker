@@ -166,7 +166,7 @@ class NorthTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             
             # Validate scan interval
             scan_interval = user_input.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL)
-            if scan_interval < 5 or scan_interval > 1440:
+            if scan_interval < MIN_UPDATE_INTERVAL or scan_interval > MAX_UPDATE_INTERVAL:
                 return self.async_show_form(
                     step_id="reconfigure",
                     data_schema=self._get_reconfigure_schema(entry),
@@ -228,5 +228,5 @@ class NorthTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional(
                 CONF_SCAN_INTERVAL,
                 default=entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL)
-            ): vol.All(vol.Coerce(int), vol.Range(min=5, max=1440)),
+            ): vol.All(vol.Coerce(int), vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL)),
         })
