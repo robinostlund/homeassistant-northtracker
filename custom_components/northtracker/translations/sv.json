@@ -109,6 +109,9 @@
             },
             "input_6": {
                 "name": "Ingång 6"
+            },
+            "bluetooth": {
+                "name": "Bluetooth"
             }
         },
         "device_tracker": {

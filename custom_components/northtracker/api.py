@@ -513,6 +513,12 @@ class NorthTrackerDevice:
         return self._device_data.get("GpsModel", "")
 
     @property
+    def bluetooth_enabled(self) -> bool:
+        """Return whether Bluetooth is enabled."""
+        ble_enabled = self._device_data.get("BleEnabled", 0)
+        return bool(ble_enabled)
+
+    @property
     def gps_signal(self) -> int | None:
         """Return GPS signal strength as percentage."""
         gps_value = self._device_data.get("GPS")

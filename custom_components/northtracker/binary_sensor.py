@@ -23,6 +23,16 @@ BINARY_SENSOR_TEMPLATES: tuple[BinarySensorEntityDescription, ...] = (
     ),
 )
 
+# Static binary sensor descriptions for device features
+STATIC_BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
+    BinarySensorEntityDescription(
+        key="bluetooth_enabled",
+        translation_key="bluetooth",
+        device_class=BinarySensorDeviceClass.CONNECTIVITY,
+        icon="mdi:bluetooth",
+    ),
+)
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the binary sensor platform and discover new entities."""
@@ -48,6 +58,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                     binary_sensor_entity = NorthTrackerBinarySensor(coordinator, device.id, description, input_num)
                     new_entities.append(binary_sensor_entity)
                     LOGGER.debug("Created binary sensor for input %d on device %s", input_num, device.name)
+                
+                # Add static binary sensors (device features)
+                for description in STATIC_BINARY_SENSOR_DESCRIPTIONS:
+                    if hasattr(device, description.key):
+                        binary_sensor_entity = NorthTrackerBinarySensor(coordinator, device.id, description)
+                        new_entities.append(binary_sensor_entity)
+                        LOGGER.debug("Created static binary sensor: %s for device %s", description.key, device.name)
+                    else:
+                        LOGGER.debug("Device %s does not have attribute %s, skipping binary sensor", device.name, description.key)
                 
                 added_devices.add(device_id)
 
