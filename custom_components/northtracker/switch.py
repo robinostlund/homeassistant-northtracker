@@ -103,10 +103,16 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         self._output_number = output_number
         self._input_number = input_number
         self._attr_unique_id = f"{self._device_id}_{description.key}"
+        # Track pending state changes to provide immediate feedback
+        self._pending_state: bool | None = None
 
     @property
     def is_on(self) -> bool:
         """Return the state of the switch."""
+        # If we have a pending state change, use that for immediate feedback
+        if self._pending_state is not None:
+            return self._pending_state
+            
         if self._output_number is not None:
             # Dynamic output switch
             return self.device.get_output_status(self._output_number)
@@ -125,29 +131,47 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
             # Dynamic output switch
             try:
                 LOGGER.info("Turning ON output %d for device '%s'", self._output_number, self.device.name)
+                # Set pending state for immediate UI feedback
+                self._pending_state = True
+                self.async_write_ha_state()
+                
                 resp = await self.device.tracker.output_turn_on(self.device.id, self._output_number)
                 if not resp.success:
                     LOGGER.error("Failed to turn on output %d for device '%s': API returned success=False", self._output_number, self.device.name)
-                    # Just log the error and refresh - don't raise exception
+                    # Revert pending state on failure
+                    self._pending_state = None
+                    self.async_write_ha_state()
                 else:
                     LOGGER.debug("Successfully sent turn ON command for output %d, device '%s'", self._output_number, self.device.name)
                 await self.coordinator.async_request_refresh()
             except Exception as err:
                 LOGGER.error("Error turning on output %d for device '%s': %s", self._output_number, self.device.name, err)
+                # Revert pending state on error
+                self._pending_state = None
+                self.async_write_ha_state()
                 # Continue and refresh anyway - entity state will reflect actual state
         elif self._input_number is not None:
             # Dynamic input switch (enable alert)
             try:
                 LOGGER.info("Enabling alert for input %d on device '%s'", self._input_number, self.device.name)
+                # Set pending state for immediate UI feedback
+                self._pending_state = True
+                self.async_write_ha_state()
+                
                 resp = await self.device.tracker.input_turn_on(self.device.id, self._input_number)
                 if not resp.success:
                     LOGGER.error("Failed to enable alert for input %d on device '%s': API returned success=False", self._input_number, self.device.name)
-                    # Just log the error and refresh - don't raise exception
+                    # Revert pending state on failure
+                    self._pending_state = None
+                    self.async_write_ha_state()
                 else:
                     LOGGER.debug("Successfully enabled alert for input %d, device '%s'", self._input_number, self.device.name)
                 await self.coordinator.async_request_refresh()
             except Exception as err:
                 LOGGER.error("Error enabling alert for input %d on device '%s': %s", self._input_number, self.device.name, err)
+                # Revert pending state on error
+                self._pending_state = None
+                self.async_write_ha_state()
                 # Continue and refresh anyway - entity state will reflect actual state
         else:
             # Legacy handling for static switches (like alarm)
@@ -161,30 +185,56 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
             # Dynamic output switch
             try:
                 LOGGER.info("Turning OFF output %d for device '%s'", self._output_number, self.device.name)
+                # Set pending state for immediate UI feedback
+                self._pending_state = False
+                self.async_write_ha_state()
+                
                 resp = await self.device.tracker.output_turn_off(self.device.id, self._output_number)
                 if not resp.success:
                     LOGGER.error("Failed to turn off output %d for device '%s': API returned success=False", self._output_number, self.device.name)
-                    # Just log the error and refresh - don't raise exception
+                    # Revert pending state on failure
+                    self._pending_state = None
+                    self.async_write_ha_state()
                 else:
                     LOGGER.debug("Successfully sent turn OFF command for output %d, device '%s'", self._output_number, self.device.name)
                 await self.coordinator.async_request_refresh()
             except Exception as err:
                 LOGGER.error("Error turning off output %d for device '%s': %s", self._output_number, self.device.name, err)
+                # Revert pending state on error
+                self._pending_state = None
+                self.async_write_ha_state()
                 # Continue and refresh anyway - entity state will reflect actual state
         elif self._input_number is not None:
             # Dynamic input switch (disable alert)
             try:
                 LOGGER.info("Disabling alert for input %d on device '%s'", self._input_number, self.device.name)
+                # Set pending state for immediate UI feedback
+                self._pending_state = False
+                self.async_write_ha_state()
+                
                 resp = await self.device.tracker.input_turn_off(self.device.id, self._input_number)
                 if not resp.success:
                     LOGGER.error("Failed to disable alert for input %d on device '%s': API returned success=False", self._input_number, self.device.name)
-                    # Just log the error and refresh - don't raise exception
+                    # Revert pending state on failure
+                    self._pending_state = None
+                    self.async_write_ha_state()
                 else:
                     LOGGER.debug("Successfully disabled alert for input %d, device '%s'", self._input_number, self.device.name)
                 await self.coordinator.async_request_refresh()
             except Exception as err:
                 LOGGER.error("Error disabling alert for input %d on device '%s': %s", self._input_number, self.device.name, err)
+                # Revert pending state on error
+                self._pending_state = None
+                self.async_write_ha_state()
                 # Continue and refresh anyway - entity state will reflect actual state
         else:
             # Legacy handling for static switches (like alarm)
             LOGGER.warning("Turn off not implemented for static switch %s", self.entity_description.key)
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        # Clear pending state when coordinator provides fresh data
+        if self._pending_state is not None:
+            LOGGER.debug("Clearing pending state for switch %s after coordinator update", self.entity_description.key)
+            self._pending_state = None
+        super()._handle_coordinator_update()
