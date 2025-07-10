@@ -155,6 +155,10 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
             if not (0 <= value <= 100):
                 LOGGER.warning("Signal strength out of range for device %s (%s): %s", self.device.name, self.entity_description.key, value)
                 return None
+        elif self.entity_description.key == "network_signal" and not self.device.has_position:
+            # Network signal should only be available when device has GPS data
+            LOGGER.debug("Network signal unavailable for device %s - no GPS position data", self.device.name)
+            return None
         
         LOGGER.debug("Sensor %s for device %s returning validated value: %s", self.entity_description.key, self.device.name, value)
         return value

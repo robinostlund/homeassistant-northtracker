@@ -513,9 +513,16 @@ class NorthTrackerDevice:
         return self._device_data.get("GpsModel", "")
 
     @property
-    def gps_signal(self) -> int:
+    def gps_signal(self) -> int | None:
         """Return GPS signal strength as percentage."""
-        return self._device_data.get("GPS", 0)
+        gps_value = self._device_data.get("GPS")
+        if gps_value is None:
+            return None
+        try:
+            return int(gps_value)
+        except (ValueError, TypeError):
+            LOGGER.warning("Invalid GPS signal value: %s", gps_value)
+            return None
 
     @property
     def last_seen(self) -> str | None:
@@ -534,14 +541,16 @@ class NorthTrackerDevice:
         return None
 
     @property
-    def odometer(self) -> float:
+    def odometer(self) -> float | None:
         """Return odometer reading in kilometers."""
-        odometer = self._device_data.get("Odometer", 0)
+        odometer = self._device_data.get("Odometer")
+        if odometer is None:
+            return None
         try:
             return float(odometer)
         except (ValueError, TypeError):
             LOGGER.warning("Invalid odometer value: %s", odometer)
-            return 0.0
+            return None
     
     @property
     def alarm_status(self) -> bool:
@@ -554,15 +563,17 @@ class NorthTrackerDevice:
         return self._device_lock_data.get("lockedstatus", False)
     
     @property
-    def report_frequency(self) -> int:
+    def report_frequency(self) -> int | None:
         """Return report frequency in seconds."""
         try:
             terminal_data = self._device_data_extra.get("terminal", {})
-            frequency = terminal_data.get("ReportFrequency", 0)
+            frequency = terminal_data.get("ReportFrequency")
+            if frequency is None:
+                return None
             return int(frequency)
         except (ValueError, TypeError, AttributeError):
             LOGGER.warning("Invalid report frequency value")
-            return 0
+            return None
     
     def get_input_status(self, input_number: int) -> bool:
         """Return the state of a specific digital input."""
@@ -660,14 +671,16 @@ class NorthTrackerDevice:
             return 0
     
     @property
-    def network_signal(self) -> int:
+    def network_signal(self) -> int | None:
         """Return network signal strength as percentage."""
-        signal = self._device_gps_data.get("NetworkQuality", 0)
+        signal = self._device_gps_data.get("NetworkQuality")
+        if signal is None:
+            return None
         try:
             return int(signal)
         except (ValueError, TypeError):
             LOGGER.warning("Invalid network signal value: %s", signal)
-            return 0
+            return None
     
     @property
     def internal_battery(self) -> int | None:
