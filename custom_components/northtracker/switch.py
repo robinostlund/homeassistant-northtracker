@@ -48,9 +48,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                         device_class=SwitchDeviceClass.SWITCH,
                         name=f"Output {output_num}",
                     )
-                    switch_entity = NorthTrackerSwitch(coordinator, device.id, description, output_num)
+                    switch_entity = NorthTrackerSwitch(coordinator, device.id, description, output_number=output_num)
                     new_entities.append(switch_entity)
                     LOGGER.debug("Created switch for output %d on device %s", output_num, device.name)
+                
+                # Create switches for each available digital input (alert control)
+                for input_num in device.available_inputs:
+                    description = SwitchEntityDescription(
+                        key=f"input_status_{input_num}",
+                        translation_key=f"input_{input_num}",
+                        device_class=SwitchDeviceClass.SWITCH,
+                        name=f"Input {input_num}",
+                        # icon="mdi:electric-switch",
+                    )
+                    switch_entity = NorthTrackerSwitch(coordinator, device.id, description, input_number=input_num)
+                    new_entities.append(switch_entity)
+                    LOGGER.debug("Created switch for input %d on device %s", input_num, device.name)
                 
                 # Add static switches (like alarm) that exist for all devices
                 for description in STATIC_SWITCH_DESCRIPTIONS:
@@ -81,12 +94,14 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         coordinator: NorthTrackerDataUpdateCoordinator, 
         device_id: int, 
         description: SwitchEntityDescription,
-        output_number: int | None = None
+        output_number: int | None = None,
+        input_number: int | None = None
     ) -> None:
         """Initialize the switch."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
         self._output_number = output_number
+        self._input_number = input_number
         self._attr_unique_id = f"{self._device_id}_{description.key}"
 
     @property
@@ -95,6 +110,9 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         if self._output_number is not None:
             # Dynamic output switch
             return self.device.get_output_status(self._output_number)
+        elif self._input_number is not None:
+            # Dynamic input switch (alert status)
+            return self.device.get_input_status(self._input_number)
         else:
             # Legacy property-based switch (like alarm)
             return getattr(self.device, self.entity_description.key, False)
@@ -117,6 +135,20 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
             except Exception as err:
                 LOGGER.error("Error turning on output %d for device '%s': %s", self._output_number, self.device.name, err)
                 # Continue and refresh anyway - entity state will reflect actual state
+        elif self._input_number is not None:
+            # Dynamic input switch (enable alert)
+            try:
+                LOGGER.info("Enabling alert for input %d on device '%s'", self._input_number, self.device.name)
+                resp = await self.device.tracker.input_turn_on(self.device.id, self._input_number)
+                if not resp.success:
+                    LOGGER.error("Failed to enable alert for input %d on device '%s': API returned success=False", self._input_number, self.device.name)
+                    # Just log the error and refresh - don't raise exception
+                else:
+                    LOGGER.debug("Successfully enabled alert for input %d, device '%s'", self._input_number, self.device.name)
+                await self.coordinator.async_request_refresh()
+            except Exception as err:
+                LOGGER.error("Error enabling alert for input %d on device '%s': %s", self._input_number, self.device.name, err)
+                # Continue and refresh anyway - entity state will reflect actual state
         else:
             # Legacy handling for static switches (like alarm)
             LOGGER.warning("Turn on not implemented for static switch %s", self.entity_description.key)
@@ -138,6 +170,20 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
                 await self.coordinator.async_request_refresh()
             except Exception as err:
                 LOGGER.error("Error turning off output %d for device '%s': %s", self._output_number, self.device.name, err)
+                # Continue and refresh anyway - entity state will reflect actual state
+        elif self._input_number is not None:
+            # Dynamic input switch (disable alert)
+            try:
+                LOGGER.info("Disabling alert for input %d on device '%s'", self._input_number, self.device.name)
+                resp = await self.device.tracker.input_turn_off(self.device.id, self._input_number)
+                if not resp.success:
+                    LOGGER.error("Failed to disable alert for input %d on device '%s': API returned success=False", self._input_number, self.device.name)
+                    # Just log the error and refresh - don't raise exception
+                else:
+                    LOGGER.debug("Successfully disabled alert for input %d, device '%s'", self._input_number, self.device.name)
+                await self.coordinator.async_request_refresh()
+            except Exception as err:
+                LOGGER.error("Error disabling alert for input %d on device '%s': %s", self._input_number, self.device.name, err)
                 # Continue and refresh anyway - entity state will reflect actual state
         else:
             # Legacy handling for static switches (like alarm)

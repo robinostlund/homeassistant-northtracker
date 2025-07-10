@@ -300,16 +300,28 @@ class NorthTracker:
         return response
 
     async def input_turn_on(self, device_id: int, input_number: int) -> NorthTrackerResponse:
-        """Turn on a digital input."""
-        url = f"{self.base_url}/user/terminal/dinsetting/sendmsgg"
+        """Turn on a digital input (enable alert)."""
+        LOGGER.debug("Sending turn ON command for device %d, input %d", device_id, input_number)
+        url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
         payload = {"terminal_id": device_id, "dinnumber": input_number}
-        return await self._post_data(url, payload)
+        response = await self._post_data(url, payload)
+        if response.success:
+            LOGGER.debug("Successfully sent turn ON command for device %d, input %d", device_id, input_number)
+        else:
+            LOGGER.warning("Failed to send turn ON command for device %d, input %d", device_id, input_number)
+        return response
     
     async def input_turn_off(self, device_id: int, input_number: int) -> NorthTrackerResponse:
-        """Turn off a digital input."""
-        url = f"{self.base_url}/user/terminal/dinsetting/sendmsgg"
+        """Turn off a digital input (disable alert)."""
+        LOGGER.debug("Sending turn OFF command for device %d, input %d", device_id, input_number)
+        url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
         payload = {"terminal_id": device_id, "dinnumber": input_number}
-        return await self._post_data(url, payload)
+        response = await self._post_data(url, payload)
+        if response.success:
+            LOGGER.debug("Successfully sent turn OFF command for device %d, input %d", device_id, input_number)
+        else:
+            LOGGER.warning("Failed to send turn OFF command for device %d, input %d", device_id, input_number)
+        return response
 
     async def output_turn_on(self, device_id: int, output_number: int) -> NorthTrackerResponse:
         """Turn on a digital output."""

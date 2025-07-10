@@ -87,29 +87,29 @@
             "output_6": {
                 "name": "Output 6"
             },
+            "input_1": {
+                "name": "Alert Input 1"
+            },
+            "input_2": {
+                "name": "Alert Input 2"
+            },
+            "input_3": {
+                "name": "Alert Input 3"
+            },
+            "input_4": {
+                "name": "Alert Input 4"
+            },
+            "input_5": {
+                "name": "Alert Input 5"
+            },
+            "input_6": {
+                "name": "Alert Input 6"
+            },
             "alarm": {
                 "name": "Alarm"
             }
         },
         "binary_sensor": {
-            "input_1": {
-                "name": "Alert on Input 1"
-            },
-            "input_2": {
-                "name": "Alert on Input 2"
-            },
-            "input_3": {
-                "name": "Alert on Input 3"
-            },
-            "input_4": {
-                "name": "Alert on Input 4"
-            },
-            "input_5": {
-                "name": "Alert on Input 5"
-            },
-            "input_6": {
-                "name": "Alert on Input 6"
-            },
             "bluetooth": {
                 "name": "Bluetooth"
             }

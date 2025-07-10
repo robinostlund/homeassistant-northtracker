@@ -89,27 +89,27 @@
             },
             "alarm": {
                 "name": "Larm"
+            },
+            "input_1": {
+                "name": "Larma Ingång 1"
+            },
+            "input_2": {
+                "name": "Larma Ingång 2"
+            },
+            "input_3": {
+                "name": "Larma Ingång 3"
+            },
+            "input_4": {
+                "name": "Larma Ingång 4"
+            },
+            "input_5": {
+                "name": "Larma Ingång 5"
+            },
+            "input_6": {
+                "name": "Larma Ingång 6"
             }
         },
         "binary_sensor": {
-            "input_1": {
-                "name": "Larma på Ingång 1"
-            },
-            "input_2": {
-                "name": "Larma på Ingång 2"
-            },
-            "input_3": {
-                "name": "Larma på Ingång 3"
-            },
-            "input_4": {
-                "name": "Larma på Ingång 4"
-            },
-            "input_5": {
-                "name": "Larma på Ingång 5"
-            },
-            "input_6": {
-                "name": "Larma på Ingång 6"
-            },
             "bluetooth": {
                 "name": "Bluetooth"
             }
