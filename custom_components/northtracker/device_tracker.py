@@ -14,6 +14,13 @@ from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 
+# Device tracker entity description
+DEVICE_TRACKER_DESCRIPTION = TrackerEntityDescription(
+    key="location",
+    translation_key="location",
+    icon="mdi:crosshairs-gps",
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -30,7 +37,7 @@ async def async_setup_entry(
             if device_id not in added_devices:
                 LOGGER.debug("Discovering tracker for new device: %s (ID: %d)", device.name, device_id)
                 # Create a tracker for every device, it will just not have a state if no position is available
-                tracker_entity = NorthTrackerDeviceTracker(coordinator, device.id)
+                tracker_entity = NorthTrackerDeviceTracker(coordinator, device.id, DEVICE_TRACKER_DESCRIPTION)
                 new_entities.append(tracker_entity)
                 LOGGER.debug("Created device tracker for device %s", device.name)
                 added_devices.add(device_id)
@@ -48,16 +55,15 @@ async def async_setup_entry(
 class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
     """Defines a North-Tracker device tracker."""
 
-    # This tells the entity to use the "location" key from our translation files for its name.
-    _attr_translation_key = "location"
-
     def __init__(
         self,
         coordinator: NorthTrackerDataUpdateCoordinator,
         device_id: int,
+        description: TrackerEntityDescription,
     ) -> None:
         """Initialize the device tracker."""
         super().__init__(coordinator, device_id)
+        self.entity_description = description
         self._attr_unique_id = f"{self._device_id}_tracker"
 
     @property
