@@ -56,11 +56,15 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
     @property
     def latitude(self) -> float | None:
         """Return latitude value of the device."""
+        if not self.available:
+            return None
         return self.device.latitude
 
     @property
     def longitude(self) -> float | None:
         """Return longitude value of the device."""
+        if not self.available:
+            return None
         return self.device.longitude
 
     @property
@@ -71,13 +75,28 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
     @property
     def location_accuracy(self) -> int:
         """Return the location accuracy of the device."""
+        if not self.available:
+            return 0
         return self.device.gps_accuracy
 
     @property
     def extra_state_attributes(self) -> dict[str, any] | None:
         """Return extra state attributes."""
-        return {
-            "speed": self.device.speed,
-            "course": self.device.course,
-            "last_seen": self.device.last_seen,
-        }
+        if not self.available:
+            return None
+            
+        attributes = {}
+        
+        # Only include valid attributes
+        if self.device.speed is not None:
+            attributes["speed"] = self.device.speed
+        if self.device.course is not None:
+            attributes["course"] = self.device.course
+        if self.device.last_seen:
+            attributes["last_seen"] = self.device.last_seen
+        if self.device.has_position:
+            attributes["has_position"] = True
+            if self.device.gps_accuracy > 0:
+                attributes["gps_accuracy"] = self.device.gps_accuracy
+                
+        return attributes if attributes else None

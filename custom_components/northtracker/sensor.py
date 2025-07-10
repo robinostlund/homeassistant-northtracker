@@ -120,4 +120,27 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
     @property
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
-        return getattr(self.device, self.entity_description.key, None)
+        if not self.available:
+            return None
+            
+        value = getattr(self.device, self.entity_description.key, None)
+        
+        # Validate the value based on the sensor type
+        if value is None:
+            return None
+            
+        # Additional validation for specific sensor types
+        if self.entity_description.key == "battery_voltage" and isinstance(value, (int, float)):
+            # Battery voltage should be reasonable (0-50V for most vehicles)
+            if not (0 <= value <= 50):
+                return None
+        elif self.entity_description.key == "internal_battery" and isinstance(value, (int, float)):
+            # Battery percentage should be 0-100
+            if not (0 <= value <= 100):
+                return None
+        elif self.entity_description.key in ["gps_signal", "network_signal"] and isinstance(value, (int, float)):
+            # Signal strength should be 0-100 percent
+            if not (0 <= value <= 100):
+                return None
+                
+        return value

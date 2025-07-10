@@ -87,9 +87,16 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         output_number = output_map.get(self.entity_description.key)
 
         if output_number:
-            LOGGER.info("Turning ON output %d for device '%s'", output_number, self.device.name)
-            await self.device.tracker.output_turn_on(self.device.id, output_number)
-            await self.coordinator.async_request_refresh()
+            try:
+                LOGGER.info("Turning ON output %d for device '%s'", output_number, self.device.name)
+                resp = await self.device.tracker.output_turn_on(self.device.id, output_number)
+                if not resp.success:
+                    LOGGER.error("Failed to turn on output %d for device '%s'", output_number, self.device.name)
+                    # Just log the error and refresh - don't raise exception
+                await self.coordinator.async_request_refresh()
+            except Exception as err:
+                LOGGER.error("Error turning on output %d for device '%s': %s", output_number, self.device.name, err)
+                # Continue and refresh anyway - entity state will reflect actual state
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the switch."""
@@ -101,6 +108,13 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         output_number = output_map.get(self.entity_description.key)
         
         if output_number:
-            LOGGER.info("Turning OFF output %d for device '%s'", output_number, self.device.name)
-            await self.device.tracker.output_turn_off(self.device.id, output_number)
-            await self.coordinator.async_request_refresh()
+            try:
+                LOGGER.info("Turning OFF output %d for device '%s'", output_number, self.device.name)
+                resp = await self.device.tracker.output_turn_off(self.device.id, output_number)
+                if not resp.success:
+                    LOGGER.error("Failed to turn off output %d for device '%s'", output_number, self.device.name)
+                    # Just log the error and refresh - don't raise exception
+                await self.coordinator.async_request_refresh()
+            except Exception as err:
+                LOGGER.error("Error turning off output %d for device '%s': %s", output_number, self.device.name, err)
+                # Continue and refresh anyway - entity state will reflect actual state
