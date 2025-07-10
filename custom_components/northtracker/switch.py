@@ -40,11 +40,7 @@ SWITCH_DESCRIPTIONS: tuple[SwitchEntityDescription, ...] = (
 )
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the switch platform and discover new entities."""
     coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
@@ -70,12 +66,7 @@ async def async_setup_entry(
 class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
     """Defines a North-Tracker switch."""
 
-    def __init__(
-        self,
-        coordinator: NorthTrackerDataUpdateCoordinator,
-        device_id: int,
-        description: SwitchEntityDescription,
-    ) -> None:
+    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int, description: SwitchEntityDescription) -> None:
         """Initialize the switch."""
         super().__init__(coordinator, device_id)
         self.entity_description = description

@@ -28,11 +28,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
 )
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the binary sensor platform and discover new entities."""
     coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     added_devices = set()
@@ -56,12 +52,7 @@ async def async_setup_entry(
 class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
     """Defines a North-Tracker binary sensor."""
 
-    def __init__(
-        self,
-        coordinator: NorthTrackerDataUpdateCoordinator,
-        device_id: int,
-        description: BinarySensorEntityDescription,
-    ) -> None:
+    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int, description: BinarySensorEntityDescription) -> None:
         """Initialize the binary sensor."""
         super().__init__(coordinator, device_id)
         self.entity_description = description

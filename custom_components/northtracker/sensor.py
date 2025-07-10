@@ -42,7 +42,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key="odometer",
         translation_key="odometer",
-        state_class=SensorStateClass.MEASUREMENT,
+        state_class=SensorStateClass.TOTAL,
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
         icon="mdi:counter",
@@ -86,11 +86,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     ),
 )
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the sensor platform and discover new entities."""
     coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     
@@ -115,12 +111,7 @@ async def async_setup_entry(
 class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
     """Defines a North-Tracker sensor."""
 
-    def __init__(
-        self,
-        coordinator: NorthTrackerDataUpdateCoordinator,
-        device_id: int,
-        description: SensorEntityDescription,
-    ) -> None:
+    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int, description: SensorEntityDescription) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
