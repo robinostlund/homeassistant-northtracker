@@ -19,7 +19,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .const import DOMAIN
+from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 
@@ -94,15 +94,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     def discover_sensors() -> None:
         """Discover and add new sensors."""
+        LOGGER.debug("Starting sensor discovery, current devices: %d", len(coordinator.data))
         new_entities = []
         for device_id, device in coordinator.data.items():
             if device_id not in added_devices:
+                LOGGER.debug("Discovering sensors for new device: %s (ID: %d)", device.name, device_id)
                 for description in SENSOR_DESCRIPTIONS:
-                    new_entities.append(NorthTrackerSensor(coordinator, device.id, description))
+                    sensor_entity = NorthTrackerSensor(coordinator, device.id, description)
+                    new_entities.append(sensor_entity)
+                    LOGGER.debug("Created sensor: %s for device %s", description.key, device.name)
                 added_devices.add(device_id)
         
         if new_entities:
+            LOGGER.debug("Adding %d new sensor entities", len(new_entities))
             async_add_entities(new_entities)
+        else:
+            LOGGER.debug("No new sensor entities to add")
 
     entry.async_on_unload(coordinator.async_add_listener(discover_sensors))
     discover_sensors()
@@ -121,26 +128,33 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
         if not self.available:
+            LOGGER.debug("Sensor %s for device %s is not available", self.entity_description.key, self.device.name)
             return None
             
         value = getattr(self.device, self.entity_description.key, None)
+        LOGGER.debug("Sensor %s for device %s has raw value: %s", self.entity_description.key, self.device.name, value)
         
         # Validate the value based on the sensor type
         if value is None:
+            LOGGER.debug("Sensor %s for device %s has None value", self.entity_description.key, self.device.name)
             return None
             
         # Additional validation for specific sensor types
         if self.entity_description.key == "battery_voltage" and isinstance(value, (int, float)):
             # Battery voltage should be reasonable (0-50V for most vehicles)
             if not (0 <= value <= 50):
+                LOGGER.warning("Battery voltage out of range for device %s: %s", self.device.name, value)
                 return None
         elif self.entity_description.key == "internal_battery" and isinstance(value, (int, float)):
             # Battery percentage should be 0-100
             if not (0 <= value <= 100):
+                LOGGER.warning("Internal battery percentage out of range for device %s: %s", self.device.name, value)
                 return None
         elif self.entity_description.key in ["gps_signal", "network_signal"] and isinstance(value, (int, float)):
             # Signal strength should be 0-100 percent
             if not (0 <= value <= 100):
+                LOGGER.warning("Signal strength out of range for device %s (%s): %s", self.device.name, self.entity_description.key, value)
                 return None
-                
+        
+        LOGGER.debug("Sensor %s for device %s returning validated value: %s", self.entity_description.key, self.device.name, value)
         return value

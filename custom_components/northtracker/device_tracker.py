@@ -10,7 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 
@@ -24,15 +24,22 @@ async def async_setup_entry(
 
     def discover_trackers() -> None:
         """Discover and add new tracker entities."""
+        LOGGER.debug("Starting device tracker discovery, current devices: %d", len(coordinator.data))
         new_entities = []
         for device_id, device in coordinator.data.items():
             if device_id not in added_devices:
+                LOGGER.debug("Discovering tracker for new device: %s (ID: %d)", device.name, device_id)
                 # Create a tracker for every device, it will just not have a state if no position is available
-                new_entities.append(NorthTrackerDeviceTracker(coordinator, device.id))
+                tracker_entity = NorthTrackerDeviceTracker(coordinator, device.id)
+                new_entities.append(tracker_entity)
+                LOGGER.debug("Created device tracker for device %s", device.name)
                 added_devices.add(device_id)
 
         if new_entities:
+            LOGGER.debug("Adding %d new device tracker entities", len(new_entities))
             async_add_entities(new_entities)
+        else:
+            LOGGER.debug("No new device tracker entities to add")
 
     entry.async_on_unload(coordinator.async_add_listener(discover_trackers))
     discover_trackers()
@@ -57,15 +64,21 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
     def latitude(self) -> float | None:
         """Return latitude value of the device."""
         if not self.available:
+            LOGGER.debug("Device tracker for %s not available", self.device.name)
             return None
-        return self.device.latitude
+        lat = self.device.latitude
+        LOGGER.debug("Device tracker for %s latitude: %s", self.device.name, lat)
+        return lat
 
     @property
     def longitude(self) -> float | None:
         """Return longitude value of the device."""
         if not self.available:
+            LOGGER.debug("Device tracker for %s not available", self.device.name)
             return None
-        return self.device.longitude
+        lon = self.device.longitude
+        LOGGER.debug("Device tracker for %s longitude: %s", self.device.name, lon)
+        return lon
 
     @property
     def source_type(self) -> SourceType:
@@ -83,6 +96,7 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
     def extra_state_attributes(self) -> dict[str, any] | None:
         """Return extra state attributes."""
         if not self.available:
+            LOGGER.debug("Device tracker for %s not available, no attributes", self.device.name)
             return None
             
         attributes = {}
@@ -98,5 +112,6 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
             attributes["has_position"] = True
             if self.device.gps_accuracy > 0:
                 attributes["gps_accuracy"] = self.device.gps_accuracy
-                
+        
+        LOGGER.debug("Device tracker for %s attributes: %s", self.device.name, attributes)
         return attributes if attributes else None

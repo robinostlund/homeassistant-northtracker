@@ -10,7 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 
@@ -35,15 +35,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     def discover_binary_sensors() -> None:
         """Discover and add new binary sensors."""
+        LOGGER.debug("Starting binary sensor discovery, current devices: %d", len(coordinator.data))
         new_entities = []
         for device_id, device in coordinator.data.items():
             if device_id not in added_devices:
+                LOGGER.debug("Discovering binary sensors for new device: %s (ID: %d)", device.name, device_id)
                 for description in BINARY_SENSOR_DESCRIPTIONS:
-                    new_entities.append(NorthTrackerBinarySensor(coordinator, device.id, description))
+                    binary_sensor_entity = NorthTrackerBinarySensor(coordinator, device.id, description)
+                    new_entities.append(binary_sensor_entity)
+                    LOGGER.debug("Created binary sensor: %s for device %s", description.key, device.name)
                 added_devices.add(device_id)
 
         if new_entities:
+            LOGGER.debug("Adding %d new binary sensor entities", len(new_entities))
             async_add_entities(new_entities)
+        else:
+            LOGGER.debug("No new binary sensor entities to add")
 
     entry.async_on_unload(coordinator.async_add_listener(discover_binary_sensors))
     discover_binary_sensors()
