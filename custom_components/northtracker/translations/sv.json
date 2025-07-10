@@ -9,14 +9,38 @@
                     "password": "Lösenord",
                     "scan_interval": "Uppdateringsintervall (minuter)"
                 }
+            },
+            "reauth_confirm": {
+                "title": "Återautentisera North-Tracker",
+                "description": "Inloggningsuppgifterna för North-Tracker ({username}) behöver uppdateras. Vänligen ange dina nya inloggningsuppgifter.",
+                "data": {
+                    "username": "Användarnamn",
+                    "password": "Lösenord",
+                    "scan_interval": "Uppdateringsintervall (minuter)"
+                }
+            },
+            "reconfigure": {
+                "title": "Konfigurera om North-Tracker",
+                "description": "Uppdatera dina North-Tracker konfigurationsinställningar.",
+                "data": {
+                    "username": "Användarnamn",
+                    "password": "Lösenord",
+                    "scan_interval": "Uppdateringsintervall (minuter)"
+                }
             }
         },
         "error": {
             "cannot_connect": "Kunde inte ansluta till North-Tracker API. Kontrollera din nätverksanslutning.",
-            "invalid_auth": "Ogiltigt användarnamn eller lösenord. Vänligen försök igen."
+            "invalid_auth": "Ogiltigt användarnamn eller lösenord. Vänligen försök igen.",
+            "rate_limit": "Hastighetsgräns överskriden. Vänligen vänta några minuter och försök igen.",
+            "scan_interval_too_low": "Uppdateringsintervall måste vara minst 5 minuter.",
+            "scan_interval_too_high": "Uppdateringsintervall kan inte överstiga 24 timmar (1440 minuter).",
+            "scan_interval_invalid": "Uppdateringsintervall måste vara mellan 5 och 1440 minuter.",
+            "unknown": "Oväntat fel uppstod. Vänligen försök igen."
         },
         "abort": {
-            "already_configured": "Detta North-Tracker-konto är redan konfigurerat."
+            "already_configured": "Detta North-Tracker-konto är redan konfigurerat.",
+            "reauth_successful": "Återautentisering lyckades."
         }
     },
     "entity": {
@@ -53,16 +77,37 @@
             "output_3": {
                 "name": "Utgång 3"
             },
+            "output_4": {
+                "name": "Utgång 4"
+            },
+            "output_5": {
+                "name": "Utgång 5"
+            },
+            "output_6": {
+                "name": "Utgång 6"
+            },
             "alarm": {
                 "name": "Larm"
             }
         },
         "binary_sensor": {
+            "input_1": {
+                "name": "Ingång 1"
+            },
             "input_2": {
                 "name": "Ingång 2"
             },
             "input_3": {
                 "name": "Ingång 3"
+            },
+            "input_4": {
+                "name": "Ingång 4"
+            },
+            "input_5": {
+                "name": "Ingång 5"
+            },
+            "input_6": {
+                "name": "Ingång 6"
             }
         },
         "device_tracker": {

@@ -9,6 +9,24 @@
                     "password": "Password",
                     "scan_interval": "Update Interval (minutes)"
                 }
+            },
+            "reauth_confirm": {
+                "title": "Re-authenticate North-Tracker",
+                "description": "The credentials for North-Tracker ({username}) need to be updated. Please enter your new credentials.",
+                "data": {
+                    "username": "Username",
+                    "password": "Password",
+                    "scan_interval": "Update Interval (minutes)"
+                }
+            },
+            "reconfigure": {
+                "title": "Reconfigure North-Tracker",
+                "description": "Update your North-Tracker configuration settings.",
+                "data": {
+                    "username": "Username",
+                    "password": "Password",
+                    "scan_interval": "Update Interval (minutes)"
+                }
             }
         },
         "error": {
@@ -17,10 +35,12 @@
             "rate_limit": "Rate limit exceeded. Please wait a few minutes and try again.",
             "scan_interval_too_low": "Update interval must be at least 5 minutes.",
             "scan_interval_too_high": "Update interval cannot exceed 24 hours (1440 minutes).",
+            "scan_interval_invalid": "Update interval must be between 5 and 1440 minutes.",
             "unknown": "Unexpected error occurred. Please try again."
         },
         "abort": {
-            "already_configured": "This North-Tracker account is already configured."
+            "already_configured": "This North-Tracker account is already configured.",
+            "reauth_successful": "Re-authentication was successful."
         }
     },
     "entity": {

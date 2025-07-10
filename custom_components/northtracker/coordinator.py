@@ -10,6 +10,7 @@ from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .api import NorthTracker, NorthTrackerDevice, APIError, AuthenticationError, RateLimitError
 from .const import DOMAIN, LOGGER, DEFAULT_UPDATE_INTERVAL
@@ -52,7 +53,7 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                     self.config_entry.data[CONF_PASSWORD]
                 )
             else:
-                LOGGER.debug("Using existing token for API calls")
+                LOGGER.debug("Using existing token (expires: %s)", self.api._token_expires)
 
             # 1. Get the base list of all devices
             LOGGER.debug("Fetching all units details from API")
@@ -132,7 +133,9 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
 
         except AuthenticationError as err:
             LOGGER.error("Authentication failed: %s", err)
-            raise UpdateFailed(f"Authentication failed: {err}") from err
+            # Trigger reauth flow
+            self.config_entry.async_start_reauth(self.hass)
+            raise ConfigEntryAuthFailed(f"Authentication failed: {err}") from err
         except RateLimitError as err:
             LOGGER.warning("Rate limit exceeded: %s", err)
             raise UpdateFailed(f"Rate limit exceeded: {err}") from err

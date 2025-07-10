@@ -101,10 +101,16 @@ class NorthTracker:
         try:
             headers = self.http_headers.copy()
             if self._token:
-                headers["Authorization"] = f"Bearer {self._token[:10]}..."
+                headers["Authorization"] = f"Bearer {self._token}"
                 LOGGER.debug("Using authentication token (preview: %s...)", self._token[:10])
             else:
                 LOGGER.debug("No authentication token available")
+
+            # Debug: Log all headers being sent (but mask authorization)
+            debug_headers = headers.copy()
+            if "Authorization" in debug_headers:
+                debug_headers["Authorization"] = f"Bearer {self._token[:10]}..." if self._token else "None"
+            LOGGER.debug("Request headers: %s", debug_headers)
 
             timeout = aiohttp.ClientTimeout(total=30)
             
@@ -189,19 +195,33 @@ class NorthTracker:
         payload = {"username": username, "password": password, "remember_me": False, "subsiteid": 0}
         
         try:
-            resp = await self._request("POST", url, payload)
-            if resp.success:
-                self._token = resp.data.get('user', {}).get('token', '')
-                # Set token expiration to 23 hours from now (assuming 24h validity)
-                self._token_expires = datetime.now() + timedelta(hours=23)
-                LOGGER.debug("Successfully authenticated, token expires at %s", self._token_expires)
-                LOGGER.debug("Token preview: %s...", self._token[:10] if self._token else "empty")
-            else:
-                LOGGER.error("Login failed: API returned success=False")
-                raise AuthenticationError("Login failed: Invalid response from server")
+            # Make login request without authentication (bypass _get_data/_post_data)
+            timeout = aiohttp.ClientTimeout(total=30)
+            async with self.session.post(url, json=payload, headers=self.http_headers, timeout=timeout) as response:
+                await self._update_rate_limits(response)
+                LOGGER.debug("Login response: status=%d, content-type=%s", 
+                           response.status, response.headers.get('Content-Type'))
+                
+                response.raise_for_status()
+                response_data = await response.json()
+                resp = NorthTrackerResponse(response_data)
+                
+                if resp.success:
+                    self._token = resp.data.get('user', {}).get('token', '')
+                    # Set token expiration to 23 hours from now (assuming 24h validity)
+                    self._token_expires = datetime.now() + timedelta(hours=23)
+                    LOGGER.debug("Successfully authenticated, token expires at %s", self._token_expires)
+                    LOGGER.debug("Token preview: %s...", self._token[:10] if self._token else "empty")
+                else:
+                    LOGGER.error("Login failed: API returned success=False")
+                    raise AuthenticationError("Login failed: Invalid response from server")
+                    
+        except aiohttp.ClientError as err:
+            LOGGER.error("Login failed with client error: %s", err)
+            raise AuthenticationError(f"Login failed: {err}") from err
         except Exception as err:
             LOGGER.error("Login failed with error: %s", err)
-            if isinstance(err, (AuthenticationError, APIError, RateLimitError)):
+            if isinstance(err, AuthenticationError):
                 raise
             raise AuthenticationError(f"Login failed: {err}") from err
 
