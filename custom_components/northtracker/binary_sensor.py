@@ -28,7 +28,7 @@ STATIC_BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(
         key="bluetooth_enabled",
         translation_key="bluetooth",
-        device_class=BinarySensorDeviceClass.CONNECTIVITY,
+        # device_class=BinarySensorDeviceClass.CONNECTIVITY,
         icon="mdi:bluetooth",
     ),
 )
@@ -52,9 +52,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                     description = BinarySensorEntityDescription(
                         key=f"input_status_{input_num}",
                         translation_key=f"input_{input_num}",
-                        device_class=BinarySensorDeviceClass.RUNNING,
+                        # device_class=BinarySensorDeviceClass.RUNNING,
                         name=f"Input {input_num}",
-                        #icon="mdi:monitor"
+                        icon="mdi:electric-switch"
                     )
                     binary_sensor_entity = NorthTrackerBinarySensor(coordinator, device.id, description, input_num)
                     new_entities.append(binary_sensor_entity)
