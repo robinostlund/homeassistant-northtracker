@@ -1,10 +1,7 @@
 {
     "name": "North-Tracker",
     "content_in_root": false,
-    "domains": [
-        "sensor",
-        "switch"
-    ],
+    "homeassistant": "2025.5.0",
     "zip_release": false,
     "filename": "",
     "issues": "https://github.com/robinostlund/homeassistant-northtracker/issues"
