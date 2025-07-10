@@ -344,6 +344,13 @@ class NorthTrackerDevice:
         self._device_lock_data: dict[str, Any] = {}
         self._device_gps_data: dict[str, Any] = {}
         self._last_update: datetime | None = None
+        
+        # Dynamically discover digital inputs and outputs
+        self._available_inputs = self._discover_digital_inputs()
+        self._available_outputs = self._discover_digital_outputs()
+        
+        LOGGER.debug("Device %s discovered capabilities: %d inputs, %d outputs", 
+                    self.name, len(self._available_inputs), len(self._available_outputs))
 
     async def async_update(self) -> None:
         """Update device with latest information from the API."""
@@ -380,6 +387,40 @@ class NorthTrackerDevice:
                     self.name, gps_data.get("HasPosition"), 
                     gps_data.get("Latitude"), gps_data.get("Longitude"))
         self._device_gps_data = gps_data
+
+    def _discover_digital_inputs(self) -> list[int]:
+        """Discover available digital inputs based on device data."""
+        inputs = []
+        # Check for digital input status fields in the device data
+        for key, value in self._device_data.items():
+            if key.startswith("Din") and key.endswith("Status"):
+                try:
+                    # Extract input number from key like "Din2Status", "Din3Status", etc.
+                    input_num = int(key[3:-6])  # Remove "Din" prefix and "Status" suffix
+                    inputs.append(input_num)
+                    LOGGER.debug("Found digital input %d for device %s (status: %s)", 
+                               input_num, self.name, value)
+                except ValueError:
+                    LOGGER.warning("Could not parse input number from key: %s", key)
+        
+        return sorted(inputs)
+    
+    def _discover_digital_outputs(self) -> list[int]:
+        """Discover available digital outputs based on device data."""
+        outputs = []
+        # Check for digital output status fields in the device data
+        for key, value in self._device_data.items():
+            if key.startswith("Dout") and key.endswith("Status"):
+                try:
+                    # Extract output number from key like "Dout1Status", "Dout2Status", etc.
+                    output_num = int(key[4:-6])  # Remove "Dout" prefix and "Status" suffix
+                    outputs.append(output_num)
+                    LOGGER.debug("Found digital output %d for device %s (status: %s)", 
+                               output_num, self.name, value)
+                except ValueError:
+                    LOGGER.warning("Could not parse output number from key: %s", key)
+        
+        return sorted(outputs)
 
     @property
     def available(self) -> bool:
@@ -464,30 +505,51 @@ class NorthTrackerDevice:
             LOGGER.warning("Invalid report frequency value")
             return 0
     
+    def get_input_status(self, input_number: int) -> bool:
+        """Return the state of a specific digital input."""
+        if input_number not in self._available_inputs:
+            LOGGER.warning("Input %d not available on device %s", input_number, self.name)
+            return False
+        
+        key = f"Din{input_number}Status"
+        status = self._device_data.get(key, "Off")
+        return status == "On"
+    
+    def get_output_status(self, output_number: int) -> bool:
+        """Return the state of a specific digital output."""
+        if output_number not in self._available_outputs:
+            LOGGER.warning("Output %d not available on device %s", output_number, self.name)
+            return False
+        
+        key = f"Dout{output_number}Status"
+        status = self._device_data.get(key, "Off")
+        return status == "On"
+
+    # Keep the legacy properties for backward compatibility
     @property
     def input_status_2(self) -> bool:
         """Return the state of digital input 2."""
-        return self._device_data.get("Din2Status") == "On"
+        return self.get_input_status(2)
 
     @property
     def input_status_3(self) -> bool:
         """Return the state of digital input 3."""
-        return self._device_data.get("Din3Status") == "On"
+        return self.get_input_status(3)
 
     @property
     def output_status_1(self) -> bool:
         """Return the state of digital output 1."""
-        return self._device_data.get("Dout1Status") == "On"
+        return self.get_output_status(1)
 
     @property
     def output_status_2(self) -> bool:
         """Return the state of digital output 2."""
-        return self._device_data.get("Dout2Status") == "On"
+        return self.get_output_status(2)
 
     @property
     def output_status_3(self) -> bool:
         """Return the state of digital output 3."""
-        return self._device_data.get("Dout3Status") == "On"
+        return self.get_output_status(3)
     
     @property
     def has_position(self) -> bool:

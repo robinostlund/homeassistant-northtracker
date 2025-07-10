@@ -14,15 +14,11 @@ from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 
-BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
+# Base binary sensor descriptions - these will be used as templates
+BINARY_SENSOR_TEMPLATES: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(
-        key="input_status_2",
-        translation_key="input_2",
-        device_class=BinarySensorDeviceClass.SAFETY,
-    ),
-    BinarySensorEntityDescription(
-        key="input_status_3",
-        translation_key="input_3",
+        key="input_status",
+        translation_key="input",
         device_class=BinarySensorDeviceClass.SAFETY,
     ),
 )
@@ -40,10 +36,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         for device_id, device in coordinator.data.items():
             if device_id not in added_devices:
                 LOGGER.debug("Discovering binary sensors for new device: %s (ID: %d)", device.name, device_id)
-                for description in BINARY_SENSOR_DESCRIPTIONS:
-                    binary_sensor_entity = NorthTrackerBinarySensor(coordinator, device.id, description)
+                
+                # Create binary sensors for each available digital input
+                for input_num in device.available_inputs:
+                    description = BinarySensorEntityDescription(
+                        key=f"input_status_{input_num}",
+                        translation_key=f"input_{input_num}",
+                        device_class=BinarySensorDeviceClass.SAFETY,
+                        name=f"Input {input_num}",
+                    )
+                    binary_sensor_entity = NorthTrackerBinarySensor(coordinator, device.id, description, input_num)
                     new_entities.append(binary_sensor_entity)
-                    LOGGER.debug("Created binary sensor: %s for device %s", description.key, device.name)
+                    LOGGER.debug("Created binary sensor for input %d on device %s", input_num, device.name)
+                
                 added_devices.add(device_id)
 
         if new_entities:
@@ -59,13 +64,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
     """Defines a North-Tracker binary sensor."""
 
-    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int, description: BinarySensorEntityDescription) -> None:
+    def __init__(
+        self, 
+        coordinator: NorthTrackerDataUpdateCoordinator, 
+        device_id: int, 
+        description: BinarySensorEntityDescription,
+        input_number: int | None = None
+    ) -> None:
         """Initialize the binary sensor."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
+        self._input_number = input_number
         self._attr_unique_id = f"{self._device_id}_{description.key}"
 
     @property
     def is_on(self) -> bool | None:
         """Return the state of the binary sensor."""
-        return getattr(self.device, self.entity_description.key)
+        if self._input_number is not None:
+            # Dynamic input sensor
+            return self.device.get_input_status(self._input_number)
+        else:
+            # Legacy property-based sensor
+            return getattr(self.device, self.entity_description.key, None)

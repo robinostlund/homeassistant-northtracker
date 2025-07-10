@@ -72,6 +72,11 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
             # Create device objects from the base details
             devices = {unit_data['ID']: NorthTrackerDevice(self.api, unit_data) for unit_data in units}
             LOGGER.debug("Created %d device objects", len(devices))
+            
+            # Log device capabilities for debugging
+            for device in devices.values():
+                LOGGER.debug("Device %s capabilities: inputs=%s, outputs=%s", 
+                           device.name, device.available_inputs, device.available_outputs)
 
             # 2. Get real-time location data
             try:
