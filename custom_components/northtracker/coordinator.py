@@ -51,11 +51,21 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
         LOGGER.info("North-Tracker coordinator initialized with a %d minute update interval.", update_interval_minutes)
 
         super().__init__(hass, LOGGER, name=DOMAIN, update_interval=update_interval)
+        
+        # Track devices that have actually changed data to avoid unnecessary entity updates
+        self._devices_with_changes: set[int] = set()
+
+    def device_has_changes(self, device_id: int) -> bool:
+        """Check if a device has changes that require entity updates."""
+        return device_id in self._devices_with_changes
 
     async def _async_update_data(self) -> dict[int, NorthTrackerDevice]:
         """Fetch data from API endpoint."""
         start_time = datetime.now()
         LOGGER.debug("Starting coordinator data update")
+        
+        # Reset the devices with changes set at the start of each update
+        self._devices_with_changes.clear()
         
         # Debug: Log config entry data to understand the structure
         LOGGER.debug("Config entry data keys: %s", list(self.config_entry.data.keys()))
@@ -127,8 +137,12 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                     for gps_data in gps_data_list:
                         device_id = gps_data.get("TrackerID")
                         if device_id in devices:
-                            devices[device_id].update_gps_data(gps_data)
-                            LOGGER.debug("Updated GPS data for device ID %d", device_id)
+                            # Track if GPS data actually changed
+                            if devices[device_id].update_gps_data(gps_data):
+                                self._devices_with_changes.add(device_id)
+                                LOGGER.debug("GPS data changed for device ID %d", device_id)
+                            else:
+                                LOGGER.debug("GPS data unchanged for device ID %d", device_id)
                         else:
                             LOGGER.warning("Received GPS data for unknown device ID %d", device_id)
                 else:
@@ -141,8 +155,12 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
             async def update_device_details(device: NorthTrackerDevice) -> None:
                 """Update a single device's details."""
                 try:
-                    await device.async_update()
-                    LOGGER.debug("Successfully updated details for device %s", device.name)
+                    # Track if device data actually changed
+                    if await device.async_update():
+                        self._devices_with_changes.add(device.id)
+                        LOGGER.debug("Device details changed for device %s", device.name)
+                    else:
+                        LOGGER.debug("Device details unchanged for device %s", device.name)
                 except Exception as err:
                     LOGGER.warning("Failed to update details for device %s: %s", device.name, err)
                     # Continue with other devices even if one fails
@@ -164,6 +182,12 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
             LOGGER.debug("Successfully updated %d devices in %.2f seconds", len(devices), duration)
+            
+            # Log summary of devices with changes
+            if self._devices_with_changes:
+                LOGGER.debug("Devices with data changes: %s", list(self._devices_with_changes))
+            else:
+                LOGGER.debug("No devices had data changes - entity updates will be skipped")
             
             return devices
 

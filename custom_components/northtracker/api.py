@@ -372,16 +372,26 @@ class NorthTrackerDevice:
         LOGGER.debug("Device %s discovered capabilities: %d inputs, %d outputs", 
                     self.name, len(self._available_inputs), len(self._available_outputs))
 
-    async def async_update(self) -> None:
-        """Update device with latest information from the API."""
+    async def async_update(self) -> bool:
+        """Update device with latest information from the API.
+        
+        Returns True if device data has actually changed, False otherwise.
+        """
         LOGGER.debug("Updating device %s (ID: %d)", self.name, self.id)
+        data_changed = False
+        
         try:
             # Get detailed device information
             LOGGER.debug("Fetching device details for %s", self.name)
             resp_details = await self.tracker.get_unit_details(self.id, self.device_type)
             if resp_details.success:
-                self._device_data_extra = resp_details.data
-                LOGGER.debug("Device details updated for %s, keys: %s", self.name, list(resp_details.data.keys()))
+                # Check if device data has changed
+                if self._device_data_extra != resp_details.data:
+                    LOGGER.debug("Device details changed for %s", self.name)
+                    self._device_data_extra = resp_details.data
+                    data_changed = True
+                else:
+                    LOGGER.debug("Device details unchanged for %s", self.name)
             else:
                 LOGGER.warning("Failed to fetch device details for %s", self.name)
 
@@ -389,24 +399,43 @@ class NorthTrackerDevice:
             LOGGER.debug("Fetching lock status for %s", self.name)
             resp_lock = await self.tracker.get_unit_lock_status(self.id)
             if resp_lock.success:
-                self._device_lock_data = resp_lock.data
-                LOGGER.debug("Lock status updated for %s: %s", self.name, resp_lock.data)
+                # Check if lock data has changed
+                if self._device_lock_data != resp_lock.data:
+                    LOGGER.debug("Lock status changed for %s", self.name)
+                    self._device_lock_data = resp_lock.data
+                    data_changed = True
+                else:
+                    LOGGER.debug("Lock status unchanged for %s", self.name)
             else:
                 LOGGER.warning("Failed to fetch lock status for %s", self.name)
                 
             self._last_update = datetime.now()
-            LOGGER.debug("Device %s update completed at %s", self.name, self._last_update)
+            if data_changed:
+                LOGGER.debug("Device %s data changed, update completed at %s", self.name, self._last_update)
+            else:
+                LOGGER.debug("Device %s data unchanged, update completed at %s", self.name, self._last_update)
+            
+            return data_changed
             
         except Exception as err:
             LOGGER.error("Error updating device %s: %s", self.name, err)
             raise
 
-    def update_gps_data(self, gps_data: dict[str, Any]) -> None:
-        """Update the device with real-time location data."""
-        LOGGER.debug("Updating GPS data for device %s: has_position=%s, lat=%s, lon=%s", 
+    def update_gps_data(self, gps_data: dict[str, Any]) -> bool:
+        """Update the device with real-time location data.
+        
+        Returns True if the GPS data has actually changed, False otherwise.
+        """
+        # Compare with previous GPS data to detect changes
+        if self._device_gps_data == gps_data:
+            LOGGER.debug("GPS data unchanged for device %s", self.name)
+            return False
+            
+        LOGGER.debug("GPS data changed for device %s: has_position=%s, lat=%s, lon=%s", 
                     self.name, gps_data.get("HasPosition"), 
                     gps_data.get("Latitude"), gps_data.get("Longitude"))
         self._device_gps_data = gps_data
+        return True
 
     def _discover_digital_inputs(self) -> list[int]:
         """Discover available digital inputs based on device data."""

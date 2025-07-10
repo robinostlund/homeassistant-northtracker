@@ -80,9 +80,16 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """Return the state of the binary sensor."""
+        if not self.available:
+            LOGGER.debug("Binary sensor %s for device %s is not available", self.entity_description.key, self.device.name)
+            return None
+            
         if self._input_number is not None:
             # Dynamic input sensor
-            return self.device.get_input_status(self._input_number)
+            state = self.device.get_input_status(self._input_number)
         else:
             # Legacy property-based sensor
-            return getattr(self.device, self.entity_description.key, None)
+            state = getattr(self.device, self.entity_description.key, None)
+            
+        LOGGER.debug("Binary sensor %s for device %s has state: %s", self.entity_description.key, self.device.name, state)
+        return state

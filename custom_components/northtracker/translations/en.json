@@ -116,5 +116,12 @@
                 "name": "Location"
             }
         }
+    },
+    "state": {
+        "device_tracker": {
+            "unknown": "Unknown location",
+            "offline": "Device offline",
+            "unavailable": "Unavailable"
+        }
     }
 }

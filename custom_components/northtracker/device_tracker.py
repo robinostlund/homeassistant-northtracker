@@ -66,7 +66,17 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         if not self.available:
             LOGGER.debug("Device tracker for %s not available", self.device.name)
             return None
+            
+        # Only return latitude if we have a valid position
+        if not self.device.has_position:
+            LOGGER.debug("Device tracker for %s has no valid position", self.device.name)
+            return None
+            
         lat = self.device.latitude
+        if lat is None:
+            LOGGER.debug("Device tracker for %s latitude is None", self.device.name)
+            return None
+            
         LOGGER.debug("Device tracker for %s latitude: %s", self.device.name, lat)
         return lat
 
@@ -76,9 +86,35 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         if not self.available:
             LOGGER.debug("Device tracker for %s not available", self.device.name)
             return None
+            
+        # Only return longitude if we have a valid position
+        if not self.device.has_position:
+            LOGGER.debug("Device tracker for %s has no valid position", self.device.name)
+            return None
+            
         lon = self.device.longitude
+        if lon is None:
+            LOGGER.debug("Device tracker for %s longitude is None", self.device.name)
+            return None
+            
         LOGGER.debug("Device tracker for %s longitude: %s", self.device.name, lon)
         return lon
+
+    @property
+    def location_name(self) -> str | None:
+        """Return location name when GPS coordinates are not available."""
+        if not self.available:
+            return "unavailable"
+            
+        # If we have valid GPS coordinates, don't set location_name (let HA use coordinates)
+        if self.device.has_position and self.device.latitude is not None and self.device.longitude is not None:
+            return None
+            
+        # Return a meaningful state when location is not available
+        if self.device.last_seen:
+            return "unknown"
+        else:
+            return "offline"
 
     @property
     def source_type(self) -> SourceType:
@@ -88,7 +124,7 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
     @property
     def location_accuracy(self) -> int:
         """Return the location accuracy of the device."""
-        if not self.available:
+        if not self.available or not self.device.has_position:
             return 0
         return self.device.gps_accuracy
 
@@ -101,6 +137,9 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
             
         attributes = {}
         
+        # Always include position status
+        attributes["has_position"] = self.device.has_position
+        
         # Only include valid attributes
         if self.device.speed is not None:
             attributes["speed"] = self.device.speed
@@ -108,10 +147,35 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
             attributes["course"] = self.device.course
         if self.device.last_seen:
             attributes["last_seen"] = self.device.last_seen
-        if self.device.has_position:
-            attributes["has_position"] = True
-            if self.device.gps_accuracy > 0:
-                attributes["gps_accuracy"] = self.device.gps_accuracy
+            
+        # Include GPS accuracy only if we have a position
+        if self.device.has_position and self.device.gps_accuracy > 0:
+            attributes["gps_accuracy"] = self.device.gps_accuracy
+            
+        # Add location status for debugging
+        if not self.device.has_position:
+            if self.device.last_seen:
+                attributes["location_status"] = "no_gps_fix"
+            else:
+                attributes["location_status"] = "offline"
+        else:
+            attributes["location_status"] = "active"
         
         LOGGER.debug("Device tracker for %s attributes: %s", self.device.name, attributes)
         return attributes if attributes else None
+
+    @property
+    def should_poll(self) -> bool:
+        """Return False as we use coordinator for updates."""
+        return False
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        # Only trigger update if this device has actual data changes
+        if self.coordinator.device_has_changes(self._device_id):
+            LOGGER.debug("Updating device tracker for %s due to data changes detected by coordinator", 
+                        self.device.name if self.available else self._device_id)
+            super()._handle_coordinator_update()
+        else:
+            LOGGER.debug("Skipping device tracker update for %s - no data changes detected by coordinator", 
+                        self.device.name if self.available else self._device_id)
