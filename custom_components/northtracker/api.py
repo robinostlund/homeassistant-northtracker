@@ -594,32 +594,6 @@ class NorthTrackerDevice:
         key = f"Dout{output_number}Status"
         status = self._device_data.get(key, "Off")
         return status == "On"
-
-    # Keep the legacy properties for backward compatibility
-    @property
-    def input_status_2(self) -> bool:
-        """Return the state of digital input 2."""
-        return self.get_input_status(2)
-
-    @property
-    def input_status_3(self) -> bool:
-        """Return the state of digital input 3."""
-        return self.get_input_status(3)
-
-    @property
-    def output_status_1(self) -> bool:
-        """Return the state of digital output 1."""
-        return self.get_output_status(1)
-
-    @property
-    def output_status_2(self) -> bool:
-        """Return the state of digital output 2."""
-        return self.get_output_status(2)
-
-    @property
-    def output_status_3(self) -> bool:
-        """Return the state of digital output 3."""
-        return self.get_output_status(3)
     
     @property
     def has_position(self) -> bool:
