@@ -33,14 +33,15 @@
             "cannot_connect": "Failed to connect to the North-Tracker API. Please check your network connection.",
             "invalid_auth": "Invalid username or password. Please try again.",
             "rate_limit": "Rate limit exceeded. Please wait a few minutes and try again.",
-            "scan_interval_too_low": "Update interval must be at least 1 minutes.",
+            "scan_interval_too_low": "Update interval must be at least 1 minute.",
             "scan_interval_too_high": "Update interval cannot exceed 24 hours (1440 minutes).",
             "scan_interval_invalid": "Update interval must be between 1 and 1440 minutes.",
             "unknown": "Unexpected error occurred. Please try again."
         },
         "abort": {
             "already_configured": "This North-Tracker account is already configured.",
-            "reauth_successful": "Re-authentication was successful."
+            "reauth_successful": "Re-authentication was successful.",
+            "reconfigure_successful": "Reconfiguration was successful."
         }
     },
     "entity": {

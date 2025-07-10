@@ -13,7 +13,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .api import NorthTracker, NorthTrackerDevice, APIError, AuthenticationError, RateLimitError
-from .const import DOMAIN, LOGGER, DEFAULT_UPDATE_INTERVAL
+from .const import DOMAIN, LOGGER, DEFAULT_UPDATE_INTERVAL, MIN_UPDATE_INTERVAL, MAX_UPDATE_INTERVAL
 
 
 class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTrackerDevice]]):
@@ -24,14 +24,27 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
         self.api = NorthTracker(async_get_clientsession(hass))
         self.config_entry = entry
         
+        # Validate config entry has required data
+        if not entry.data:
+            LOGGER.error("Config entry has no data - this indicates a corrupted configuration")
+            raise ValueError("Invalid config entry: no data found")
+            
+        # Check for required credentials
+        has_username = CONF_USERNAME in entry.data or "username" in entry.data or "user" in entry.data
+        has_password = CONF_PASSWORD in entry.data or "password" in entry.data
+        
+        if not has_username or not has_password:
+            LOGGER.error("Config entry missing required credentials. Available keys: %s", list(entry.data.keys()))
+            raise ValueError("Invalid config entry: missing credentials")
+        
         # Validate and set update interval
         update_interval_minutes = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL)
-        if update_interval_minutes < 5:
-            LOGGER.warning("Update interval too low (%d), setting to minimum of 5 minutes", update_interval_minutes)
-            update_interval_minutes = 5
-        elif update_interval_minutes > 1440:
-            LOGGER.warning("Update interval too high (%d), setting to maximum of 1440 minutes", update_interval_minutes)
-            update_interval_minutes = 1440
+        if update_interval_minutes < MIN_UPDATE_INTERVAL:
+            LOGGER.warning("Update interval too low (%d), setting to minimum of %d minutes", update_interval_minutes, MIN_UPDATE_INTERVAL)
+            update_interval_minutes = MIN_UPDATE_INTERVAL
+        elif update_interval_minutes > MAX_UPDATE_INTERVAL:
+            LOGGER.warning("Update interval too high (%d), setting to maximum of %d minutes", update_interval_minutes, MAX_UPDATE_INTERVAL)
+            update_interval_minutes = MAX_UPDATE_INTERVAL
             
         update_interval = timedelta(minutes=update_interval_minutes)
         

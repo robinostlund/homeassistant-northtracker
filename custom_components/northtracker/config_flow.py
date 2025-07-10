@@ -198,7 +198,7 @@ class NorthTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 # Reload the integration
                 await self.hass.config_entries.async_reload(entry.entry_id)
                 
-                return self.async_create_entry(title="", data={})
+                return self.async_abort(reason="reconfigure_successful")
                 
             except AuthenticationError:
                 LOGGER.warning("Reconfigure failed for %s: Invalid credentials", user_input[CONF_USERNAME])

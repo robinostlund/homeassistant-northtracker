@@ -13,6 +13,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     LOGGER.debug("Setting up North-Tracker integration for entry: %s", entry.title)
     LOGGER.debug("Config entry data keys: %s", list(entry.data.keys()))
     
+    # Check for empty/corrupted config entries
+    if not entry.data:
+        LOGGER.error("Config entry %s has no data - likely corrupted from failed reconfigure", entry.entry_id)
+        return False
+    
     coordinator = NorthTrackerDataUpdateCoordinator(hass, entry)
     
     try:
