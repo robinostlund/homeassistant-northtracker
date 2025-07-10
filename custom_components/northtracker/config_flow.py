@@ -116,10 +116,14 @@ class NorthTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     new_data[CONF_SCAN_INTERVAL] = user_input[CONF_SCAN_INTERVAL]
                 
                 LOGGER.debug("Updating config entry with new credentials")
+                LOGGER.debug("New data keys: %s", list(new_data.keys()))
+                LOGGER.debug("New data: %s", {k: "***" if "password" in k.lower() else v for k, v in new_data.items()})
+                
                 self.hass.config_entries.async_update_entry(
                     self.reauth_entry, data=new_data, title=user_input[CONF_USERNAME]
                 )
                 
+                LOGGER.debug("Config entry updated via reauth, reloading integration")
                 # Reload the integration to use new credentials
                 await self.hass.config_entries.async_reload(self.reauth_entry.entry_id)
                 
@@ -181,12 +185,16 @@ class NorthTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 
                 # Update the entry
                 LOGGER.debug("Updating config entry with reconfigured settings")
+                LOGGER.debug("User input keys: %s", list(user_input.keys()))
+                LOGGER.debug("User input data: %s", {k: "***" if "password" in k.lower() else v for k, v in user_input.items()})
+                
                 self.hass.config_entries.async_update_entry(
                     entry,
                     data=user_input,
                     title=user_input[CONF_USERNAME]
                 )
                 
+                LOGGER.debug("Config entry updated, reloading integration")
                 # Reload the integration
                 await self.hass.config_entries.async_reload(entry.entry_id)
                 

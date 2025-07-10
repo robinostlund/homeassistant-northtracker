@@ -41,17 +41,40 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
 
     async def _async_update_data(self) -> dict[int, NorthTrackerDevice]:
         """Fetch data from API endpoint."""
-        LOGGER.debug("Starting coordinator data update")
         start_time = datetime.now()
+        LOGGER.debug("Starting coordinator data update")
+        
+        # Debug: Log config entry data to understand the structure
+        LOGGER.debug("Config entry data keys: %s", list(self.config_entry.data.keys()))
+        LOGGER.debug("Config entry data: %s", {k: "***" if "password" in k.lower() else v for k, v in self.config_entry.data.items()})
         
         try:
             # Authenticate only when needed (token management is handled in API class)
             if not self.api._token:
                 LOGGER.debug("No token available, performing initial authentication")
-                await self.api.login(
-                    self.config_entry.data[CONF_USERNAME],
-                    self.config_entry.data[CONF_PASSWORD]
-                )
+                
+                # Handle potential key name variations
+                username = None
+                password = None
+                
+                # Try Home Assistant standard constants first
+                if CONF_USERNAME in self.config_entry.data:
+                    username = self.config_entry.data[CONF_USERNAME]
+                    password = self.config_entry.data[CONF_PASSWORD]
+                # Fallback to potential alternative key names
+                elif "username" in self.config_entry.data:
+                    username = self.config_entry.data["username"]
+                    password = self.config_entry.data["password"]
+                elif "user" in self.config_entry.data:
+                    username = self.config_entry.data["user"]
+                    password = self.config_entry.data["password"]
+                
+                if not username or not password:
+                    LOGGER.error("Unable to find username/password in config entry. Available keys: %s", list(self.config_entry.data.keys()))
+                    raise UpdateFailed("Configuration error: missing credentials")
+                
+                LOGGER.debug("Found credentials, username: %s", username)
+                await self.api.login(username, password)
             else:
                 LOGGER.debug("Using existing token (expires: %s)", self.api._token_expires)
 
