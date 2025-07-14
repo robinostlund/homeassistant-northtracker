@@ -113,39 +113,49 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         if self._pending_state is not None:
             return self._pending_state
             
+        device = self.device
+        if device is None:
+            LOGGER.warning("Switch %s device is None, returning False", self.entity_description.key)
+            return False
+            
         if self._output_number is not None:
             # Dynamic output switch
-            return self.device.get_output_status(self._output_number)
+            return device.get_output_status(self._output_number)
         elif self._input_number is not None:
             # Dynamic input switch (alert status)
-            return self.device.get_input_status(self._input_number)
+            return device.get_input_status(self._input_number)
         else:
             # Legacy property-based switch (like alarm)
-            return getattr(self.device, self.entity_description.key, False)
+            return getattr(device, self.entity_description.key, False)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the switch."""
-        LOGGER.debug("Attempting to turn ON switch %s for device %s", self.entity_description.key, self.device.name)
+        device = self.device
+        if device is None:
+            LOGGER.error("Cannot turn on switch %s: device is None", self.entity_description.key)
+            return
+            
+        LOGGER.debug("Attempting to turn ON switch %s for device %s", self.entity_description.key, device.name)
         
         if self._output_number is not None:
             # Dynamic output switch
             try:
-                LOGGER.info("Turning ON output %d for device '%s'", self._output_number, self.device.name)
+                LOGGER.info("Turning ON output %d for device '%s'", self._output_number, device.name)
                 # Set pending state for immediate UI feedback
                 self._pending_state = True
                 self.async_write_ha_state()
                 
-                resp = await self.device.tracker.output_turn_on(self.device.id, self._output_number)
+                resp = await device.tracker.output_turn_on(device.id, self._output_number)
                 if not resp.success:
-                    LOGGER.error("Failed to turn on output %d for device '%s': API returned success=False", self._output_number, self.device.name)
+                    LOGGER.error("Failed to turn on output %d for device '%s': API returned success=False", self._output_number, device.name)
                     # Revert pending state on failure
                     self._pending_state = None
                     self.async_write_ha_state()
                 else:
-                    LOGGER.debug("Successfully sent turn ON command for output %d, device '%s'", self._output_number, self.device.name)
+                    LOGGER.debug("Successfully sent turn ON command for output %d, device '%s'", self._output_number, device.name)
                 await self.coordinator.async_request_refresh()
             except Exception as err:
-                LOGGER.error("Error turning on output %d for device '%s': %s", self._output_number, self.device.name, err)
+                LOGGER.error("Error turning on output %d for device '%s': %s", self._output_number, device.name, err)
                 # Revert pending state on error
                 self._pending_state = None
                 self.async_write_ha_state()
@@ -153,22 +163,22 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         elif self._input_number is not None:
             # Dynamic input switch (enable alert)
             try:
-                LOGGER.info("Enabling alert for input %d on device '%s'", self._input_number, self.device.name)
+                LOGGER.info("Enabling alert for input %d on device '%s'", self._input_number, device.name)
                 # Set pending state for immediate UI feedback
                 self._pending_state = True
                 self.async_write_ha_state()
                 
-                resp = await self.device.tracker.input_turn_on(self.device.id, self._input_number)
+                resp = await device.tracker.input_turn_on(device.id, self._input_number)
                 if not resp.success:
-                    LOGGER.error("Failed to enable alert for input %d on device '%s': API returned success=False", self._input_number, self.device.name)
+                    LOGGER.error("Failed to enable alert for input %d on device '%s': API returned success=False", self._input_number, device.name)
                     # Revert pending state on failure
                     self._pending_state = None
                     self.async_write_ha_state()
                 else:
-                    LOGGER.debug("Successfully enabled alert for input %d, device '%s'", self._input_number, self.device.name)
+                    LOGGER.debug("Successfully enabled alert for input %d, device '%s'", self._input_number, device.name)
                 await self.coordinator.async_request_refresh()
             except Exception as err:
-                LOGGER.error("Error enabling alert for input %d on device '%s': %s", self._input_number, self.device.name, err)
+                LOGGER.error("Error enabling alert for input %d on device '%s': %s", self._input_number, device.name, err)
                 # Revert pending state on error
                 self._pending_state = None
                 self.async_write_ha_state()
@@ -179,27 +189,32 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the switch."""
-        LOGGER.debug("Attempting to turn OFF switch %s for device %s", self.entity_description.key, self.device.name)
+        device = self.device
+        if device is None:
+            LOGGER.error("Cannot turn off switch %s: device is None", self.entity_description.key)
+            return
+            
+        LOGGER.debug("Attempting to turn OFF switch %s for device %s", self.entity_description.key, device.name)
         
         if self._output_number is not None:
             # Dynamic output switch
             try:
-                LOGGER.info("Turning OFF output %d for device '%s'", self._output_number, self.device.name)
+                LOGGER.info("Turning OFF output %d for device '%s'", self._output_number, device.name)
                 # Set pending state for immediate UI feedback
                 self._pending_state = False
                 self.async_write_ha_state()
                 
-                resp = await self.device.tracker.output_turn_off(self.device.id, self._output_number)
+                resp = await device.tracker.output_turn_off(device.id, self._output_number)
                 if not resp.success:
-                    LOGGER.error("Failed to turn off output %d for device '%s': API returned success=False", self._output_number, self.device.name)
+                    LOGGER.error("Failed to turn off output %d for device '%s': API returned success=False", self._output_number, device.name)
                     # Revert pending state on failure
                     self._pending_state = None
                     self.async_write_ha_state()
                 else:
-                    LOGGER.debug("Successfully sent turn OFF command for output %d, device '%s'", self._output_number, self.device.name)
+                    LOGGER.debug("Successfully sent turn OFF command for output %d, device '%s'", self._output_number, device.name)
                 await self.coordinator.async_request_refresh()
             except Exception as err:
-                LOGGER.error("Error turning off output %d for device '%s': %s", self._output_number, self.device.name, err)
+                LOGGER.error("Error turning off output %d for device '%s': %s", self._output_number, device.name, err)
                 # Revert pending state on error
                 self._pending_state = None
                 self.async_write_ha_state()
@@ -207,22 +222,22 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         elif self._input_number is not None:
             # Dynamic input switch (disable alert)
             try:
-                LOGGER.info("Disabling alert for input %d on device '%s'", self._input_number, self.device.name)
+                LOGGER.info("Disabling alert for input %d on device '%s'", self._input_number, device.name)
                 # Set pending state for immediate UI feedback
                 self._pending_state = False
                 self.async_write_ha_state()
                 
-                resp = await self.device.tracker.input_turn_off(self.device.id, self._input_number)
+                resp = await device.tracker.input_turn_off(device.id, self._input_number)
                 if not resp.success:
-                    LOGGER.error("Failed to disable alert for input %d on device '%s': API returned success=False", self._input_number, self.device.name)
+                    LOGGER.error("Failed to disable alert for input %d on device '%s': API returned success=False", self._input_number, device.name)
                     # Revert pending state on failure
                     self._pending_state = None
                     self.async_write_ha_state()
                 else:
-                    LOGGER.debug("Successfully disabled alert for input %d, device '%s'", self._input_number, self.device.name)
+                    LOGGER.debug("Successfully disabled alert for input %d, device '%s'", self._input_number, device.name)
                 await self.coordinator.async_request_refresh()
             except Exception as err:
-                LOGGER.error("Error disabling alert for input %d on device '%s': %s", self._input_number, self.device.name, err)
+                LOGGER.error("Error disabling alert for input %d on device '%s': %s", self._input_number, device.name, err)
                 # Revert pending state on error
                 self._pending_state = None
                 self.async_write_ha_state()

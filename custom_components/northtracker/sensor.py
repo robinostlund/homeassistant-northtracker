@@ -128,37 +128,42 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
         if not self.available:
-            LOGGER.debug("Sensor %s for device %s is not available", self.entity_description.key, self.device.name)
+            LOGGER.debug("Sensor %s not available", self.entity_description.key)
             return None
             
-        value = getattr(self.device, self.entity_description.key, None)
-        LOGGER.debug("Sensor %s for device %s has raw value: %s", self.entity_description.key, self.device.name, value)
+        device = self.device
+        if device is None:
+            LOGGER.debug("Sensor %s device is None", self.entity_description.key)
+            return None
+            
+        value = getattr(device, self.entity_description.key, None)
+        LOGGER.debug("Sensor %s for device %s has raw value: %s", self.entity_description.key, device.name, value)
         
         # Validate the value based on the sensor type
         if value is None:
-            LOGGER.debug("Sensor %s for device %s has None value", self.entity_description.key, self.device.name)
+            LOGGER.debug("Sensor %s for device %s has None value", self.entity_description.key, device.name)
             return None
             
         # Additional validation for specific sensor types
         if self.entity_description.key == "battery_voltage" and isinstance(value, (int, float)):
             # Battery voltage should be reasonable (0-50V for most vehicles)
             if not (0 <= value <= 50):
-                LOGGER.warning("Battery voltage out of range for device %s: %s", self.device.name, value)
+                LOGGER.warning("Battery voltage out of range for device %s: %s", device.name, value)
                 return None
         elif self.entity_description.key == "internal_battery" and isinstance(value, (int, float)):
             # Battery percentage should be 0-100
             if not (0 <= value <= 100):
-                LOGGER.warning("Internal battery percentage out of range for device %s: %s", self.device.name, value)
+                LOGGER.warning("Internal battery percentage out of range for device %s: %s", device.name, value)
                 return None
         elif self.entity_description.key in ["gps_signal", "network_signal"] and isinstance(value, (int, float)):
             # Signal strength should be 0-100 percent
             if not (0 <= value <= 100):
-                LOGGER.warning("Signal strength out of range for device %s (%s): %s", self.device.name, self.entity_description.key, value)
+                LOGGER.warning("Signal strength out of range for device %s (%s): %s", device.name, self.entity_description.key, value)
                 return None
-        elif self.entity_description.key == "network_signal" and not self.device.has_position:
+        elif self.entity_description.key == "network_signal" and not device.has_position:
             # Network signal should only be available when device has GPS data
-            LOGGER.debug("Network signal unavailable for device %s - no GPS position data", self.device.name)
+            LOGGER.debug("Network signal unavailable for device %s - no GPS position data", device.name)
             return None
         
-        LOGGER.debug("Sensor %s for device %s returning validated value: %s", self.entity_description.key, self.device.name, value)
+        LOGGER.debug("Sensor %s for device %s returning validated value: %s", self.entity_description.key, device.name, value)
         return value

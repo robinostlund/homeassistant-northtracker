@@ -77,11 +77,16 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         """Return the state of the binary sensor."""
         if not self.available:
-            LOGGER.debug("Binary sensor %s for device %s is not available", self.entity_description.key, self.device.name)
+            LOGGER.debug("Binary sensor %s not available", self.entity_description.key)
+            return None
+            
+        device = self.device
+        if device is None:
+            LOGGER.debug("Binary sensor %s device is None", self.entity_description.key)
             return None
             
         # Property-based sensor (like bluetooth_enabled)
-        state = getattr(self.device, self.entity_description.key, None)
+        state = getattr(device, self.entity_description.key, None)
             
-        LOGGER.debug("Binary sensor %s for device %s has state: %s", self.entity_description.key, self.device.name, state)
+        LOGGER.debug("Binary sensor %s for device %s has state: %s", self.entity_description.key, device.name, state)
         return state

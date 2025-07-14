@@ -117,8 +117,21 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                            unit.get("ID"), unit.get("NameOnly"), unit.get("DeviceType"))
 
             # Create device objects from the base details
-            devices = {unit_data['ID']: NorthTrackerDevice(self.api, unit_data) for unit_data in units}
-            LOGGER.debug("Created %d device objects", len(devices))
+            devices = {}
+            for unit_data in units:
+                device_id = unit_data.get('ID')
+                if device_id is None:
+                    LOGGER.warning("Unit data missing ID field, skipping: %s", unit_data)
+                    continue
+                try:
+                    device = NorthTrackerDevice(self.api, unit_data)
+                    devices[device_id] = device
+                    LOGGER.debug("Created device object for ID %d (%s)", device_id, device.name)
+                except Exception as err:
+                    LOGGER.error("Failed to create device object for ID %s: %s", device_id, err)
+                    continue
+                    
+            LOGGER.debug("Successfully created %d device objects", len(devices))
             
             # Log device capabilities for debugging
             for device in devices.values():
@@ -136,13 +149,20 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                     # Update each device with its location data
                     for gps_data in gps_data_list:
                         device_id = gps_data.get("TrackerID")
+                        if device_id is None:
+                            LOGGER.warning("GPS data missing TrackerID field, skipping: %s", gps_data)
+                            continue
+                            
                         if device_id in devices:
                             # Track if GPS data actually changed
-                            if devices[device_id].update_gps_data(gps_data):
-                                self._devices_with_changes.add(device_id)
-                                LOGGER.debug("GPS data changed for device ID %d", device_id)
-                            else:
-                                LOGGER.debug("GPS data unchanged for device ID %d", device_id)
+                            try:
+                                if devices[device_id].update_gps_data(gps_data):
+                                    self._devices_with_changes.add(device_id)
+                                    LOGGER.debug("GPS data changed for device ID %d", device_id)
+                                else:
+                                    LOGGER.debug("GPS data unchanged for device ID %d", device_id)
+                            except Exception as err:
+                                LOGGER.error("Error updating GPS data for device ID %d: %s", device_id, err)
                         else:
                             LOGGER.warning("Received GPS data for unknown device ID %d", device_id)
                 else:
@@ -162,7 +182,7 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                     else:
                         LOGGER.debug("Device details unchanged for device %s", device.name)
                 except Exception as err:
-                    LOGGER.warning("Failed to update details for device %s: %s", device.name, err)
+                    LOGGER.warning("Failed to update details for device %s (ID: %d): %s", device.name, device.id, err)
                     # Continue with other devices even if one fails
 
             # Update all devices in parallel with limited concurrency
