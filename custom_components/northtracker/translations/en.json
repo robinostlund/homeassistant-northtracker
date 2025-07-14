@@ -107,6 +107,14 @@
             },
             "alarm": {
                 "name": "Alarm"
+            },
+            "low_battery_alert": {
+                "name": "Low Battery Alert"
+            }
+        },
+        "number": {
+            "low_battery_threshold": {
+                "name": "Low Battery Threshold"
             }
         },
         "binary_sensor": {

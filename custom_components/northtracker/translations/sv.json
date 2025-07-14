@@ -90,6 +90,9 @@
             "alarm": {
                 "name": "Larm"
             },
+            "low_battery_alert": {
+                "name": "Låg Batterispänning Larm"
+            },
             "input_1": {
                 "name": "Larma Ingång 1"
             },
@@ -117,6 +120,11 @@
         "device_tracker": {
             "location": {
                 "name": "Plats"
+            }
+        },
+        "number": {
+            "low_battery_threshold": {
+                "name": "Låg Batterispänning Tröskel"
             }
         }
     },

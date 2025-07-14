@@ -15,12 +15,18 @@ from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 
-# Base switch descriptions - alarm is still static
+# Base switch descriptions - alarm and battery alert are static
 STATIC_SWITCH_DESCRIPTIONS: tuple[SwitchEntityDescription, ...] = (
     SwitchEntityDescription(
         key="alarm_status",
         translation_key="alarm",
         icon="mdi:alarm-light",
+        device_class=SwitchDeviceClass.SWITCH,
+    ),
+    SwitchEntityDescription(
+        key="low_battery_alert_enabled",
+        translation_key="low_battery_alert",
+        icon="mdi:battery-alert",
         device_class=SwitchDeviceClass.SWITCH,
     ),
 )
@@ -183,8 +189,34 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
                 self._pending_state = None
                 self.async_write_ha_state()
                 # Continue and refresh anyway - entity state will reflect actual state
+        elif self.entity_description.key == "low_battery_alert_enabled":
+            # Low battery alert toggle
+            try:
+                LOGGER.info("Enabling low battery alert for device '%s'", device.name)
+                # Set pending state for immediate UI feedback
+                self._pending_state = True
+                self.async_write_ha_state()
+                
+                # Get current threshold
+                current_threshold = device.low_battery_threshold or 12.1
+                
+                resp = await device.tracker.set_low_battery_alert(device.imei, True, current_threshold)
+                if not resp.success:
+                    LOGGER.error("Failed to enable low battery alert for device '%s': API returned success=False", device.name)
+                    # Revert pending state on failure
+                    self._pending_state = None
+                    self.async_write_ha_state()
+                else:
+                    LOGGER.debug("Successfully enabled low battery alert for device '%s'", device.name)
+                await self.coordinator.async_request_refresh()
+            except Exception as err:
+                LOGGER.error("Error enabling low battery alert for device '%s': %s", device.name, err)
+                # Revert pending state on error
+                self._pending_state = None
+                self.async_write_ha_state()
+                # Continue and refresh anyway - entity state will reflect actual state
         else:
-            # Legacy handling for static switches (like alarm)
+            # Legacy handling for other static switches (like alarm)
             LOGGER.warning("Turn on not implemented for static switch %s", self.entity_description.key)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -242,8 +274,34 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
                 self._pending_state = None
                 self.async_write_ha_state()
                 # Continue and refresh anyway - entity state will reflect actual state
+        elif self.entity_description.key == "low_battery_alert_enabled":
+            # Low battery alert toggle
+            try:
+                LOGGER.info("Disabling low battery alert for device '%s'", device.name)
+                # Set pending state for immediate UI feedback
+                self._pending_state = False
+                self.async_write_ha_state()
+                
+                # Get current threshold
+                current_threshold = device.low_battery_threshold or 12.1
+                
+                resp = await device.tracker.set_low_battery_alert(device.imei, False, current_threshold)
+                if not resp.success:
+                    LOGGER.error("Failed to disable low battery alert for device '%s': API returned success=False", device.name)
+                    # Revert pending state on failure
+                    self._pending_state = None
+                    self.async_write_ha_state()
+                else:
+                    LOGGER.debug("Successfully disabled low battery alert for device '%s'", device.name)
+                await self.coordinator.async_request_refresh()
+            except Exception as err:
+                LOGGER.error("Error disabling low battery alert for device '%s': %s", device.name, err)
+                # Revert pending state on error
+                self._pending_state = None
+                self.async_write_ha_state()
+                # Continue and refresh anyway - entity state will reflect actual state
         else:
-            # Legacy handling for static switches (like alarm)
+            # Legacy handling for other static switches (like alarm)
             LOGGER.warning("Turn off not implemented for static switch %s", self.entity_description.key)
 
     def _handle_coordinator_update(self) -> None:

@@ -18,4 +18,4 @@ MIN_UPDATE_INTERVAL = 0.17  # 10 seconds in minutes (10/60 ≈ 0.17)
 MAX_UPDATE_INTERVAL = 1440  # minutes
 
 # Platforms
-PLATFORMS = ["sensor", "switch", "binary_sensor", "device_tracker"]
+PLATFORMS = ["sensor", "switch", "binary_sensor", "device_tracker", "number"]

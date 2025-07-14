@@ -287,66 +287,136 @@ class NorthTracker:
         url = f"{self.base_url}/user/terminal/get-unit-features"
         return await self._post_data(url, {"Imei": device_imei})
 
-    async def get_unit_lock_status(self, device_id: int) -> NorthTrackerResponse:
-        """Get the lock status of a unit."""
-        LOGGER.debug("Fetching lock status for device %d", device_id)
-        url = f"{self.base_url}/user/terminal/access/lockstatus"
-        response = await self._post_data(url, {"terminal_id": device_id})
-        if response.success:
-            status = response.data.get("lockedstatus", "unknown")
-            LOGGER.debug("Successfully fetched lock status for device %d: %s", device_id, status)
-        else:
-            LOGGER.warning("Failed to fetch lock status for device %d", device_id)
-        return response
-
-    async def input_turn_on(self, device_id: int, input_number: int) -> NorthTrackerResponse:
-        """Toggle digital input alert (API will activate if currently deactivated)."""
-        LOGGER.debug("Sending input toggle command for device %d, input %d (expecting activation)", device_id, input_number)
-        url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
-        payload = {"terminal_id": device_id, "dinNumber": str(input_number)}
+    async def update_unit_features(self, device_imei: str, features_data: dict) -> NorthTrackerResponse:
+        """Update unit features/settings."""
+        LOGGER.debug("Updating unit features for device IMEI %s", device_imei)
+        url = f"{self.base_url}/user/terminal/enable-features"
+        
+        # Ensure the payload has the correct structure
+        payload = {
+            "Imeis": [device_imei],
+            "Settings": features_data
+        }
+        
         response = await self._post_data(url, payload)
         if response.success:
-            action = response.data
-            LOGGER.info("Input %d toggle successful for device %d: %s", input_number, device_id, action)
+            LOGGER.debug("Successfully updated unit features for device IMEI %s", device_imei)
         else:
-            LOGGER.warning("Failed to toggle input %d for device %d", input_number, device_id)
+            LOGGER.warning("Failed to update unit features for device IMEI %s", device_imei)
         return response
+
+    async def set_low_battery_alert(self, device_imei: str, enabled: bool, threshold: float = 12.1) -> NorthTrackerResponse:
+        """Enable/disable low battery alert and set threshold."""
+        LOGGER.debug("Setting low battery alert for device IMEI %s: enabled=%s, threshold=%.1f", 
+                    device_imei, enabled, threshold)
+        
+        # Get current features first
+        current_features_resp = await self.get_unit_features(device_imei)
+        if not current_features_resp.success:
+            LOGGER.error("Failed to get current features for device IMEI %s", device_imei)
+            return current_features_resp
+        
+        # Extract current settings data
+        features_data_list = current_features_resp.data
+        if not features_data_list or len(features_data_list) == 0:
+            LOGGER.error("No features data found for device IMEI %s", device_imei)
+            return NorthTrackerResponse({"success": False, "data": "No features data found"})
+        
+        current_features = features_data_list[0]  # Take the first (and usually only) profile
+        
+        # Start with the current features data (deep copy to avoid modifying original)
+        import copy
+        updated_features = copy.deepcopy(current_features)
+        
+        # Update only the specific low battery settings we want to change
+        updated_features["LowBatteryAlertEnabled"] = enabled
+        updated_features["LowBatteryThreshold"] = threshold
+        updated_features["SendLowBatteryCommand"] = True  # This tells the API to update the low battery settings
+        
+        # Ensure certain fields are set to prevent unintended side effects
+        updated_features["SaveConfiguration"] = False
+        updated_features["SaveCarBenefit"] = False
+        updated_features["SaveWorkingHours"] = False
+        updated_features["SendEcoDrivingCommand"] = False
+        updated_features["SendOverspeedingCommand"] = False
+        updated_features["FromApp"] = "false"
+        
+        LOGGER.debug("Sending updated features with %d fields to API", len(updated_features))
+        return await self.update_unit_features(device_imei, updated_features)
+
+    # ...existing code...
     
-    async def input_turn_off(self, device_id: int, input_number: int) -> NorthTrackerResponse:
-        """Toggle digital input alert (API will deactivate if currently activated)."""
-        LOGGER.debug("Sending input toggle command for device %d, input %d (expecting deactivation)", device_id, input_number)
-        url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
-        payload = {"terminal_id": device_id, "dinNumber": str(input_number)}
-        response = await self._post_data(url, payload)
+    async def logout(self) -> None:
+        """Logout from the North-Tracker API."""
+        url = f"{self.base_url}/user/logout"
+        try:
+            await self._post_data(url)
+        finally:
+            # Clear credentials regardless of logout success
+            self._token = None
+            self._token_expires = None
+    
+    async def get_tracking_details(self) -> NorthTrackerResponse:
+        """Get tracking details from the API."""
+        url = f"{self.base_url}/user/realtimetracking/get"
+        return await self._get_data(url)
+
+    async def get_all_units_details(self) -> NorthTrackerResponse:
+        """Get details for all units."""
+        LOGGER.debug("Fetching all units details from API")
+        url = f"{self.base_url}/user/terminal/get-all-units-details"
+        response = await self._get_data(url)
         if response.success:
-            action = response.data
-            LOGGER.info("Input %d toggle successful for device %d: %s", input_number, device_id, action)
+            units_count = len(response.data.get("units", []))
+            LOGGER.debug("Successfully fetched details for %d units", units_count)
         else:
-            LOGGER.warning("Failed to toggle input %d for device %d", input_number, device_id)
+            LOGGER.warning("Failed to fetch all units details")
         return response
 
-    async def output_turn_on(self, device_id: int, output_number: int) -> NorthTrackerResponse:
-        """Turn on a digital output."""
-        LOGGER.debug("Sending turn ON command for device %d, output %d", device_id, output_number)
-        url = f"{self.base_url}/user/terminal/relaysetting/sendmsg"
-        payload = {"terminal_id": device_id, "doutnumber": str(output_number), "doutvalue": 1}
-        response = await self._post_data(url, payload)
+    async def get_realtime_tracking(self) -> NorthTrackerResponse:
+        """Fetch real-time location data for all devices."""
+        LOGGER.debug("Fetching real-time tracking data from API")
+        url = f"{self.base_url}/user/realtimetracking/get?lang=en"
+        response = await self._get_data(url)
         if response.success:
-            LOGGER.debug("Successfully sent turn ON command for device %d, output %d", device_id, output_number)
+            gps_count = len(response.data.get("gps", []))
+            LOGGER.debug("Successfully fetched GPS data for %d devices", gps_count)
         else:
-            LOGGER.warning("Failed to send turn ON command for device %d, output %d", device_id, output_number)
+            LOGGER.warning("Failed to fetch real-time tracking data")
         return response
 
-    async def output_turn_off(self, device_id: int, output_number: int) -> NorthTrackerResponse:
-        """Turn off a digital output."""
-        LOGGER.debug("Sending turn OFF command for device %d, output %d", device_id, output_number)
-        url = f"{self.base_url}/user/terminal/relaysetting/sendmsg"
-        payload = {"terminal_id": device_id, "doutnumber": str(output_number), "doutvalue": 0}
+    async def get_unit_details(self, device_id: int, device_type: str) -> NorthTrackerResponse:
+        """Get detailed information for a specific unit."""
+        LOGGER.debug("Fetching detailed info for device %d (type: %s)", device_id, device_type)
+        url = f"{self.base_url}/user/terminal/edit-terminal"
+        response = await self._post_data(url, {"device_id": device_id, "device_type": device_type})
+        if response.success:
+            LOGGER.debug("Successfully fetched detailed info for device %d", device_id)
+        else:
+            LOGGER.warning("Failed to fetch detailed info for device %d", device_id)
+        return response
+
+    async def get_unit_features(self, device_imei: str) -> NorthTrackerResponse:
+        """Get unit features by IMEI."""
+        url = f"{self.base_url}/user/terminal/get-unit-features"
+        return await self._post_data(url, {"Imei": device_imei})
+
+    async def update_unit_features(self, device_imei: str, features_data: dict) -> NorthTrackerResponse:
+        """Update unit features/settings."""
+        LOGGER.debug("Updating unit features for device IMEI %s", device_imei)
+        url = f"{self.base_url}/user/terminal/enable-features"
+        
+        # Ensure the payload has the correct structure
+        payload = {
+            "Imeis": [device_imei],
+            "Settings": features_data
+        }
+        
         response = await self._post_data(url, payload)
         if response.success:
-            LOGGER.debug("Successfully sent turn OFF command for device %d, output %d", device_id, output_number)
+            LOGGER.debug("Successfully updated unit features for device IMEI %s", device_imei)
         else:
-            LOGGER.warning("Failed to send turn OFF command for device %d, output %d", device_id, output_number)
+            LOGGER.warning("Failed to update unit features for device IMEI %s", device_imei)
         return response
 
 class NorthTrackerResponse:
@@ -377,6 +447,7 @@ class NorthTrackerDevice:
         self._device_data_extra: dict[str, Any] = {}
         self._device_lock_data: dict[str, Any] = {}
         self._device_gps_data: dict[str, Any] = {}
+        self._device_features_data: dict[str, Any] = {}
         self._last_update: datetime | None = None
         
         # Dynamically discover digital inputs and outputs
@@ -422,6 +493,24 @@ class NorthTrackerDevice:
                     LOGGER.debug("Lock status unchanged for %s", self.name)
             else:
                 LOGGER.warning("Failed to fetch lock status for %s", self.name)
+
+            # Get unit features (for battery alert settings etc.)
+            LOGGER.debug("Fetching unit features for %s", self.name)
+            resp_features = await self.tracker.get_unit_features(self.imei)
+            if resp_features.success:
+                features_data = resp_features.data
+                if features_data and len(features_data) > 0:
+                    # Check if features data has changed
+                    if self._device_features_data != features_data[0]:
+                        LOGGER.debug("Unit features changed for %s", self.name)
+                        self._device_features_data = features_data[0]
+                        data_changed = True
+                    else:
+                        LOGGER.debug("Unit features unchanged for %s", self.name)
+                else:
+                    LOGGER.debug("No features data found for %s", self.name)
+            else:
+                LOGGER.warning("Failed to fetch unit features for %s", self.name)
                 
             self._last_update = datetime.now()
             if data_changed:
@@ -723,3 +812,20 @@ class NorthTrackerDevice:
         except (ValueError, TypeError):
             LOGGER.warning("Invalid course value: %s", course)
             return 0
+    
+    @property
+    def low_battery_alert_enabled(self) -> bool:
+        """Return whether low battery alert is enabled."""
+        return self._device_features_data.get("LowBatteryAlertEnabled", False)
+    
+    @property
+    def low_battery_threshold(self) -> float | None:
+        """Return low battery alert threshold in volts."""
+        threshold = self._device_features_data.get("LowBatteryThreshold")
+        if threshold is None:
+            return None
+        try:
+            return float(threshold)
+        except (ValueError, TypeError):
+            LOGGER.warning("Invalid low battery threshold value: %s", threshold)
+            return None
