@@ -21,10 +21,10 @@
             },
             "reconfigure": {
                 "title": "Konfigurera om North-Tracker",
-                "description": "Uppdatera dina North-Tracker konfigurationsinställningar.",
+                "description": "Uppdatera dina North-Tracker konfigurationsinställningar. Lämna lösenord tomt för att behålla nuvarande lösenord.",
                 "data": {
                     "username": "Användarnamn",
-                    "password": "Lösenord",
+                    "password": "Lösenord (valfritt - lämna tomt för att behålla nuvarande)",
                     "scan_interval": "Uppdateringsintervall (minuter)"
                 }
             }

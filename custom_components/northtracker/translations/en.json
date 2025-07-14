@@ -21,10 +21,10 @@
             },
             "reconfigure": {
                 "title": "Reconfigure North-Tracker",
-                "description": "Update your North-Tracker configuration settings.",
+                "description": "Update your North-Tracker configuration settings. Leave password empty to keep current password.",
                 "data": {
                     "username": "Username",
-                    "password": "Password",
+                    "password": "Password (optional - leave empty to keep current)",
                     "scan_interval": "Update Interval (minutes)"
                 }
             }

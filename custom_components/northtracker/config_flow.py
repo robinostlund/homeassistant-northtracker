@@ -168,6 +168,11 @@ class NorthTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             LOGGER.debug("Processing reconfigure input for username: %s", user_input.get(CONF_USERNAME))
             
+            # If password is empty, keep the existing password
+            if not user_input.get(CONF_PASSWORD):
+                LOGGER.debug("Password field empty, keeping existing password")
+                user_input[CONF_PASSWORD] = entry.data.get(CONF_PASSWORD)
+            
             # Validate scan interval
             scan_interval = user_input.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL)
             if scan_interval < MIN_UPDATE_INTERVAL or scan_interval > MAX_UPDATE_INTERVAL:
@@ -232,7 +237,7 @@ class NorthTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Get the reconfigure schema with current values as defaults."""
         return vol.Schema({
             vol.Required(CONF_USERNAME, default=entry.data.get(CONF_USERNAME, "")): str,
-            vol.Required(CONF_PASSWORD): str,
+            vol.Optional(CONF_PASSWORD, default=""): str,
             vol.Optional(
                 CONF_SCAN_INTERVAL,
                 default=entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL)
