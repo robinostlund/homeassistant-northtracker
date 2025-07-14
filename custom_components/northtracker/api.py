@@ -287,6 +287,17 @@ class NorthTracker:
         url = f"{self.base_url}/user/terminal/get-unit-features"
         return await self._post_data(url, {"Imei": device_imei})
 
+    async def get_unit_lock_status(self, device_id: int) -> NorthTrackerResponse:
+        """Get unit lock status by device ID."""
+        LOGGER.debug("Fetching lock status for device ID %d", device_id)
+        url = f"{self.base_url}/user/terminal/access/lockstatus"
+        response = await self._post_data(url, {"terminal_id": device_id})
+        if response.success:
+            LOGGER.debug("Successfully fetched lock status for device ID %d", device_id)
+        else:
+            LOGGER.warning("Failed to fetch lock status for device ID %d", device_id)
+        return response
+
     async def update_unit_features(self, device_imei: str, features_data: dict) -> NorthTrackerResponse:
         """Update unit features/settings."""
         LOGGER.debug("Updating unit features for device IMEI %s", device_imei)
@@ -401,23 +412,6 @@ class NorthTracker:
         url = f"{self.base_url}/user/terminal/get-unit-features"
         return await self._post_data(url, {"Imei": device_imei})
 
-    async def update_unit_features(self, device_imei: str, features_data: dict) -> NorthTrackerResponse:
-        """Update unit features/settings."""
-        LOGGER.debug("Updating unit features for device IMEI %s", device_imei)
-        url = f"{self.base_url}/user/terminal/enable-features"
-        
-        # Ensure the payload has the correct structure
-        payload = {
-            "Imeis": [device_imei],
-            "Settings": features_data
-        }
-        
-        response = await self._post_data(url, payload)
-        if response.success:
-            LOGGER.debug("Successfully updated unit features for device IMEI %s", device_imei)
-        else:
-            LOGGER.warning("Failed to update unit features for device IMEI %s", device_imei)
-        return response
 
 class NorthTrackerResponse:
     """Wrapper for API responses from North-Tracker."""
