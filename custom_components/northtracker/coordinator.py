@@ -40,15 +40,15 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
         # Validate and set update interval
         update_interval_minutes = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL)
         if update_interval_minutes < MIN_UPDATE_INTERVAL:
-            LOGGER.warning("Update interval too low (%d), setting to minimum of %d minutes", update_interval_minutes, MIN_UPDATE_INTERVAL)
+            LOGGER.warning("Update interval too low (%.2f), setting to minimum of %.2f minutes", update_interval_minutes, MIN_UPDATE_INTERVAL)
             update_interval_minutes = MIN_UPDATE_INTERVAL
         elif update_interval_minutes > MAX_UPDATE_INTERVAL:
-            LOGGER.warning("Update interval too high (%d), setting to maximum of %d minutes", update_interval_minutes, MAX_UPDATE_INTERVAL)
+            LOGGER.warning("Update interval too high (%.2f), setting to maximum of %d minutes", update_interval_minutes, MAX_UPDATE_INTERVAL)
             update_interval_minutes = MAX_UPDATE_INTERVAL
             
         update_interval = timedelta(minutes=update_interval_minutes)
         
-        LOGGER.info("North-Tracker coordinator initialized with a %d minute update interval.", update_interval_minutes)
+        LOGGER.info("North-Tracker coordinator initialized with a %.2f minute update interval.", update_interval_minutes)
 
         super().__init__(hass, LOGGER, name=DOMAIN, update_interval=update_interval)
         

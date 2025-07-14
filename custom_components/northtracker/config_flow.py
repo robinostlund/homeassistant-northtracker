@@ -79,7 +79,7 @@ class NorthTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_USERNAME): str,
                 vol.Required(CONF_PASSWORD): str,
                 vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
-                    vol.Coerce(int), vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL)
+                    vol.Coerce(float), vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL)
                 ),
             }),
             errors=errors,
@@ -153,7 +153,7 @@ class NorthTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_USERNAME, default=current_username): str,
                 vol.Required(CONF_PASSWORD): str,
                 vol.Optional(CONF_SCAN_INTERVAL, default=current_scan_interval): vol.All(
-                    vol.Coerce(int), vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL)
+                    vol.Coerce(float), vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL)
                 ),
             }),
             errors=errors,
@@ -236,5 +236,5 @@ class NorthTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional(
                 CONF_SCAN_INTERVAL,
                 default=entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL)
-            ): vol.All(vol.Coerce(int), vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL)),
+            ): vol.All(vol.Coerce(float), vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL)),
         })

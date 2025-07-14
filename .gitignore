@@ -1,4 +1,11 @@
+# Development and documentation files
+dev-notes/
 NOTES.md
 test.py
-__pycache__
+test_*.py
+
+# Python cache
+__pycache__/
+
+# OS files
 .DS_Store
