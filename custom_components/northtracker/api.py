@@ -328,7 +328,7 @@ class NorthTracker:
         
         # Use the generic settings update method
         settings_updates = {
-            "LowBatteryAlertEnabled": enabled,
+            "LowBatteryAlertEnabled": 1 if enabled else 0,  # Convert boolean to 1/0 as API expects
             "LowBatteryThreshold": str(threshold),  # Convert to string as shown in example
             "SendLowBatteryCommand": True
         }
