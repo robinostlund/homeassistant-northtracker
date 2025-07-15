@@ -351,15 +351,15 @@ class NorthTracker:
         # Update only the specific low battery settings we want to change
         updated_features["LowBatteryAlertEnabled"] = enabled
         updated_features["LowBatteryThreshold"] = threshold
-        updated_features["SendLowBatteryCommand"] = True  # This tells the API to update the low battery settings
+        # updated_features["SendLowBatteryCommand"] = True  # This tells the API to update the low battery settings
         
         # Ensure certain fields are set to prevent unintended side effects
-        updated_features["SaveConfiguration"] = False
-        updated_features["SaveCarBenefit"] = False
-        updated_features["SaveWorkingHours"] = False
-        updated_features["SendEcoDrivingCommand"] = False
-        updated_features["SendOverspeedingCommand"] = False
-        updated_features["FromApp"] = "false"
+        # updated_features["SaveConfiguration"] = False
+        # updated_features["SaveCarBenefit"] = False
+        # updated_features["SaveWorkingHours"] = False
+        # updated_features["SendEcoDrivingCommand"] = False
+        # updated_features["SendOverspeedingCommand"] = False
+        # updated_features["FromApp"] = "false"
         
         LOGGER.debug("Sending updated features with %d fields to API", len(updated_features))
         return await self.update_unit_features(device_imei, updated_features)
