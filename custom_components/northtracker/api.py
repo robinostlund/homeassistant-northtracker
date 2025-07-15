@@ -326,43 +326,65 @@ class NorthTracker:
         LOGGER.debug("Setting low battery alert for device IMEI %s: enabled=%s, threshold=%.1f", 
                     device_imei, enabled, threshold)
         
-        # Get current features first
-        current_features_resp = await self.get_unit_features(device_imei)
-        if not current_features_resp.success:
-            LOGGER.error("Failed to get current features for device IMEI %s", device_imei)
-            return current_features_resp
+        # Use the generic settings update method
+        settings_updates = {
+            "LowBatteryAlertEnabled": enabled,
+            "LowBatteryThreshold": str(threshold),  # Convert to string as shown in example
+            "SendLowBatteryCommand": True
+        }
         
-        # Extract current settings data
-        features_data_list = current_features_resp.data
-        if not features_data_list or len(features_data_list) == 0:
-            LOGGER.error("No features data found for device IMEI %s", device_imei)
-            return NorthTrackerResponse({"success": False, "data": "No features data found"})
+        return await self.update_unit_features_settings(device_imei, settings_updates)
+
+    async def update_unit_features_settings(self, device_imei: str, settings_updates: dict) -> NorthTrackerResponse:
+        """Update device settings with a generic, reusable payload structure.
         
-        current_features = features_data_list[0]  # Take the first (and usually only) profile
+        Args:
+            device_imei: Device IMEI
+            settings_updates: Dictionary of settings to update (e.g. {"LowBatteryAlertEnabled": True})
+        """
+        LOGGER.debug("Updating generic settings for device IMEI %s: %s", device_imei, settings_updates)
         
-        # Debug: Log the structure we received (first few keys only)
-        feature_keys = list(current_features.keys())[:10]  # First 10 keys
-        LOGGER.debug("Received features data with keys: %s (total: %d keys)", feature_keys, len(current_features))
+        # Create the base settings structure that the API expects
+        base_settings = {
+            "ID": "",
+            "ProfileName": "",
+            "ProfileDescription": "",
+            "TripType": "",
+            "TripTypeSettings": {
+                "default_trip": 0,
+                "private_trip": 0,
+                "onmap_during_workinghour": 0,
+                "businessTripDays": ""
+            },
+            "CarBenefitSettings": {
+                "benefit_type": "",
+                "fuel_consumption_company": "",
+                "vehicle_type": "",
+                "currency": "",
+                "fuel_consumption_private": ""
+            },
+            "CarBenefitEnabled": False,
+            "GreenDrivingSensitivity": "",
+            "OverspeedingThreshold": "",
+            "SaveConfiguration": False,
+            "GreenDrivingEnabled": False,
+            "OverSpeedingEnabled": False,
+            "WorkingHoursEnabled": False,
+            "FromApp": "false",
+            "SaveCarBenefit": False,
+            "SaveWorkingHours": False,
+            "SendEcoDrivingCommand": False,
+            "SendOverspeedingCommand": False,
+            "IsKorjournalUnit": False
+        }
         
-        # Start with the current features data (deep copy to avoid modifying original)
-        import copy
-        updated_features = copy.deepcopy(current_features)
+        # Apply the specific updates
+        final_settings = {**base_settings, **settings_updates}
         
-        # Update only the specific low battery settings we want to change
-        updated_features["LowBatteryAlertEnabled"] = enabled
-        updated_features["LowBatteryThreshold"] = threshold
-        # updated_features["SendLowBatteryCommand"] = True  # This tells the API to update the low battery settings
+        LOGGER.debug("Sending generic settings update with %d base fields + %d custom fields", 
+                    len(base_settings), len(settings_updates))
         
-        # Ensure certain fields are set to prevent unintended side effects
-        # updated_features["SaveConfiguration"] = False
-        # updated_features["SaveCarBenefit"] = False
-        # updated_features["SaveWorkingHours"] = False
-        # updated_features["SendEcoDrivingCommand"] = False
-        # updated_features["SendOverspeedingCommand"] = False
-        # updated_features["FromApp"] = "false"
-        
-        LOGGER.debug("Sending updated features with %d fields to API", len(updated_features))
-        return await self.update_unit_features(device_imei, updated_features)
+        return await self.update_unit_features(device_imei, final_settings)
 
     async def output_turn_on(self, device_id: int, output_number: int) -> NorthTrackerResponse:
         """Turn on a digital output."""
