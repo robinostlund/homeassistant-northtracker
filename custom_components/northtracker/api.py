@@ -400,7 +400,7 @@ class NorthTracker:
         """Enable alert for a digital input."""
         LOGGER.debug("Enabling alert for input %d on device ID %d", input_number, device_id)
         # Note: This might use a different endpoint than outputs - may need adjustment
-        url = f"{self.base_url}/user/terminal/inputsetting/sendmsg"
+        url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
         payload = {
             "terminal_id": device_id,
             "dinnumber": input_number,
@@ -417,7 +417,7 @@ class NorthTracker:
         """Disable alert for a digital input."""
         LOGGER.debug("Disabling alert for input %d on device ID %d", input_number, device_id)
         # Note: This might use a different endpoint than outputs - may need adjustment
-        url = f"{self.base_url}/user/terminal/inputsetting/sendmsg"
+        url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
         payload = {
             "terminal_id": device_id,
             "dinnumber": input_number,
