@@ -309,6 +309,11 @@ class NorthTracker:
             "Settings": features_data
         }
         
+        # Debug: Log the payload structure (without sensitive data)
+        settings_keys = list(features_data.keys())[:10] if isinstance(features_data, dict) else "Not a dict"
+        LOGGER.debug("Sending payload to enable-features API - Imeis: %s, Settings keys: %s (total: %d)", 
+                    payload["Imeis"], settings_keys, len(features_data) if isinstance(features_data, dict) else 0)
+        
         response = await self._post_data(url, payload)
         if response.success:
             LOGGER.debug("Successfully updated unit features for device IMEI %s", device_imei)
@@ -335,6 +340,10 @@ class NorthTracker:
         
         current_features = features_data_list[0]  # Take the first (and usually only) profile
         
+        # Debug: Log the structure we received (first few keys only)
+        feature_keys = list(current_features.keys())[:10]  # First 10 keys
+        LOGGER.debug("Received features data with keys: %s (total: %d keys)", feature_keys, len(current_features))
+        
         # Start with the current features data (deep copy to avoid modifying original)
         import copy
         updated_features = copy.deepcopy(current_features)
@@ -355,62 +364,85 @@ class NorthTracker:
         LOGGER.debug("Sending updated features with %d fields to API", len(updated_features))
         return await self.update_unit_features(device_imei, updated_features)
 
-    # ...existing code...
-    
-    async def logout(self) -> None:
-        """Logout from the North-Tracker API."""
-        url = f"{self.base_url}/user/logout"
-        try:
-            await self._post_data(url)
-        finally:
-            # Clear credentials regardless of logout success
-            self._token = None
-            self._token_expires = None
-    
-    async def get_tracking_details(self) -> NorthTrackerResponse:
-        """Get tracking details from the API."""
-        url = f"{self.base_url}/user/realtimetracking/get"
-        return await self._get_data(url)
-
-    async def get_all_units_details(self) -> NorthTrackerResponse:
-        """Get details for all units."""
-        LOGGER.debug("Fetching all units details from API")
-        url = f"{self.base_url}/user/terminal/get-all-units-details"
-        response = await self._get_data(url)
+    async def output_turn_on(self, device_id: int, output_number: int) -> NorthTrackerResponse:
+        """Turn on a digital output."""
+        LOGGER.debug("Turning on output %d for device ID %d", output_number, device_id)
+        url = f"{self.base_url}/user/terminal/relaysetting/sendmsg"
+        payload = {
+            "terminal_id": device_id,
+            "doutnumber": output_number,
+            "doutvalue": 1
+        }
+        response = await self._post_data(url, payload)
         if response.success:
-            units_count = len(response.data.get("units", []))
-            LOGGER.debug("Successfully fetched details for %d units", units_count)
+            LOGGER.debug("Successfully sent turn ON command for output %d, device ID %d", output_number, device_id)
         else:
-            LOGGER.warning("Failed to fetch all units details")
+            LOGGER.warning("Failed to turn on output %d for device ID %d", output_number, device_id)
         return response
 
-    async def get_realtime_tracking(self) -> NorthTrackerResponse:
-        """Fetch real-time location data for all devices."""
-        LOGGER.debug("Fetching real-time tracking data from API")
-        url = f"{self.base_url}/user/realtimetracking/get?lang=en"
-        response = await self._get_data(url)
+    async def output_turn_off(self, device_id: int, output_number: int) -> NorthTrackerResponse:
+        """Turn off a digital output."""
+        LOGGER.debug("Turning off output %d for device ID %d", output_number, device_id)
+        url = f"{self.base_url}/user/terminal/relaysetting/sendmsg"
+        payload = {
+            "terminal_id": device_id,
+            "doutnumber": output_number,
+            "doutvalue": 0
+        }
+        response = await self._post_data(url, payload)
         if response.success:
-            gps_count = len(response.data.get("gps", []))
-            LOGGER.debug("Successfully fetched GPS data for %d devices", gps_count)
+            LOGGER.debug("Successfully sent turn OFF command for output %d, device ID %d", output_number, device_id)
         else:
-            LOGGER.warning("Failed to fetch real-time tracking data")
+            LOGGER.warning("Failed to turn off output %d for device ID %d", output_number, device_id)
         return response
 
-    async def get_unit_details(self, device_id: int, device_type: str) -> NorthTrackerResponse:
-        """Get detailed information for a specific unit."""
-        LOGGER.debug("Fetching detailed info for device %d (type: %s)", device_id, device_type)
-        url = f"{self.base_url}/user/terminal/edit-terminal"
-        response = await self._post_data(url, {"device_id": device_id, "device_type": device_type})
+    async def input_turn_on(self, device_id: int, input_number: int) -> NorthTrackerResponse:
+        """Enable alert for a digital input."""
+        LOGGER.debug("Enabling alert for input %d on device ID %d", input_number, device_id)
+        # Note: This might use a different endpoint than outputs - may need adjustment
+        url = f"{self.base_url}/user/terminal/inputsetting/sendmsg"
+        payload = {
+            "terminal_id": device_id,
+            "dinnumber": input_number,
+            "dinvalue": 1
+        }
+        response = await self._post_data(url, payload)
         if response.success:
-            LOGGER.debug("Successfully fetched detailed info for device %d", device_id)
+            LOGGER.debug("Successfully enabled alert for input %d, device ID %d", input_number, device_id)
         else:
-            LOGGER.warning("Failed to fetch detailed info for device %d", device_id)
+            LOGGER.warning("Failed to enable alert for input %d on device ID %d", input_number, device_id)
         return response
 
-    async def get_unit_features(self, device_imei: str) -> NorthTrackerResponse:
-        """Get unit features by IMEI."""
-        url = f"{self.base_url}/user/terminal/get-unit-features"
-        return await self._post_data(url, {"Imei": device_imei})
+    async def input_turn_off(self, device_id: int, input_number: int) -> NorthTrackerResponse:
+        """Disable alert for a digital input."""
+        LOGGER.debug("Disabling alert for input %d on device ID %d", input_number, device_id)
+        # Note: This might use a different endpoint than outputs - may need adjustment
+        url = f"{self.base_url}/user/terminal/inputsetting/sendmsg"
+        payload = {
+            "terminal_id": device_id,
+            "dinnumber": input_number,
+            "dinvalue": 0
+        }
+        response = await self._post_data(url, payload)
+        if response.success:
+            LOGGER.debug("Successfully disabled alert for input %d, device ID %d", input_number, device_id)
+        else:
+            LOGGER.warning("Failed to disable alert for input %d on device ID %d", input_number, device_id)
+        return response
+
+    async def output_check_ack(self, ack_id: int) -> NorthTrackerResponse:
+        """Check acknowledgment for output command."""
+        LOGGER.debug("Checking acknowledgment for ID %d", ack_id)
+        url = f"{self.base_url}/user/terminal/relaysetting/check-ack"
+        payload = {
+            "id": ack_id
+        }
+        response = await self._post_data(url, payload)
+        if response.success:
+            LOGGER.debug("Successfully checked acknowledgment for ID %d", ack_id)
+        else:
+            LOGGER.warning("Failed to check acknowledgment for ID %d", ack_id)
+        return response
 
 
 class NorthTrackerResponse:
