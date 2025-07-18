@@ -61,6 +61,9 @@
             "network_signal": {
                 "name": "Network Signal"
             },
+            "speed": {
+                "name": "Speed"
+            },
             "report_frequency": {
                 "name": "Report Frequency"
             }

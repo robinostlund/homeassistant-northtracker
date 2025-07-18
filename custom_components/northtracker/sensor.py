@@ -13,6 +13,7 @@ from homeassistant.const import (
     EntityCategory,
     UnitOfElectricPotential,
     UnitOfLength,
+    UnitOfSpeed,
     UnitOfTime
 )
 from homeassistant.core import HomeAssistant
@@ -63,6 +64,16 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
         icon="mdi:signal",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="speed",
+        translation_key="speed",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
+        device_class=SensorDeviceClass.SPEED,
+        suggested_display_precision=0,
+        icon="mdi:speedometer",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(

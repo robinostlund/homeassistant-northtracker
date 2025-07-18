@@ -61,6 +61,9 @@
             "network_signal": {
                 "name": "Nätverkssignal"
             },
+            "speed": {
+                "name": "Hastighet"
+            },
             "report_frequency": {
                 "name": "Rapporteringsfrekvens"
             }
