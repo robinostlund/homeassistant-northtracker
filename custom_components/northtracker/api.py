@@ -682,17 +682,37 @@ class NorthTrackerDevice:
             return None
 
     @property
-    def last_seen(self) -> str | None:
+    def last_seen(self) -> datetime | None:
         """Return the last seen timestamp."""
-        return self._device_data.get("LastSeen")
+        last_seen_str = self._device_data.get("LastSeen")
+        if not last_seen_str:
+            return None
+        
+        try:
+            # Parse the timestamp string and make it timezone-aware
+            from datetime import datetime
+            import pytz
+            
+            # Parse the datetime string (assuming format: "2025-07-18 08:57:28")
+            dt = datetime.strptime(last_seen_str, "%Y-%m-%d %H:%M:%S")
+            
+            # Make it timezone-aware (assuming UTC, adjust if needed)
+            dt_utc = pytz.UTC.localize(dt)
+            return dt_utc
+            
+        except (ValueError, TypeError) as e:
+            LOGGER.warning("Invalid last_seen timestamp value: %s, error: %s", last_seen_str, e)
+            return None
 
     @property
     def battery_voltage(self) -> float | None:
-        """Return battery voltage."""
+        """Return battery voltage in volts."""
         voltage = self._device_data.get("BatteryVoltage")
         if voltage is not None:
             try:
-                return float(voltage)
+                # Convert from millivolts to volts (12420 -> 12.42)
+                voltage_mv = float(voltage)
+                return voltage_mv / 1000.0
             except (ValueError, TypeError):
                 LOGGER.warning("Invalid battery voltage value: %s", voltage)
         return None
