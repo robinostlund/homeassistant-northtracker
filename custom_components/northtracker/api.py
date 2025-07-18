@@ -864,14 +864,25 @@ class NorthTrackerDevice:
         """Return course/heading of the device in degrees."""
         course = self._device_gps_data.get("Azimuth", 0)
         try:
-            course_int = int(course)
-            # Validate course range (0-359 degrees)
-            if 0 <= course_int <= 359:
-                return course_int
-            LOGGER.warning("Course value out of range: %s", course_int)
-            return 0
-        except (ValueError, TypeError):
-            LOGGER.warning("Invalid course value: %s", course)
+            # Handle both int and float values
+            if isinstance(course, (int, float)):
+                course_int = int(float(course))  # Convert via float first to handle string floats
+                # Validate course range (0-359 degrees)
+                if 0 <= course_int <= 359:
+                    return course_int
+                LOGGER.warning("Course value out of range: %s", course_int)
+                return 0
+            else:
+                # Try to convert string to float first, then to int
+                course_float = float(course)
+                course_int = int(course_float)
+                # Validate course range (0-359 degrees)
+                if 0 <= course_int <= 359:
+                    return course_int
+                LOGGER.warning("Course value out of range: %s", course_int)
+                return 0
+        except (ValueError, TypeError) as e:
+            LOGGER.warning("Invalid course value: %s (error: %s)", course, e)
             return 0
     
     @property
