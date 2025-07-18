@@ -671,14 +671,22 @@ class NorthTrackerDevice:
 
     @property
     def gps_signal(self) -> int | None:
-        """Return GPS signal strength as percentage."""
-        gps_value = self._device_data.get("GPS")
-        if gps_value is None:
+        """Return GPS signal strength as percentage (0-100%)."""
+        # Use GPSAccuracy from GPS data (0-5 scale) and convert to percentage
+        accuracy = self._device_gps_data.get("GPSAccuracy")
+        if accuracy is None:
             return None
         try:
-            return int(gps_value)
+            # Convert 0-5 scale to 0-100% (5 = best signal = 100%)
+            accuracy_int = int(accuracy)
+            if accuracy_int < 0:
+                return 0
+            elif accuracy_int > 5:
+                return 100
+            else:
+                return int((accuracy_int / 5) * 100)
         except (ValueError, TypeError):
-            LOGGER.warning("Invalid GPS signal value: %s", gps_value)
+            LOGGER.warning("Invalid GPS signal value: %s", accuracy)
             return None
 
     @property
@@ -823,39 +831,24 @@ class NorthTrackerDevice:
     
     @property
     def network_signal(self) -> int | None:
-        """Return network signal strength as percentage."""
+        """Return network signal strength as percentage (0-100%)."""
+        # Use NetworkQuality from GPS data (0-5 scale) and convert to percentage
         signal = self._device_gps_data.get("NetworkQuality")
         if signal is None:
             return None
         try:
-            return int(signal)
+            # Convert 0-5 scale to 0-100% (5 = best signal = 100%)
+            signal_int = int(signal)
+            if signal_int < 0:
+                return 0
+            elif signal_int > 5:
+                return 100
+            else:
+                return int((signal_int / 5) * 100)
         except (ValueError, TypeError):
             LOGGER.warning("Invalid network signal value: %s", signal)
             return None
     
-    @property
-    def internal_battery(self) -> int | None:
-        """Return internal battery level as percentage."""
-        battery_str = self._device_gps_data.get("BatteryPercentage")
-        if battery_str is None:
-            return None
-            
-        if isinstance(battery_str, (int, float)):
-            return int(battery_str)
-            
-        if isinstance(battery_str, str):
-            try:
-                # Remove the '%' character and any whitespace, then convert to int
-                clean_str = battery_str.strip(" %")
-                battery_int = int(clean_str)
-                # Validate percentage range
-                if 0 <= battery_int <= 100:
-                    return battery_int
-                LOGGER.warning("Battery percentage out of range: %s", battery_int)
-            except (ValueError, TypeError):
-                LOGGER.warning("Invalid battery percentage format: %s", battery_str)
-        return None
-
     @property
     def speed(self) -> int:
         """Return current speed in km/h."""

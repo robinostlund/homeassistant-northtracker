@@ -61,9 +61,6 @@
             "network_signal": {
                 "name": "Nätverkssignal"
             },
-            "internal_battery": {
-                "name": "Internt batteri"
-            },
             "report_frequency": {
                 "name": "Rapporteringsfrekvens"
             }

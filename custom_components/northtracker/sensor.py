@@ -66,15 +66,6 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
-        key="internal_battery",
-        translation_key="internal_battery",
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=PERCENTAGE,
-        suggested_display_precision=0,
-        device_class=SensorDeviceClass.BATTERY,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    SensorEntityDescription(
         key="report_frequency",
         translation_key="report_frequency",
         state_class=SensorStateClass.MEASUREMENT,
@@ -149,11 +140,6 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
             # Battery voltage should be reasonable (0-50V for most vehicles)
             if not (0 <= value <= 50):
                 LOGGER.warning("Battery voltage out of range for device %s: %s", device.name, value)
-                return None
-        elif self.entity_description.key == "internal_battery" and isinstance(value, (int, float)):
-            # Battery percentage should be 0-100
-            if not (0 <= value <= 100):
-                LOGGER.warning("Internal battery percentage out of range for device %s: %s", device.name, value)
                 return None
         elif self.entity_description.key in ["gps_signal", "network_signal"] and isinstance(value, (int, float)):
             # Signal strength should be 0-100 percent
