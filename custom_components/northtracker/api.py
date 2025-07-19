@@ -649,7 +649,8 @@ class NorthTrackerDevice:
                         "enable_temperature": bool(bluetooth_info.get("EnableTemperature", 0)),
                         "enable_humidity": bool(bluetooth_info.get("EnableHumidity", 0)),
                         "enable_door_sensor": bool(bluetooth_info.get("EnableDoorSensor", 0)),
-                        "has_data": bool(latest_data)
+                        "has_data": bool(latest_data),
+                        "latest_sensor_data": latest_data  # Include the actual sensor data
                     }
                     sensors.append(sensor_config)
                     LOGGER.debug("Found Bluetooth sensor %s (%s) for device %s - temp:%s, humidity:%s, door:%s", 
@@ -754,7 +755,7 @@ class NorthTrackerDevice:
     @property
     def bluetooth_enabled(self) -> bool:
         """Return True if Bluetooth is enabled on the device."""
-        bluetooth_enabled = self._device_data.get("BluetoothStatus", False)
+        bluetooth_enabled = self._device_data_extra.get("terminal",{}).get("BluetoothStatus", False)
         return bool(bluetooth_enabled)
 
     @property
@@ -911,6 +912,31 @@ class NorthTrackerDevice:
             LOGGER.warning("Invalid low battery threshold value: %s", threshold)
             return None
 
+    @property
+    def subscription_type(self) -> str:
+        """Return the device subscription type."""
+        return self._device_data.get("SubscriptionType", "")
+
+    @property
+    def operating_time(self) -> str:
+        """Return the device operating time."""
+        return self._device_data.get("OperatingTime", "")
+
+    @property
+    def lock_status(self) -> bool:
+        """Return whether the device is locked."""
+        return bool(self._device_lock_data.get("lockedstatus", False))
+
+    @property
+    def locked_by(self) -> str:
+        """Return who locked the device."""
+        return self._device_lock_data.get("lockedBy", "")
+
+    @property
+    def sos_alarm_enabled(self) -> bool:
+        """Return whether SOS alarm is enabled."""
+        return bool(self._device_data_extra.get("SoSAlarmEnabled", False))
+
     # Digital input/output methods
     def get_digital_input_state(self, input_number: int) -> bool | None:
         """Get the state of a digital input."""
@@ -937,90 +963,6 @@ class NorthTrackerDevice:
         """Get the status of a digital input (used by switch entities)."""
         state = self.get_digital_input_state(input_number)
         return state if state is not None else False
-
-    # Bluetooth sensor methods
-    def get_bluetooth_sensor_temperature(self, serial_number: str) -> float | None:
-        """Get temperature from a Bluetooth sensor by serial number."""
-        for sensor in self._available_bluetooth_sensors:
-            if sensor["serial_number"] == serial_number:
-                temp_str = sensor.get("latest_sensor_data", {}).get("Temperature")
-                if temp_str is None:
-                    return None
-                try:
-                    return float(temp_str)
-                except (ValueError, TypeError):
-                    LOGGER.warning("Invalid temperature value for sensor %s: %s", serial_number, temp_str)
-                    return None
-        return None
-
-    def get_bluetooth_sensor_humidity(self, serial_number: str) -> int | None:
-        """Get humidity from a Bluetooth sensor by serial number."""
-        for sensor in self._available_bluetooth_sensors:
-            if sensor["serial_number"] == serial_number:
-                humidity_str = sensor.get("latest_sensor_data", {}).get("Humidity")
-                if humidity_str is None:
-                    return None
-                try:
-                    return int(humidity_str)
-                except (ValueError, TypeError):
-                    LOGGER.warning("Invalid humidity value for sensor %s: %s", serial_number, humidity_str)
-                    return None
-        return None
-
-    def get_bluetooth_sensor_battery_percentage(self, serial_number: str) -> int | None:
-        """Get battery percentage from a Bluetooth sensor by serial number."""
-        for sensor in self._available_bluetooth_sensors:
-            if sensor["serial_number"] == serial_number:
-                battery_str = sensor.get("latest_sensor_data", {}).get("BatteryPercentage")
-                if battery_str is None:
-                    return None
-                try:
-                    return int(battery_str)
-                except (ValueError, TypeError):
-                    LOGGER.warning("Invalid battery percentage value for sensor %s: %s", serial_number, battery_str)
-                    return None
-        return None
-
-    def get_bluetooth_sensor_battery_voltage(self, serial_number: str) -> float | None:
-        """Get battery voltage from a Bluetooth sensor by serial number."""
-        for sensor in self._available_bluetooth_sensors:
-            if sensor["serial_number"] == serial_number:
-                voltage_str = sensor.get("latest_sensor_data", {}).get("BatteryVoltage")
-                if voltage_str is None:
-                    return None
-                try:
-                    # Convert from millivolts to volts
-                    voltage_mv = float(voltage_str)
-                    return voltage_mv / 1000.0
-                except (ValueError, TypeError):
-                    LOGGER.warning("Invalid battery voltage value for sensor %s: %s", serial_number, voltage_str)
-                    return None
-        return None
-
-    def get_bluetooth_sensor_magnetic_field(self, serial_number: str) -> bool | None:
-        """Get magnetic field state from a Bluetooth sensor by serial number."""
-        for sensor in self._available_bluetooth_sensors:
-            if sensor["serial_number"] == serial_number:
-                magnetic_state = sensor.get("latest_sensor_data", {}).get("MagneticField")
-                if magnetic_state is None:
-                    return None
-                return bool(magnetic_state)
-        return None
-
-    def get_bluetooth_sensor_last_seen(self, serial_number: str) -> datetime | None:
-        """Get last seen timestamp from a Bluetooth sensor by serial number."""
-        for sensor in self._available_bluetooth_sensors:
-            if sensor["serial_number"] == serial_number:
-                send_time_str = sensor.get("latest_sensor_data", {}).get("Send_Time")
-                if not send_time_str:
-                    return None
-                try:
-                    # Parse the timestamp (assuming format like "2025-07-19 10:55:08")
-                    return datetime.fromisoformat(send_time_str).replace(tzinfo=timezone.utc)
-                except (ValueError, TypeError):
-                    LOGGER.warning("Invalid Bluetooth sensor last seen timestamp for %s: %s", serial_number, send_time_str)
-                    return None
-        return None
 
 
 class NorthTrackerBluetoothDevice:
@@ -1063,29 +1005,9 @@ class NorthTrackerBluetoothDevice:
         return self._serial_number
     
     @property
-    def registration_number(self) -> str | None:
-        """Return None for Bluetooth sensors."""
-        return None
-    
-    @property
     def available(self) -> bool:
         """Return True if Bluetooth sensor has data."""
         return self._bt_sensor_data.get("has_data", False)
-    
-    @property
-    def available_inputs(self) -> list[int]:
-        """Return empty list - Bluetooth sensors don't have digital inputs."""
-        return []
-    
-    @property
-    def available_outputs(self) -> list[int]:
-        """Return empty list - Bluetooth sensors don't have digital outputs."""
-        return []
-    
-    @property
-    def available_bluetooth_sensors(self) -> list[dict[str, Any]]:
-        """Return empty list - this IS a Bluetooth sensor."""
-        return []
     
     @property
     def serial_number(self) -> str:
@@ -1097,30 +1019,95 @@ class NorthTrackerBluetoothDevice:
         """Return the Bluetooth sensor data."""
         return self._bt_sensor_data
     
-    # Bluetooth sensor specific methods
-    def get_bluetooth_sensor_temperature(self) -> float | None:
-        """Get temperature reading from this Bluetooth sensor."""
-        return self.parent_device.get_bluetooth_sensor_temperature(self._serial_number)
-    
-    def get_bluetooth_sensor_humidity(self) -> int | None:
-        """Get humidity reading from this Bluetooth sensor."""
-        return self.parent_device.get_bluetooth_sensor_humidity(self._serial_number)
-    
-    def get_bluetooth_sensor_battery_percentage(self) -> int | None:
-        """Get battery percentage from this Bluetooth sensor."""
-        return self.parent_device.get_bluetooth_sensor_battery_percentage(self._serial_number)
-    
-    def get_bluetooth_sensor_battery_voltage(self) -> float | None:
-        """Get battery voltage from this Bluetooth sensor."""
-        return self.parent_device.get_bluetooth_sensor_battery_voltage(self._serial_number)
-    
-    def get_bluetooth_sensor_magnetic_field(self) -> bool | None:
-        """Get magnetic field status from this Bluetooth sensor."""
-        return self.parent_device.get_bluetooth_sensor_magnetic_field(self._serial_number)
-    
-    def get_bluetooth_sensor_last_seen(self) -> datetime | None:
-        """Get last seen timestamp for this Bluetooth sensor."""
-        return self.parent_device.get_bluetooth_sensor_last_seen(self._serial_number)
+    # Bluetooth sensor properties - direct access to sensor data
+    @property
+    def temperature(self) -> float | None:
+        """Return temperature reading from this Bluetooth sensor."""
+        for sensor in self.parent_device._available_bluetooth_sensors:
+            if sensor["serial_number"] == self._serial_number:
+                temp_str = sensor.get("latest_sensor_data", {}).get("Temperature")
+                if temp_str is None:
+                    return None
+                try:
+                    return float(temp_str)
+                except (ValueError, TypeError):
+                    LOGGER.warning("Invalid temperature value for sensor %s: %s", self._serial_number, temp_str)
+                    return None
+        return None
+
+    @property
+    def humidity(self) -> int | None:
+        """Return humidity reading from this Bluetooth sensor."""
+        for sensor in self.parent_device._available_bluetooth_sensors:
+            if sensor["serial_number"] == self._serial_number:
+                humidity_str = sensor.get("latest_sensor_data", {}).get("Humidity")
+                if humidity_str is None:
+                    return None
+                try:
+                    return int(humidity_str)
+                except (ValueError, TypeError):
+                    LOGGER.warning("Invalid humidity value for sensor %s: %s", self._serial_number, humidity_str)
+                    return None
+        return None
+
+    @property
+    def battery_percentage(self) -> int | None:
+        """Return battery percentage from this Bluetooth sensor."""
+        for sensor in self.parent_device._available_bluetooth_sensors:
+            if sensor["serial_number"] == self._serial_number:
+                battery_str = sensor.get("latest_sensor_data", {}).get("BatteryPercentage")
+                if battery_str is None:
+                    return None
+                try:
+                    return int(battery_str)
+                except (ValueError, TypeError):
+                    LOGGER.warning("Invalid battery percentage value for sensor %s: %s", self._serial_number, battery_str)
+                    return None
+        return None
+
+    @property
+    def battery_voltage(self) -> float | None:
+        """Return battery voltage from this Bluetooth sensor."""
+        for sensor in self.parent_device._available_bluetooth_sensors:
+            if sensor["serial_number"] == self._serial_number:
+                voltage_str = sensor.get("latest_sensor_data", {}).get("BatteryVoltage")
+                if voltage_str is None:
+                    return None
+                try:
+                    # Convert from millivolts to volts
+                    voltage_mv = float(voltage_str)
+                    return voltage_mv / 1000.0
+                except (ValueError, TypeError):
+                    LOGGER.warning("Invalid battery voltage value for sensor %s: %s", self._serial_number, voltage_str)
+                    return None
+        return None
+
+    @property
+    def magnetic_field(self) -> bool | None:
+        """Return magnetic field state from this Bluetooth sensor."""
+        for sensor in self.parent_device._available_bluetooth_sensors:
+            if sensor["serial_number"] == self._serial_number:
+                magnetic_state = sensor.get("latest_sensor_data", {}).get("MagneticField")
+                if magnetic_state is None:
+                    return None
+                return bool(magnetic_state)
+        return None
+
+    @property
+    def last_seen(self) -> datetime | None:
+        """Return last seen timestamp for this Bluetooth sensor."""
+        for sensor in self.parent_device._available_bluetooth_sensors:
+            if sensor["serial_number"] == self._serial_number:
+                send_time_str = sensor.get("latest_sensor_data", {}).get("Send_Time")
+                if not send_time_str:
+                    return None
+                try:
+                    # Parse the timestamp (assuming format like "2025-07-19 10:55:08")
+                    return datetime.fromisoformat(send_time_str).replace(tzinfo=timezone.utc)
+                except (ValueError, TypeError):
+                    LOGGER.warning("Invalid Bluetooth sensor last seen timestamp for %s: %s", self._serial_number, send_time_str)
+                    return None
+        return None
     
     async def async_update(self) -> bool:
         """Update is handled by parent device. Always return False (no direct changes)."""

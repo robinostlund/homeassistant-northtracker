@@ -133,32 +133,6 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                     
             LOGGER.debug("Successfully created %d device objects", len(devices))
             
-            # Create virtual Bluetooth sensor devices
-            bluetooth_devices_count = 0
-            for main_device in list(devices.values()):  # Use list() to avoid dictionary change during iteration
-                if main_device.available_bluetooth_sensors:
-                    LOGGER.debug("Creating virtual Bluetooth devices for %s", main_device.name)
-                    for bt_sensor in main_device.available_bluetooth_sensors:
-                        try:
-                            bt_device = NorthTrackerBluetoothDevice(main_device, bt_sensor)
-                            devices[bt_device.id] = bt_device
-                            bluetooth_devices_count += 1
-                            LOGGER.debug("Created virtual Bluetooth device: %s (%s)", bt_device.name, bt_device.id)
-                        except Exception as err:
-                            LOGGER.error("Failed to create Bluetooth device for sensor %s: %s", 
-                                       bt_sensor.get("name", "unknown"), err)
-            
-            if bluetooth_devices_count > 0:
-                LOGGER.debug("Successfully created %d virtual Bluetooth device objects", bluetooth_devices_count)
-            
-            # Log device capabilities for debugging
-            for device in devices.values():
-                if hasattr(device, 'available_inputs'):  # Main GPS device
-                    LOGGER.debug("Device %s capabilities: inputs=%s, outputs=%s", 
-                               device.name, device.available_inputs, device.available_outputs)
-                else:  # Bluetooth device
-                    LOGGER.debug("Bluetooth device %s (serial: %s)", device.name, device.serial_number)
-
             # 2. Get real-time location data
             try:
                 LOGGER.debug("Fetching real-time tracking data")
@@ -192,7 +166,35 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                 LOGGER.warning("Error fetching real-time location data: %s", err)
                 # Continue without GPS data rather than failing completely
 
+            # Create virtual Bluetooth sensor devices AFTER GPS data is updated
+            # so that latest_sensor_data is available
+            bluetooth_devices_count = 0
+            for main_device in list(devices.values()):  # Use list() to avoid dictionary change during iteration
+                if main_device.available_bluetooth_sensors:
+                    LOGGER.debug("Creating virtual Bluetooth devices for %s", main_device.name)
+                    for bt_sensor in main_device.available_bluetooth_sensors:
+                        try:
+                            bt_device = NorthTrackerBluetoothDevice(main_device, bt_sensor)
+                            devices[bt_device.id] = bt_device
+                            bluetooth_devices_count += 1
+                            LOGGER.debug("Created virtual Bluetooth device: %s (%s)", bt_device.name, bt_device.id)
+                        except Exception as err:
+                            LOGGER.error("Failed to create Bluetooth device for sensor %s: %s", 
+                                       bt_sensor.get("name", "unknown"), err)
+            
+            if bluetooth_devices_count > 0:
+                LOGGER.debug("Successfully created %d virtual Bluetooth device objects", bluetooth_devices_count)
+
+            # Log device capabilities for debugging
+            for device in devices.values():
+                if hasattr(device, 'available_inputs'):  # Main GPS device
+                    LOGGER.debug("Device %s capabilities: inputs=%s, outputs=%s", 
+                               device.name, device.available_inputs, device.available_outputs)
+                else:  # Bluetooth device
+                    LOGGER.debug("Bluetooth device %s (serial: %s)", device.name, device.serial_number)
+
             # 3. Fetch extra (non-location) details for each device in parallel
+            # Only update main GPS/tracker devices, not Bluetooth sensors (they get data from their parent device)
             async def update_device_details(device: NorthTrackerDevice) -> None:
                 """Update a single device's details."""
                 try:
@@ -206,10 +208,13 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                     LOGGER.warning("Failed to update details for device %s (ID: %s): %s", device.name, device.id, err)
                     # Continue with other devices even if one fails
 
-            # Update all devices in parallel with limited concurrency
-            if devices:
-                LOGGER.debug("Starting parallel device detail updates for %d devices", len(devices))
-                tasks = [update_device_details(device) for device in devices.values()]
+            # Update all devices in parallel with limited concurrency, but only main GPS devices
+            # Bluetooth sensors get their data from their parent device and should not be updated directly
+            main_devices = [device for device in devices.values() if device.device_type != "bluetooth_sensor"]
+            if main_devices:
+                LOGGER.debug("Starting parallel device detail updates for %d main devices (excluding %d Bluetooth sensors)", 
+                           len(main_devices), len(devices) - len(main_devices))
+                tasks = [update_device_details(device) for device in main_devices]
                 # Limit concurrent requests to avoid overwhelming the API
                 semaphore = asyncio.Semaphore(5)
                 

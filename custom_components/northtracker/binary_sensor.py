@@ -166,7 +166,7 @@ class NorthTrackerBluetoothBinarySensor(NorthTrackerEntity, BinarySensorEntity):
         # Get magnetic field sensor value
         # Note: magnetic field True = closed, False = open
         # For door sensor, we want True when door is open (reversed logic)
-        magnetic_state = device.get_bluetooth_sensor_magnetic_field()
+        magnetic_state = device.magnetic_field
         if magnetic_state is None:
             return None
         # Reverse the logic: magnetic field True (closed) -> door sensor False (closed)

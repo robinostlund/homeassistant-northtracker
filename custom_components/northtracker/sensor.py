@@ -288,15 +288,15 @@ class NorthTrackerBluetoothSensor(NorthTrackerEntity, SensorEntity):
         # Get the appropriate value based on sensor type
         sensor_key = self.entity_description.key
         if sensor_key == "temperature":
-            value = device.get_bluetooth_sensor_temperature()
+            value = device.temperature
         elif sensor_key == "humidity":
-            value = device.get_bluetooth_sensor_humidity()
+            value = device.humidity
         elif sensor_key == "battery_percentage":
-            value = device.get_bluetooth_sensor_battery_percentage()
+            value = device.battery_percentage
         elif sensor_key == "battery_voltage":
-            value = device.get_bluetooth_sensor_battery_voltage()
+            value = device.battery_voltage
         elif sensor_key == "last_seen":
-            value = device.get_bluetooth_sensor_last_seen()
+            value = device.last_seen
         else:
             LOGGER.warning("Unknown Bluetooth sensor type: %s", sensor_key)
             return None
