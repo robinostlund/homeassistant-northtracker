@@ -103,7 +103,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         new_entities = []
         for device_id, device in coordinator.data.items():
             if device_id not in added_devices:
-                LOGGER.debug("Discovering sensors for new device: %s (ID: %d)", device.name, device_id)
+                LOGGER.debug("Discovering sensors for new device: %s (ID: %s)", device.name, device_id)
                 
                 # Add standard device sensors ONLY for the main GPS tracker device
                 # (not for virtual Bluetooth sensor devices)

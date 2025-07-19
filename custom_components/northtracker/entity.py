@@ -18,12 +18,12 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
         """Initialize the North-Tracker entity."""
         super().__init__(coordinator)
         self._device_id = device_id
-        LOGGER.debug("Initializing entity for device ID %d", device_id)
+        LOGGER.debug("Initializing entity for device ID %s", device_id)
         
         # Get device info for logging
         device = self.device
         if device:
-            LOGGER.debug("Entity initialized for device: %s (ID: %d, Model: %s)", 
+            LOGGER.debug("Entity initialized for device: %s (ID: %s, Model: %s)", 
                         device.name, device.id, device.model)
             
             self._attr_device_info = DeviceInfo(
@@ -34,7 +34,7 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
                 serial_number=device.imei,
             )
         else:
-            LOGGER.warning("Device ID %d not found in coordinator data during entity init", device_id)
+            LOGGER.warning("Device ID %s not found in coordinator data during entity init", device_id)
             # Create minimal device info
             self._attr_device_info = DeviceInfo(
                 identifiers={(DOMAIN, str(device_id))},
@@ -46,7 +46,7 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
     def device(self) -> NorthTrackerDevice | None:
         """Return the device object for this entity."""
         if self._device_id not in self.coordinator.data:
-            LOGGER.warning("Device ID %d not found in coordinator data", self._device_id)
+            LOGGER.warning("Device ID %s not found in coordinator data", self._device_id)
             return None
         return self.coordinator.data[self._device_id]
 
@@ -55,7 +55,7 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
         """Return True if entity is available."""
         device = self.device
         if device is None:
-            LOGGER.debug("Entity for device ID %d not available: device not found in coordinator data", self._device_id)
+            LOGGER.debug("Entity for device ID %s not available: device not found in coordinator data", self._device_id)
             return False
         
         is_available = self.coordinator.last_update_success and device.available

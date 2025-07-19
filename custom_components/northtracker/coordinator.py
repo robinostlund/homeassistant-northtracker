@@ -126,7 +126,7 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                 try:
                     device = NorthTrackerDevice(self.api, unit_data)
                     devices[device_id] = device
-                    LOGGER.debug("Created device object for ID %d (%s)", device_id, device.name)
+                    LOGGER.debug("Created device object for ID %s (%s)", device_id, device.name)
                 except Exception as err:
                     LOGGER.error("Failed to create device object for ID %s: %s", device_id, err)
                     continue
@@ -158,13 +158,13 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                             try:
                                 if devices[device_id].update_gps_data(gps_data):
                                     self._devices_with_changes.add(device_id)
-                                    LOGGER.debug("GPS data changed for device ID %d", device_id)
+                                    LOGGER.debug("GPS data changed for device ID %s", device_id)
                                 else:
-                                    LOGGER.debug("GPS data unchanged for device ID %d", device_id)
+                                    LOGGER.debug("GPS data unchanged for device ID %s", device_id)
                             except Exception as err:
-                                LOGGER.error("Error updating GPS data for device ID %d: %s", device_id, err)
+                                LOGGER.error("Error updating GPS data for device ID %s: %s", device_id, err)
                         else:
-                            LOGGER.warning("Received GPS data for unknown device ID %d", device_id)
+                            LOGGER.warning("Received GPS data for unknown device ID %s", device_id)
                 else:
                     LOGGER.warning("Failed to fetch real-time location data")
             except Exception as err:
@@ -182,7 +182,7 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                     else:
                         LOGGER.debug("Device details unchanged for device %s", device.name)
                 except Exception as err:
-                    LOGGER.warning("Failed to update details for device %s (ID: %d): %s", device.name, device.id, err)
+                    LOGGER.warning("Failed to update details for device %s (ID: %s): %s", device.name, device.id, err)
                     # Continue with other devices even if one fails
 
             # Update all devices in parallel with limited concurrency

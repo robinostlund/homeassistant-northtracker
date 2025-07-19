@@ -35,7 +35,7 @@ async def async_setup_entry(
         new_entities = []
         for device_id, device in coordinator.data.items():
             if device_id not in added_devices:
-                LOGGER.debug("Discovering tracker for new device: %s (ID: %d)", device.name, device_id)
+                LOGGER.debug("Discovering tracker for new device: %s (ID: %s)", device.name, device_id)
                 # Create a tracker for every device, it will just not have a state if no position is available
                 tracker_entity = NorthTrackerDeviceTracker(coordinator, device.id, DEVICE_TRACKER_DESCRIPTION)
                 new_entities.append(tracker_entity)

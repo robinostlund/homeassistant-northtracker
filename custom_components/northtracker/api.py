@@ -703,6 +703,11 @@ class NorthTrackerDevice:
         return self._device_data.get("DeviceType", "gps")
 
     @property
+    def model(self) -> str:
+        """Return the device model."""
+        return self._device_data.get("GpsModel", "")
+
+    @property
     def registration_number(self) -> str | None:
         """Return the vehicle registration number."""
         return self._device_data.get("RegNr")
