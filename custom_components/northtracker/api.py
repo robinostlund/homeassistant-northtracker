@@ -502,8 +502,12 @@ class NorthTrackerDevice:
         self._available_inputs = self._discover_digital_inputs()
         self._available_outputs = self._discover_digital_outputs()
         
-        LOGGER.debug("Device %s discovered capabilities: %d inputs, %d outputs", 
-                    self.name, len(self._available_inputs), len(self._available_outputs))
+        # Dynamically discover Bluetooth sensors
+        self._available_bluetooth_sensors = self._discover_bluetooth_sensors()
+        
+        LOGGER.debug("Device %s discovered capabilities: %d inputs, %d outputs, %d bluetooth sensors", 
+                    self.name, len(self._available_inputs), len(self._available_outputs),
+                    len(self._available_bluetooth_sensors))
 
     async def async_update(self) -> bool:
         """Update device with latest information from the API.
@@ -586,6 +590,10 @@ class NorthTrackerDevice:
                     self.name, gps_data.get("HasPosition"), 
                     gps_data.get("Latitude"), gps_data.get("Longitude"))
         self._device_gps_data = gps_data
+        
+        # Re-discover Bluetooth sensors when GPS data changes (as PairedSensors come with GPS data)
+        self._available_bluetooth_sensors = self._discover_bluetooth_sensors()
+        
         return True
 
     def _discover_digital_inputs(self) -> list[int]:
@@ -622,282 +630,130 @@ class NorthTrackerDevice:
         
         return sorted(outputs)
 
-    @property
-    def available(self) -> bool:
-        """Return True if device is available."""
-        # Consider device available if we have basic data
-        return bool(self._device_data.get("ID"))
-
-    @property
-    def available_inputs(self) -> list[int]:
-        """Return list of available digital input numbers."""
-        return self._available_inputs
-
-    @property
-    def available_outputs(self) -> list[int]:
-        """Return list of available digital output numbers."""
-        return self._available_outputs
-
-    @property
-    def id(self) -> int:
-        """Return the device ID."""
-        return self._device_data.get("ID", 0)
-    
-    @property
-    def name(self) -> str:
-        """Return the device name."""
-        return self._device_data.get("NameOnly", "")
-
-    @property
-    def device_type(self) -> str:
-        """Return the device type."""
-        return self._device_data.get("DeviceType", "")
-
-    @property
-    def imei(self) -> str:
-        """Return the device IMEI."""
-        return self._device_data.get("Imei", "")
-
-    @property
-    def model(self) -> str:
-        """Return the device model."""
-        return self._device_data.get("GpsModel", "")
-
-    @property
-    def bluetooth_enabled(self) -> bool:
-        """Return whether Bluetooth is enabled."""
-        ble_enabled = self._device_data.get("BleEnabled", 0)
-        return bool(ble_enabled)
-
-    @property
-    def gps_signal(self) -> int | None:
-        """Return GPS signal strength as percentage (0-100%)."""
-        # Use GPSAccuracy from GPS data (0-5 scale) and convert to percentage
-        accuracy = self._device_gps_data.get("GPSAccuracy")
-        if accuracy is None:
-            return None
-        try:
-            # Convert 0-5 scale to 0-100% (5 = best signal = 100%)
-            accuracy_int = int(accuracy)
-            if accuracy_int < 0:
-                return 0
-            elif accuracy_int > 5:
-                return 100
-            else:
-                return int((accuracy_int / 5) * 100)
-        except (ValueError, TypeError):
-            LOGGER.warning("Invalid GPS signal value: %s", accuracy)
-            return None
-
-    @property
-    def last_seen(self) -> datetime | None:
-        """Return the last seen timestamp."""
-        last_seen_str = self._device_data.get("LastSeen")
-        if not last_seen_str:
-            return None
+    def _discover_bluetooth_sensors(self) -> list[dict[str, Any]]:
+        """Discover available Bluetooth sensors based on GPS data."""
+        sensors = []
+        # Check for PairedSensors in GPS data
+        paired_sensors = self._device_gps_data.get("PairedSensors", [])
         
-        try:
-            # Parse the timestamp string and make it timezone-aware
-            from datetime import datetime
-            import pytz
-            
-            # Parse the datetime string (assuming format: "2025-07-18 08:57:28")
-            dt = datetime.strptime(last_seen_str, "%Y-%m-%d %H:%M:%S")
-            
-            # Make it timezone-aware (assuming UTC, adjust if needed)
-            dt_utc = pytz.UTC.localize(dt)
-            return dt_utc
-            
-        except (ValueError, TypeError) as e:
-            LOGGER.warning("Invalid last_seen timestamp value: %s, error: %s", last_seen_str, e)
-            return None
+        for sensor in paired_sensors:
+            if isinstance(sensor, dict):
+                serial_number = sensor.get("SerialNumber")
+                bluetooth_info = sensor.get("bluetooth_info", {})
+                latest_data = sensor.get("latest_sensor_data", {})
+                
+                if serial_number and bluetooth_info:
+                    sensor_config = {
+                        "serial_number": serial_number,
+                        "name": bluetooth_info.get("Name", f"Bluetooth Sensor {serial_number}"),
+                        "enable_temperature": bool(bluetooth_info.get("EnableTemperature", 0)),
+                        "enable_humidity": bool(bluetooth_info.get("EnableHumidity", 0)),
+                        "enable_door_sensor": bool(bluetooth_info.get("EnableDoorSensor", 0)),
+                        "has_data": bool(latest_data)
+                    }
+                    sensors.append(sensor_config)
+                    LOGGER.debug("Found Bluetooth sensor %s (%s) for device %s - temp:%s, humidity:%s, door:%s", 
+                               serial_number, sensor_config["name"], self.name,
+                               sensor_config["enable_temperature"], sensor_config["enable_humidity"],
+                               sensor_config["enable_door_sensor"])
+        
+        return sensors
 
-    @property
-    def battery_voltage(self) -> float | None:
-        """Return battery voltage in volts."""
-        voltage = self._device_data.get("BatteryVoltage")
-        if voltage is not None:
-            try:
-                # Convert from millivolts to volts (12420 -> 12.42)
-                voltage_mv = float(voltage)
-                return voltage_mv / 1000.0
-            except (ValueError, TypeError):
-                LOGGER.warning("Invalid battery voltage value: %s", voltage)
+    # Bluetooth sensor data methods
+    def get_bluetooth_sensor_data(self, serial_number: str) -> dict[str, Any] | None:
+        """Get latest data for a specific Bluetooth sensor."""
+        paired_sensors = self._device_gps_data.get("PairedSensors", [])
+        
+        for sensor in paired_sensors:
+            if isinstance(sensor, dict) and sensor.get("SerialNumber") == serial_number:
+                return sensor.get("latest_sensor_data", {})
+        
         return None
 
-    @property
-    def odometer(self) -> float | None:
-        """Return odometer reading in kilometers."""
-        odometer = self._device_data.get("Odometer")
-        if odometer is None:
+    def get_bluetooth_sensor_temperature(self, serial_number: str) -> float | None:
+        """Get temperature from a Bluetooth sensor in Celsius."""
+        sensor_data = self.get_bluetooth_sensor_data(serial_number)
+        if not sensor_data:
             return None
+            
+        temp_str = sensor_data.get("Temperature")
+        if temp_str is None:
+            return None
+            
         try:
-            return float(odometer)
+            return float(temp_str)
         except (ValueError, TypeError):
-            LOGGER.warning("Invalid odometer value: %s", odometer)
+            LOGGER.warning("Invalid temperature value from Bluetooth sensor %s: %s", serial_number, temp_str)
             return None
-    
-    @property
-    def alarm_status(self) -> bool:
-        """Return alarm status."""
-        return self._device_lock_data.get("lockedstatus", False)
 
-    @property
-    def lock_status(self) -> bool:
-        """Return lock status."""
-        return self._device_lock_data.get("lockedstatus", False)
-    
-    @property
-    def report_frequency(self) -> int | None:
-        """Return report frequency in seconds."""
+    def get_bluetooth_sensor_humidity(self, serial_number: str) -> int | None:
+        """Get humidity from a Bluetooth sensor as percentage."""
+        sensor_data = self.get_bluetooth_sensor_data(serial_number)
+        if not sensor_data:
+            return None
+            
+        humidity_str = sensor_data.get("Humidity")
+        if humidity_str is None:
+            return None
+            
         try:
-            terminal_data = self._device_data_extra.get("terminal", {})
-            frequency = terminal_data.get("ReportFrequency")
-            if frequency is None:
+            return int(humidity_str)
+        except (ValueError, TypeError):
+            LOGGER.warning("Invalid humidity value from Bluetooth sensor %s: %s", serial_number, humidity_str)
+            return None
+
+    def get_bluetooth_sensor_battery_percentage(self, serial_number: str) -> int | None:
+        """Get battery percentage from a Bluetooth sensor."""
+        sensor_data = self.get_bluetooth_sensor_data(serial_number)
+        if not sensor_data:
+            return None
+            
+        battery_str = sensor_data.get("BatteryPercentage")
+        if battery_str is None:
+            return None
+            
+        try:
+            return int(battery_str)
+        except (ValueError, TypeError):
+            LOGGER.warning("Invalid battery percentage value from Bluetooth sensor %s: %s", serial_number, battery_str)
+            return None
+
+    def get_bluetooth_sensor_magnetic_field(self, serial_number: str) -> bool | None:
+        """Get magnetic field state from a Bluetooth sensor (True = closed, False = open)."""
+        sensor_data = self.get_bluetooth_sensor_data(serial_number)
+        if not sensor_data:
+            return None
+            
+        magnetic_field = sensor_data.get("MagneticField")
+        if magnetic_field is None:
+            return None
+            
+        # Handle boolean or string representation
+        if isinstance(magnetic_field, bool):
+            return magnetic_field
+        elif isinstance(magnetic_field, str):
+            return magnetic_field.lower() in ("true", "closed", "1")
+        else:
+            try:
+                return bool(magnetic_field)
+            except (ValueError, TypeError):
+                LOGGER.warning("Invalid magnetic field value from Bluetooth sensor %s: %s", serial_number, magnetic_field)
                 return None
-            return int(frequency)
-        except (ValueError, TypeError, AttributeError):
-            LOGGER.warning("Invalid report frequency value")
-            return None
-    
-    def get_input_status(self, input_number: int) -> bool:
-        """Return the state of a specific digital input."""
-        if input_number not in self._available_inputs:
-            LOGGER.warning("Input %d not available on device %s", input_number, self.name)
-            return False
-        
-        key = f"Din{input_number}Status"
-        status = self._device_data.get(key, "Off")
-        return status == "On"
-    
-    def get_output_status(self, output_number: int) -> bool:
-        """Return the state of a specific digital output."""
-        if output_number not in self._available_outputs:
-            LOGGER.warning("Output %d not available on device %s", output_number, self.name)
-            return False
-        
-        key = f"Dout{output_number}Status"
-        status = self._device_data.get(key, "Off")
-        return status == "On"
-    
-    @property
-    def has_position(self) -> bool:
-        """Return true if the device has a valid GPS position."""
-        return self._device_gps_data.get("HasPosition", False)
 
-    @property
-    def latitude(self) -> float | None:
-        """Return latitude of the device."""
-        if not self.has_position:
+    def get_bluetooth_sensor_battery_voltage(self, serial_number: str) -> float | None:
+        """Get battery voltage from a Bluetooth sensor in volts."""
+        sensor_data = self.get_bluetooth_sensor_data(serial_number)
+        if not sensor_data:
             return None
-        lat = self._device_gps_data.get("Latitude")
-        if lat is not None:
-            try:
-                lat_float = float(lat)
-                # Validate latitude range
-                if -90 <= lat_float <= 90:
-                    return lat_float
-                LOGGER.warning("Invalid latitude value: %s", lat)
-            except (ValueError, TypeError):
-                LOGGER.warning("Invalid latitude format: %s", lat)
-        return None
-
-    @property
-    def longitude(self) -> float | None:
-        """Return longitude of the device."""
-        if not self.has_position:
+            
+        voltage_str = sensor_data.get("BatteryVoltage")
+        if voltage_str is None:
             return None
-        lon = self._device_gps_data.get("Longitude")
-        if lon is not None:
-            try:
-                lon_float = float(lon)
-                # Validate longitude range
-                if -180 <= lon_float <= 180:
-                    return lon_float
-                LOGGER.warning("Invalid longitude value: %s", lon)
-            except (ValueError, TypeError):
-                LOGGER.warning("Invalid longitude format: %s", lon)
-        return None
-
-    @property
-    def gps_accuracy(self) -> int:
-        """Return GPS accuracy in meters."""
-        accuracy = self._device_gps_data.get("GPSAccuracy", 0)
+            
         try:
-            return int(accuracy)
+            # Convert from millivolts to volts
+            voltage_mv = int(voltage_str)
+            return voltage_mv / 1000.0
         except (ValueError, TypeError):
-            LOGGER.warning("Invalid GPS accuracy value: %s", accuracy)
-            return 0
-    
-    @property
-    def network_signal(self) -> int | None:
-        """Return network signal strength as percentage (0-100%)."""
-        # Use NetworkQuality from GPS data (0-5 scale) and convert to percentage
-        signal = self._device_gps_data.get("NetworkQuality")
-        if signal is None:
-            return None
-        try:
-            # Convert 0-5 scale to 0-100% (5 = best signal = 100%)
-            signal_int = int(signal)
-            if signal_int < 0:
-                return 0
-            elif signal_int > 5:
-                return 100
-            else:
-                return int((signal_int / 5) * 100)
-        except (ValueError, TypeError):
-            LOGGER.warning("Invalid network signal value: %s", signal)
-            return None
-    
-    @property
-    def speed(self) -> int:
-        """Return current speed in km/h."""
-        speed = self._device_gps_data.get("Speed", 0)
-        try:
-            return int(speed)
-        except (ValueError, TypeError):
-            LOGGER.warning("Invalid speed value: %s", speed)
-            return 0
-    
-    @property
-    def course(self) -> int:
-        """Return course/heading of the device in degrees."""
-        course = self._device_gps_data.get("Azimuth", 0)
-        try:
-            # Handle both int and float values
-            if isinstance(course, (int, float)):
-                course_int = int(float(course))  # Convert via float first to handle string floats
-                # Validate course range (0-359 degrees)
-                if 0 <= course_int <= 359:
-                    return course_int
-                LOGGER.warning("Course value out of range: %s", course_int)
-                return 0
-            else:
-                # Try to convert string to float first, then to int
-                course_float = float(course)
-                course_int = int(course_float)
-                # Validate course range (0-359 degrees)
-                if 0 <= course_int <= 359:
-                    return course_int
-                LOGGER.warning("Course value out of range: %s", course_int)
-                return 0
-        except (ValueError, TypeError) as e:
-            LOGGER.warning("Invalid course value: %s (error: %s)", course, e)
-            return 0
-    
-    @property
-    def low_battery_alert_enabled(self) -> bool:
-        """Return whether low battery alert is enabled."""
-        return self._device_features_data.get("LowBatteryAlertEnabled", False)
-    
-    @property
-    def low_battery_threshold(self) -> float | None:
-        """Return low battery alert threshold in volts."""
-        threshold = self._device_features_data.get("LowBatteryThreshold")
-        if threshold is None:
-            return None
-        try:
-            return float(threshold)
-        except (ValueError, TypeError):
-            LOGGER.warning("Invalid low battery threshold value: %s", threshold)
+            LOGGER.warning("Invalid battery voltage value from Bluetooth sensor %s: %s", serial_number, voltage_str)
             return None
