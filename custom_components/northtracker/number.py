@@ -43,14 +43,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             if device_id not in added_devices:
                 LOGGER.debug("Discovering numbers for new device: %s (ID: %d)", device.name, device_id)
                 
-                # Add number entities that exist for all devices
-                for description in NUMBER_DESCRIPTIONS:
-                    if hasattr(device, description.key):
-                        number_entity = NorthTrackerNumber(coordinator, device.id, description)
-                        new_entities.append(number_entity)
-                        LOGGER.debug("Created number entity: %s for device %s", description.key, device.name)
-                    else:
-                        LOGGER.debug("Device %s does not have attribute %s, skipping number entity", device.name, description.key)
+                # Add number entities ONLY for the main GPS tracker device
+                # (not for virtual Bluetooth sensor devices)
+                if hasattr(device, 'available_bluetooth_sensors'):
+                    # This is a main GPS tracker device, add number entities
+                    for description in NUMBER_DESCRIPTIONS:
+                        if hasattr(device, description.key):
+                            number_entity = NorthTrackerNumber(coordinator, device.id, description)
+                            new_entities.append(number_entity)
+                            LOGGER.debug("Created number entity: %s for device %s", description.key, device.name)
+                        else:
+                            LOGGER.debug("Device %s does not have attribute %s, skipping number entity", device.name, description.key)
                 
                 added_devices.add(device_id)
 

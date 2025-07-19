@@ -46,39 +46,44 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             if device_id not in added_devices:
                 LOGGER.debug("Discovering switches for new device: %s (ID: %d)", device.name, device_id)
                 
-                # Create switches for each available digital output
-                for output_num in device.available_outputs:
-                    description = SwitchEntityDescription(
-                        key=f"output_status_{output_num}",
-                        translation_key=f"output_{output_num}",
-                        device_class=SwitchDeviceClass.SWITCH,
-                        name=f"Output {output_num}",
-                    )
-                    switch_entity = NorthTrackerSwitch(coordinator, device.id, description, output_number=output_num)
-                    new_entities.append(switch_entity)
-                    LOGGER.debug("Created switch for output %d on device %s", output_num, device.name)
-                
-                # Create switches for each available digital input (alert control)
-                for input_num in device.available_inputs:
-                    description = SwitchEntityDescription(
-                        key=f"input_status_{input_num}",
-                        translation_key=f"input_{input_num}",
-                        device_class=SwitchDeviceClass.SWITCH,
-                        name=f"Input {input_num}",
-                        # icon="mdi:electric-switch",
-                    )
-                    switch_entity = NorthTrackerSwitch(coordinator, device.id, description, input_number=input_num)
-                    new_entities.append(switch_entity)
-                    LOGGER.debug("Created switch for input %d on device %s", input_num, device.name)
-                
-                # Add static switches (like alarm) that exist for all devices
-                for description in STATIC_SWITCH_DESCRIPTIONS:
-                    if hasattr(device, description.key):
-                        switch_entity = NorthTrackerSwitch(coordinator, device.id, description)
+                # Add switches ONLY for the main GPS tracker device
+                # (not for virtual Bluetooth sensor devices)
+                if hasattr(device, 'available_bluetooth_sensors'):
+                    # This is a main GPS tracker device, add switches
+                    
+                    # Create switches for each available digital output
+                    for output_num in device.available_outputs:
+                        description = SwitchEntityDescription(
+                            key=f"output_status_{output_num}",
+                            translation_key=f"output_{output_num}",
+                            device_class=SwitchDeviceClass.SWITCH,
+                            name=f"Output {output_num}",
+                        )
+                        switch_entity = NorthTrackerSwitch(coordinator, device.id, description, output_number=output_num)
                         new_entities.append(switch_entity)
-                        LOGGER.debug("Created static switch: %s for device %s", description.key, device.name)
-                    else:
-                        LOGGER.debug("Device %s does not have attribute %s, skipping switch", device.name, description.key)
+                        LOGGER.debug("Created switch for output %d on device %s", output_num, device.name)
+                    
+                    # Create switches for each available digital input (alert control)
+                    for input_num in device.available_inputs:
+                        description = SwitchEntityDescription(
+                            key=f"input_status_{input_num}",
+                            translation_key=f"input_{input_num}",
+                            device_class=SwitchDeviceClass.SWITCH,
+                            name=f"Input {input_num}",
+                            # icon="mdi:electric-switch",
+                        )
+                        switch_entity = NorthTrackerSwitch(coordinator, device.id, description, input_number=input_num)
+                        new_entities.append(switch_entity)
+                        LOGGER.debug("Created switch for input %d on device %s", input_num, device.name)
+                    
+                    # Add static switches (like alarm) that exist for all devices
+                    for description in STATIC_SWITCH_DESCRIPTIONS:
+                        if hasattr(device, description.key):
+                            switch_entity = NorthTrackerSwitch(coordinator, device.id, description)
+                            new_entities.append(switch_entity)
+                            LOGGER.debug("Created static switch: %s for device %s", description.key, device.name)
+                        else:
+                            LOGGER.debug("Device %s does not have attribute %s, skipping switch", device.name, description.key)
                 
                 added_devices.add(device_id)
         

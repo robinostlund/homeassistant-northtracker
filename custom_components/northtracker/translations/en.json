@@ -66,6 +66,21 @@
             },
             "report_frequency": {
                 "name": "Report Frequency"
+            },
+            "bluetooth_temperature": {
+                "name": "Temperature"
+            },
+            "bluetooth_humidity": {
+                "name": "Humidity"
+            },
+            "bluetooth_battery_percentage": {
+                "name": "Battery"
+            },
+            "bluetooth_battery_voltage": {
+                "name": "Battery Voltage"
+            },
+            "bluetooth_last_seen": {
+                "name": "Last Seen"
             }
         },
         "switch": {
@@ -120,6 +135,9 @@
         "binary_sensor": {
             "bluetooth": {
                 "name": "Bluetooth"
+            },
+            "bluetooth_door": {
+                "name": "Door"
             }
         },
         "device_tracker": {

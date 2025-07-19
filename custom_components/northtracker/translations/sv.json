@@ -66,6 +66,21 @@
             },
             "report_frequency": {
                 "name": "Rapporteringsfrekvens"
+            },
+            "bluetooth_temperature": {
+                "name": "Temperatur"
+            },
+            "bluetooth_humidity": {
+                "name": "Luftfuktighet"
+            },
+            "bluetooth_battery_percentage": {
+                "name": "Batteri"
+            },
+            "bluetooth_battery_voltage": {
+                "name": "Batterispänning"
+            },
+            "bluetooth_last_seen": {
+                "name": "Senast sedd"
             }
         },
         "switch": {
@@ -115,6 +130,9 @@
         "binary_sensor": {
             "bluetooth": {
                 "name": "Bluetooth"
+            },
+            "bluetooth_door": {
+                "name": "Dörr"
             }
         },
         "device_tracker": {
