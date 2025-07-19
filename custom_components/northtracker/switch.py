@@ -46,10 +46,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             if device_id not in added_devices:
                 LOGGER.debug("Discovering switches for new device: %s (ID: %s)", device.name, device_id)
                 
-                # Add switches ONLY for the main GPS tracker device
-                # (not for virtual Bluetooth sensor devices)
-                if hasattr(device, 'available_bluetooth_sensors'):
-                    # This is a main GPS tracker device, add switches
+                # Handle different device types  
+                if device.device_type in ["gps", "tracker"]:
+                    # This is a main GPS tracker device - add switches
                     
                     # Create switches for each available digital output
                     for output_num in device.available_outputs:

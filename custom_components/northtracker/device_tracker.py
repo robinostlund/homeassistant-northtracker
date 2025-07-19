@@ -36,10 +36,11 @@ async def async_setup_entry(
         for device_id, device in coordinator.data.items():
             if device_id not in added_devices:
                 LOGGER.debug("Discovering tracker for new device: %s (ID: %s)", device.name, device_id)
-                # Create a tracker for every device, it will just not have a state if no position is available
-                tracker_entity = NorthTrackerDeviceTracker(coordinator, device.id, DEVICE_TRACKER_DESCRIPTION)
-                new_entities.append(tracker_entity)
-                LOGGER.debug("Created device tracker for device %s", device.name)
+                # Create a tracker only for main GPS devices (not Bluetooth sensors)
+                if device.device_type in ["gps", "tracker"]:
+                    tracker_entity = NorthTrackerDeviceTracker(coordinator, device.id, DEVICE_TRACKER_DESCRIPTION)
+                    new_entities.append(tracker_entity)
+                    LOGGER.debug("Created device tracker for device %s", device.name)
                 added_devices.add(device_id)
 
         if new_entities:

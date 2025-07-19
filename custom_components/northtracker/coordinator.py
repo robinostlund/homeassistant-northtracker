@@ -12,7 +12,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
-from .api import NorthTracker, NorthTrackerDevice, APIError, AuthenticationError, RateLimitError
+from .api import NorthTracker, NorthTrackerDevice, NorthTrackerBluetoothDevice, APIError, AuthenticationError, RateLimitError
 from .const import DOMAIN, LOGGER, DEFAULT_UPDATE_INTERVAL, MIN_UPDATE_INTERVAL, MAX_UPDATE_INTERVAL
 
 
@@ -133,10 +133,31 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                     
             LOGGER.debug("Successfully created %d device objects", len(devices))
             
+            # Create virtual Bluetooth sensor devices
+            bluetooth_devices_count = 0
+            for main_device in list(devices.values()):  # Use list() to avoid dictionary change during iteration
+                if main_device.available_bluetooth_sensors:
+                    LOGGER.debug("Creating virtual Bluetooth devices for %s", main_device.name)
+                    for bt_sensor in main_device.available_bluetooth_sensors:
+                        try:
+                            bt_device = NorthTrackerBluetoothDevice(main_device, bt_sensor)
+                            devices[bt_device.id] = bt_device
+                            bluetooth_devices_count += 1
+                            LOGGER.debug("Created virtual Bluetooth device: %s (%s)", bt_device.name, bt_device.id)
+                        except Exception as err:
+                            LOGGER.error("Failed to create Bluetooth device for sensor %s: %s", 
+                                       bt_sensor.get("name", "unknown"), err)
+            
+            if bluetooth_devices_count > 0:
+                LOGGER.debug("Successfully created %d virtual Bluetooth device objects", bluetooth_devices_count)
+            
             # Log device capabilities for debugging
             for device in devices.values():
-                LOGGER.debug("Device %s capabilities: inputs=%s, outputs=%s", 
-                           device.name, device.available_inputs, device.available_outputs)
+                if hasattr(device, 'available_inputs'):  # Main GPS device
+                    LOGGER.debug("Device %s capabilities: inputs=%s, outputs=%s", 
+                               device.name, device.available_inputs, device.available_outputs)
+                else:  # Bluetooth device
+                    LOGGER.debug("Bluetooth device %s (serial: %s)", device.name, device.serial_number)
 
             # 2. Get real-time location data
             try:

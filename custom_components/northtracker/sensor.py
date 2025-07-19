@@ -91,6 +91,55 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     ),
 )
 
+# Bluetooth sensor descriptions
+BLUETOOTH_SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
+    SensorEntityDescription(
+        key="temperature",
+        translation_key="bluetooth_temperature",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        suggested_display_precision=1,
+        icon="mdi:thermometer",
+    ),
+    SensorEntityDescription(
+        key="humidity",
+        translation_key="bluetooth_humidity",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.HUMIDITY,
+        suggested_display_precision=0,
+        icon="mdi:water-percent",
+    ),
+    SensorEntityDescription(
+        key="battery_percentage",
+        translation_key="bluetooth_battery_percentage",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.BATTERY,
+        suggested_display_precision=0,
+        icon="mdi:battery",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="battery_voltage",
+        translation_key="bluetooth_battery_voltage",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        suggested_display_precision=2,
+        icon="mdi:battery",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="last_seen",
+        translation_key="bluetooth_last_seen",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:clock-outline",
+    ),
+)
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the sensor platform and discover new entities."""
     coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
@@ -104,58 +153,42 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         for device_id, device in coordinator.data.items():
             if device_id not in added_devices:
                 LOGGER.debug("Discovering sensors for new device: %s (ID: %s)", device.name, device_id)
+                LOGGER.debug("Device type: %s, Name: %s", device.device_type, device.name)
                 
-                # Add standard device sensors ONLY for the main GPS tracker device
-                # (not for virtual Bluetooth sensor devices)
-                if hasattr(device, 'available_bluetooth_sensors'):
-                    # This is a main GPS tracker device, add standard sensors
+                # Handle different device types
+                if device.device_type == "bluetooth_sensor":
+                    # This is a virtual Bluetooth sensor device
+                    LOGGER.debug("Adding Bluetooth sensors for device: %s", device.name)
+                    bt_data = device.sensor_data
+                    
+                    # Create sensors based on descriptions and availability
+                    for description in BLUETOOTH_SENSOR_DESCRIPTIONS:
+                        should_create = False
+                        
+                        # Check if this sensor type should be created
+                        if description.key == "temperature" and bt_data.get("enable_temperature", False):
+                            should_create = True
+                        elif description.key == "humidity" and bt_data.get("enable_humidity", False):
+                            should_create = True
+                        elif description.key in ["battery_percentage", "battery_voltage", "last_seen"] and bt_data.get("has_data", False):
+                            should_create = True
+                        
+                        if should_create:
+                            sensor_entity = NorthTrackerBluetoothSensor(coordinator, device_id, description)
+                            new_entities.append(sensor_entity)
+                            LOGGER.debug("Created Bluetooth sensor: %s for device %s", description.key, device.name)
+                
+                elif device.device_type in ["gps", "tracker"]:
+                    # This is a main GPS tracker device - add standard sensors only
+                    LOGGER.debug("Adding standard sensors for GPS device: %s", device.name)
                     for description in SENSOR_DESCRIPTIONS:
                         sensor_entity = NorthTrackerSensor(coordinator, device.id, description)
                         new_entities.append(sensor_entity)
                         LOGGER.debug("Created sensor: %s for device %s", description.key, device.name)
-                    
-                    # Add dynamic Bluetooth sensors for this main device
-                    for bt_sensor in device.available_bluetooth_sensors:
-                        serial_number = bt_sensor["serial_number"]
-                        sensor_name = bt_sensor["name"]
-                        
-                        # Temperature sensor
-                        if bt_sensor["enable_temperature"]:
-                            temp_entity = NorthTrackerBluetoothSensor(
-                                coordinator, device.id, serial_number, "temperature", sensor_name
-                            )
-                            new_entities.append(temp_entity)
-                            LOGGER.debug("Created Bluetooth temperature sensor for %s (%s)", sensor_name, serial_number)
-                        
-                        # Humidity sensor  
-                        if bt_sensor["enable_humidity"]:
-                            humidity_entity = NorthTrackerBluetoothSensor(
-                                coordinator, device.id, serial_number, "humidity", sensor_name
-                            )
-                            new_entities.append(humidity_entity)
-                            LOGGER.debug("Created Bluetooth humidity sensor for %s (%s)", sensor_name, serial_number)
-                        
-                        # Battery percentage sensor
-                        if bt_sensor["has_data"]:  # Only create if we have data
-                            battery_entity = NorthTrackerBluetoothSensor(
-                                coordinator, device.id, serial_number, "battery_percentage", sensor_name
-                            )
-                            new_entities.append(battery_entity)
-                            LOGGER.debug("Created Bluetooth battery sensor for %s (%s)", sensor_name, serial_number)
-                            
-                            # Battery voltage sensor
-                            battery_voltage_entity = NorthTrackerBluetoothSensor(
-                                coordinator, device.id, serial_number, "battery_voltage", sensor_name
-                            )
-                            new_entities.append(battery_voltage_entity)
-                            LOGGER.debug("Created Bluetooth battery voltage sensor for %s (%s)", sensor_name, serial_number)
-                            
-                            # Last seen sensor
-                            last_seen_entity = NorthTrackerBluetoothSensor(
-                                coordinator, device.id, serial_number, "last_seen", sensor_name
-                            )
-                            new_entities.append(last_seen_entity)
-                            LOGGER.debug("Created Bluetooth last seen sensor for %s (%s)", sensor_name, serial_number)
+                
+                else:
+                    LOGGER.debug("Skipping sensor creation for device: %s (type: %s) - unknown device type", 
+                               device.name, device.device_type)
                 
                 added_devices.add(device_id)
         
@@ -221,62 +254,24 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
 class NorthTrackerBluetoothSensor(NorthTrackerEntity, SensorEntity):
     """Defines a North-Tracker Bluetooth sensor."""
 
-    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int, 
-                 serial_number: str, sensor_type: str, sensor_name: str) -> None:
+    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: str, 
+                 description: SensorEntityDescription) -> None:
         """Initialize the Bluetooth sensor."""
         super().__init__(coordinator, device_id)
-        self._serial_number = serial_number
-        self._sensor_type = sensor_type
-        self._sensor_name = sensor_name
+        self.entity_description = description
+        
+        # Get Bluetooth device info
+        device = self.device
+        if device:
+            self._sensor_name = device.name
+            self._serial_number = device.serial_number
+        else:
+            self._sensor_name = "Unknown Bluetooth Sensor"
+            self._serial_number = "unknown"
         
         # Build unique ID and entity ID
-        self._attr_unique_id = f"{self._device_id}_{serial_number}_{sensor_type}"
-        
-        # Set sensor properties based on type
-        if sensor_type == "temperature":
-            self._attr_device_class = SensorDeviceClass.TEMPERATURE
-            self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
-            self._attr_state_class = SensorStateClass.MEASUREMENT
-            self._attr_suggested_display_precision = 1
-            self._attr_icon = "mdi:thermometer"
-            self._attr_name = f"{sensor_name} Temperature"
-            self._attr_translation_key = "bluetooth_temperature"
-            
-        elif sensor_type == "humidity":
-            self._attr_device_class = SensorDeviceClass.HUMIDITY
-            self._attr_native_unit_of_measurement = PERCENTAGE
-            self._attr_state_class = SensorStateClass.MEASUREMENT
-            self._attr_suggested_display_precision = 0
-            self._attr_icon = "mdi:water-percent"
-            self._attr_name = f"{sensor_name} Humidity"
-            self._attr_translation_key = "bluetooth_humidity"
-            
-        elif sensor_type == "battery_percentage":
-            self._attr_device_class = SensorDeviceClass.BATTERY
-            self._attr_native_unit_of_measurement = PERCENTAGE
-            self._attr_state_class = SensorStateClass.MEASUREMENT
-            self._attr_suggested_display_precision = 0
-            self._attr_icon = "mdi:battery"
-            self._attr_name = f"{sensor_name} Battery"
-            self._attr_translation_key = "bluetooth_battery_percentage"
-            
-        elif sensor_type == "battery_voltage":
-            self._attr_device_class = SensorDeviceClass.VOLTAGE
-            self._attr_native_unit_of_measurement = UnitOfElectricPotential.VOLT
-            self._attr_state_class = SensorStateClass.MEASUREMENT
-            self._attr_suggested_display_precision = 3
-            self._attr_icon = "mdi:battery-high"
-            self._attr_name = f"{sensor_name} Battery Voltage"
-            self._attr_translation_key = "bluetooth_battery_voltage"
-            
-        elif sensor_type == "last_seen":
-            self._attr_device_class = SensorDeviceClass.TIMESTAMP
-            self._attr_icon = "mdi:clock-outline"
-            self._attr_name = f"{sensor_name} Last Seen"
-            self._attr_translation_key = "bluetooth_last_seen"
-        
-        # All Bluetooth sensors are diagnostic
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_unique_id = f"{device_id}_{description.key}"
+        self._attr_name = f"{self._sensor_name} {description.key.replace('_', ' ').title()}"
 
     @property
     def native_value(self) -> StateType:
@@ -291,22 +286,23 @@ class NorthTrackerBluetoothSensor(NorthTrackerEntity, SensorEntity):
             return None
         
         # Get the appropriate value based on sensor type
-        if self._sensor_type == "temperature":
-            value = device.get_bluetooth_sensor_temperature(self._serial_number)
-        elif self._sensor_type == "humidity":
-            value = device.get_bluetooth_sensor_humidity(self._serial_number)
-        elif self._sensor_type == "battery_percentage":
-            value = device.get_bluetooth_sensor_battery_percentage(self._serial_number)
-        elif self._sensor_type == "battery_voltage":
-            value = device.get_bluetooth_sensor_battery_voltage(self._serial_number)
-        elif self._sensor_type == "last_seen":
-            value = device.get_bluetooth_sensor_last_seen(self._serial_number)
+        sensor_key = self.entity_description.key
+        if sensor_key == "temperature":
+            value = device.get_bluetooth_sensor_temperature()
+        elif sensor_key == "humidity":
+            value = device.get_bluetooth_sensor_humidity()
+        elif sensor_key == "battery_percentage":
+            value = device.get_bluetooth_sensor_battery_percentage()
+        elif sensor_key == "battery_voltage":
+            value = device.get_bluetooth_sensor_battery_voltage()
+        elif sensor_key == "last_seen":
+            value = device.get_bluetooth_sensor_last_seen()
         else:
-            LOGGER.warning("Unknown Bluetooth sensor type: %s", self._sensor_type)
+            LOGGER.warning("Unknown Bluetooth sensor type: %s", sensor_key)
             return None
         
-        LOGGER.debug("Bluetooth sensor %s (%s) for device %s returning value: %s", 
-                    self._sensor_type, self._serial_number, device.name, value)
+        LOGGER.debug("Bluetooth sensor %s for device %s returning value: %s", 
+                    sensor_key, device.name, value)
         return value
 
     @property
@@ -316,6 +312,6 @@ class NorthTrackerBluetoothSensor(NorthTrackerEntity, SensorEntity):
         attributes.update({
             "serial_number": self._serial_number,
             "sensor_name": self._sensor_name,
-            "sensor_type": self._sensor_type,
+            "sensor_type": self.entity_description.key,
         })
         return attributes

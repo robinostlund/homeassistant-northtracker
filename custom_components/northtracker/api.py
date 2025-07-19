@@ -1021,3 +1021,112 @@ class NorthTrackerDevice:
                     LOGGER.warning("Invalid Bluetooth sensor last seen timestamp for %s: %s", serial_number, send_time_str)
                     return None
         return None
+
+
+class NorthTrackerBluetoothDevice:
+    """Represents a virtual Bluetooth sensor device connected to a main GPS tracker."""
+    
+    def __init__(self, parent_device: NorthTrackerDevice, bt_sensor_data: dict[str, Any]) -> None:
+        """Initialize a Bluetooth sensor device instance."""
+        self.parent_device = parent_device
+        self.tracker = parent_device.tracker
+        self._bt_sensor_data = bt_sensor_data
+        self._serial_number = bt_sensor_data["serial_number"]
+        self._sensor_name = bt_sensor_data["name"]
+        
+        LOGGER.debug("Created Bluetooth device for sensor: %s (%s)", self._sensor_name, self._serial_number)
+
+    @property
+    def id(self) -> str:
+        """Return a unique device ID for this Bluetooth sensor."""
+        # Use parent ID + serial number to create unique ID
+        return f"{self.parent_device.id}_bt_{self._serial_number}"
+    
+    @property
+    def name(self) -> str:
+        """Return the Bluetooth sensor name."""
+        return self._sensor_name
+    
+    @property
+    def device_type(self) -> str:
+        """Return the device type."""
+        return "bluetooth_sensor"
+    
+    @property
+    def model(self) -> str:
+        """Return the device model."""
+        return "Bluetooth Sensor"
+    
+    @property
+    def imei(self) -> str:
+        """Return the serial number as IMEI equivalent."""
+        return self._serial_number
+    
+    @property
+    def registration_number(self) -> str | None:
+        """Return None for Bluetooth sensors."""
+        return None
+    
+    @property
+    def available(self) -> bool:
+        """Return True if Bluetooth sensor has data."""
+        return self._bt_sensor_data.get("has_data", False)
+    
+    @property
+    def available_inputs(self) -> list[int]:
+        """Return empty list - Bluetooth sensors don't have digital inputs."""
+        return []
+    
+    @property
+    def available_outputs(self) -> list[int]:
+        """Return empty list - Bluetooth sensors don't have digital outputs."""
+        return []
+    
+    @property
+    def available_bluetooth_sensors(self) -> list[dict[str, Any]]:
+        """Return empty list - this IS a Bluetooth sensor."""
+        return []
+    
+    @property
+    def serial_number(self) -> str:
+        """Return the Bluetooth sensor serial number."""
+        return self._serial_number
+    
+    @property
+    def sensor_data(self) -> dict[str, Any]:
+        """Return the Bluetooth sensor data."""
+        return self._bt_sensor_data
+    
+    # Bluetooth sensor specific methods
+    def get_bluetooth_sensor_temperature(self) -> float | None:
+        """Get temperature reading from this Bluetooth sensor."""
+        return self.parent_device.get_bluetooth_sensor_temperature(self._serial_number)
+    
+    def get_bluetooth_sensor_humidity(self) -> int | None:
+        """Get humidity reading from this Bluetooth sensor."""
+        return self.parent_device.get_bluetooth_sensor_humidity(self._serial_number)
+    
+    def get_bluetooth_sensor_battery_percentage(self) -> int | None:
+        """Get battery percentage from this Bluetooth sensor."""
+        return self.parent_device.get_bluetooth_sensor_battery_percentage(self._serial_number)
+    
+    def get_bluetooth_sensor_battery_voltage(self) -> float | None:
+        """Get battery voltage from this Bluetooth sensor."""
+        return self.parent_device.get_bluetooth_sensor_battery_voltage(self._serial_number)
+    
+    def get_bluetooth_sensor_magnetic_field(self) -> bool | None:
+        """Get magnetic field status from this Bluetooth sensor."""
+        return self.parent_device.get_bluetooth_sensor_magnetic_field(self._serial_number)
+    
+    def get_bluetooth_sensor_last_seen(self) -> datetime | None:
+        """Get last seen timestamp for this Bluetooth sensor."""
+        return self.parent_device.get_bluetooth_sensor_last_seen(self._serial_number)
+    
+    async def async_update(self) -> bool:
+        """Update is handled by parent device. Always return False (no direct changes)."""
+        # The parent device handles all updates for Bluetooth sensors
+        return False
+
+    def update_gps_data(self, gps_data: dict[str, Any]) -> bool:
+        """Bluetooth sensors don't have GPS data. Always return False."""
+        return False

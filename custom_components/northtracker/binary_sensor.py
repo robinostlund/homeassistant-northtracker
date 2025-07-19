@@ -26,6 +26,16 @@ STATIC_BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
     ),
 )
 
+# Bluetooth binary sensor descriptions
+BLUETOOTH_BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
+    BinarySensorEntityDescription(
+        key="magnetic_field",
+        translation_key="bluetooth_door",
+        device_class=BinarySensorDeviceClass.DOOR,
+        icon="mdi:magnet",
+    ),
+)
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the binary sensor platform and discover new entities."""
@@ -40,10 +50,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             if device_id not in added_devices:
                 LOGGER.debug("Discovering binary sensors for new device: %s (ID: %s)", device.name, device_id)
                 
-                # Add static binary sensors ONLY for the main GPS tracker device
-                # (not for virtual Bluetooth sensor devices)
-                if hasattr(device, 'available_bluetooth_sensors'):
-                    # This is a main GPS tracker device, add static binary sensors
+                # Handle different device types
+                if device.device_type == "bluetooth_sensor":
+                    # This is a virtual Bluetooth sensor device
+                    LOGGER.debug("Adding Bluetooth binary sensors for device: %s", device.name)
+                    bt_data = device.sensor_data
+                    
+                    # Create binary sensors based on descriptions and availability
+                    for description in BLUETOOTH_BINARY_SENSOR_DESCRIPTIONS:
+                        should_create = False
+                        
+                        # Check if this binary sensor type should be created
+                        if description.key == "magnetic_field" and bt_data.get("has_data", False):
+                            should_create = True
+                        
+                        if should_create:
+                            binary_sensor_entity = NorthTrackerBluetoothBinarySensor(coordinator, device_id, description)
+                            new_entities.append(binary_sensor_entity)
+                            LOGGER.debug("Created Bluetooth binary sensor: %s for device %s", description.key, device.name)
+                
+                elif device.device_type in ["gps", "tracker"]:
+                    # This is a main GPS tracker device - add static binary sensors only
+                    LOGGER.debug("Adding static binary sensors for GPS device: %s", device.name)
                     for description in STATIC_BINARY_SENSOR_DESCRIPTIONS:
                         if hasattr(device, description.key):
                             binary_sensor_entity = NorthTrackerBinarySensor(coordinator, device.id, description)
@@ -51,19 +79,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                             LOGGER.debug("Created static binary sensor: %s for device %s", description.key, device.name)
                         else:
                             LOGGER.debug("Device %s does not have attribute %s, skipping binary sensor", device.name, description.key)
-                    
-                    # Add dynamic Bluetooth binary sensors for this main device
-                    for bt_sensor in device.available_bluetooth_sensors:
-                        serial_number = bt_sensor["serial_number"]
-                        sensor_name = bt_sensor["name"]
-                        
-                        # Door/Magnetic field sensor
-                        if bt_sensor["enable_door_sensor"] and bt_sensor["has_data"]:
-                            door_entity = NorthTrackerBluetoothBinarySensor(
-                                coordinator, device.id, serial_number, "magnetic_field", sensor_name
-                            )
-                            new_entities.append(door_entity)
-                            LOGGER.debug("Created Bluetooth door/magnetic field sensor for %s (%s)", sensor_name, serial_number)
+                
+                else:
+                    LOGGER.debug("Skipping binary sensor creation for device: %s (type: %s) - unknown device type", 
+                               device.name, device.device_type)
                 
                 added_devices.add(device_id)
 
@@ -113,23 +132,24 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
 class NorthTrackerBluetoothBinarySensor(NorthTrackerEntity, BinarySensorEntity):
     """Defines a North-Tracker Bluetooth binary sensor."""
 
-    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int,
-                 serial_number: str, sensor_type: str, sensor_name: str) -> None:
+    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: str,
+                 description: BinarySensorEntityDescription) -> None:
         """Initialize the Bluetooth binary sensor."""
         super().__init__(coordinator, device_id)
-        self._serial_number = serial_number
-        self._sensor_type = sensor_type
-        self._sensor_name = sensor_name
+        self.entity_description = description
         
-        # Build unique ID and entity ID
-        self._attr_unique_id = f"{self._device_id}_{serial_number}_{sensor_type}"
+        # Get Bluetooth device info
+        device = self.device
+        if device:
+            self._sensor_name = device.name
+            self._serial_number = device.serial_number
+        else:
+            self._sensor_name = "Unknown Bluetooth Sensor"
+            self._serial_number = "unknown"
         
-        # Set sensor properties based on type
-        if sensor_type == "magnetic_field":
-            self._attr_device_class = BinarySensorDeviceClass.DOOR
-            self._attr_icon = "mdi:magnet"
-            self._attr_name = f"{sensor_name} Door"
-            self._attr_translation_key = "bluetooth_door"
+        # Build unique ID and entity ID  
+        self._attr_unique_id = f"{device_id}_{description.key}"
+        self._attr_name = f"{self._sensor_name} {description.key.replace('_', ' ').title()}"
 
     @property
     def is_on(self) -> bool | None:
@@ -143,22 +163,19 @@ class NorthTrackerBluetoothBinarySensor(NorthTrackerEntity, BinarySensorEntity):
             LOGGER.debug("Bluetooth binary sensor %s device is None", self._attr_unique_id)
             return None
         
-        # Get the appropriate value based on sensor type
-        if self._sensor_type == "magnetic_field":
-            # Note: magnetic field True = closed, False = open
-            # For door sensor, we want True when door is open (reversed logic)
-            magnetic_state = device.get_bluetooth_sensor_magnetic_field(self._serial_number)
-            if magnetic_state is None:
-                return None
-            # Reverse the logic: magnetic field True (closed) -> door sensor False (closed)
-            # magnetic field False (open) -> door sensor True (open)
-            value = not magnetic_state
-        else:
-            LOGGER.warning("Unknown Bluetooth binary sensor type: %s", self._sensor_type)
+        # Get magnetic field sensor value
+        # Note: magnetic field True = closed, False = open
+        # For door sensor, we want True when door is open (reversed logic)
+        magnetic_state = device.get_bluetooth_sensor_magnetic_field()
+        if magnetic_state is None:
             return None
+        # Reverse the logic: magnetic field True (closed) -> door sensor False (closed)
+        # magnetic field False (open) -> door sensor True (open)
+        value = not magnetic_state
         
-        LOGGER.debug("Bluetooth binary sensor %s (%s) for device %s returning value: %s", 
-                    self._sensor_type, self._serial_number, device.name, value)
+        LOGGER.debug("Bluetooth binary sensor %s for device %s returning value: %s", 
+                    self._serial_number, device.name, value)
+        return value
         return value
 
     @property
@@ -170,6 +187,5 @@ class NorthTrackerBluetoothBinarySensor(NorthTrackerEntity, BinarySensorEntity):
         attributes.update({
             "serial_number": self._serial_number,
             "sensor_name": self._sensor_name,
-            "sensor_type": self._sensor_type,
         })
         return attributes
