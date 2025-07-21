@@ -1083,8 +1083,8 @@ class NorthTrackerBluetoothDevice:
         return None
 
     @property
-    def magnetic_field(self) -> bool | None:
-        """Return magnetic field state from this Bluetooth sensor."""
+    def magnetic_contact(self) -> bool | None:
+        """Return magnetic contact state from this Bluetooth sensor."""
         for sensor in self.parent_device._available_bluetooth_sensors:
             if sensor["serial_number"] == self._serial_number:
                 magnetic_state = sensor.get("latest_sensor_data", {}).get("MagneticField")
@@ -1114,6 +1114,6 @@ class NorthTrackerBluetoothDevice:
         # The parent device handles all updates for Bluetooth sensors
         return False
 
-    def update_gps_data(self, gps_data: dict[str, Any]) -> bool:
-        """Bluetooth sensors don't have GPS data. Always return False."""
-        return False
+    # def update_gps_data(self, gps_data: dict[str, Any]) -> bool:
+    #     """Bluetooth sensors don't have GPS data. Always return False."""
+    #     return False

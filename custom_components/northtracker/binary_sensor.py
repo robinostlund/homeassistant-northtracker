@@ -61,7 +61,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                         should_create = False
                         
                         # Check if this binary sensor type should be created
-                        if description.key == "magnetic_field" and bt_data.get("has_data", False):
+                        if description.key == "magnetic_contact" and bt_data.get("has_data", False):
                             should_create = True
                         
                         if should_create:
@@ -166,7 +166,7 @@ class NorthTrackerBluetoothBinarySensor(NorthTrackerEntity, BinarySensorEntity):
         # Get magnetic field sensor value
         # Note: magnetic field True = closed, False = open
         # For door sensor, we want True when door is open (reversed logic)
-        magnetic_state = device.magnetic_field
+        magnetic_state = device.magnetic_contact
         if magnetic_state is None:
             return None
         # Reverse the logic: magnetic field True (closed) -> door sensor False (closed)
