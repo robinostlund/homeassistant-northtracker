@@ -177,7 +177,8 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                             bt_device = NorthTrackerBluetoothDevice(main_device, bt_sensor)
                             devices[bt_device.id] = bt_device
                             bluetooth_devices_count += 1
-                            LOGGER.debug("Created virtual Bluetooth device: %s (%s)", bt_device.name, bt_device.id)
+                            LOGGER.debug("Created virtual Bluetooth device: %s (ID %s, PairedSlot %d)", 
+                                       bt_device.name, bt_device.id, bt_device._paired_slot)
                         except Exception as err:
                             LOGGER.error("Failed to create Bluetooth device for sensor %s: %s", 
                                        bt_sensor.get("name", "unknown"), err)
@@ -191,7 +192,8 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                     LOGGER.debug("Device %s capabilities: inputs=%s, outputs=%s", 
                                device.name, device.available_inputs, device.available_outputs)
                 else:  # Bluetooth device
-                    LOGGER.debug("Bluetooth device %s (serial: %s)", device.name, device.serial_number)
+                    LOGGER.debug("Bluetooth device %s (ID: %s, PairedSlot: %s, serial: %s)", 
+                               device.name, device.id, device._paired_slot, device.serial_number)
 
             # 3. Fetch extra (non-location) details for each device in parallel
             # Only update main GPS/tracker devices, not Bluetooth sensors (they get data from their parent device)

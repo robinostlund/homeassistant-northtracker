@@ -19,7 +19,42 @@ DEVICE_TRACKER_DESCRIPTION = TrackerEntityDescription(
     key="location",
     translation_key="location",
     icon="mdi:crosshairs-gps",
+    # Use exists_fn to determine if device should have a tracker (GPS devices only)
+    exists_fn=lambda device: hasattr(device, 'device_type') and device.device_type in ["gps", "tracker"] and device.device_type is not None,
 )
+
+# Value functions for device tracker properties
+def get_latitude(device) -> float | None:
+    """Get latitude from device with validation."""
+    if not hasattr(device, 'has_position') or not device.has_position:
+        return None
+    return getattr(device, 'latitude', None)
+
+def get_longitude(device) -> float | None:
+    """Get longitude from device with validation."""
+    if not hasattr(device, 'has_position') or not device.has_position:
+        return None
+    return getattr(device, 'longitude', None)
+
+def get_location_name(device) -> str | None:
+    """Get location name when GPS coordinates are not available."""
+    # If we have valid GPS coordinates, don't set location_name (let HA use coordinates)
+    if (hasattr(device, 'has_position') and device.has_position and 
+        hasattr(device, 'latitude') and device.latitude is not None and
+        hasattr(device, 'longitude') and device.longitude is not None):
+        return None
+        
+    # Return a meaningful state when location is not available
+    if hasattr(device, 'last_seen') and device.last_seen:
+        return "unknown"
+    else:
+        return "offline"
+
+def get_location_accuracy(device) -> int:
+    """Get location accuracy from device."""
+    if not hasattr(device, 'has_position') or not device.has_position:
+        return 0
+    return getattr(device, 'gps_accuracy', 0)
 
 
 async def async_setup_entry(
@@ -36,11 +71,14 @@ async def async_setup_entry(
         for device_id, device in coordinator.data.items():
             if device_id not in added_devices:
                 LOGGER.debug("Discovering tracker for new device: %s (ID: %s)", device.name, device_id)
-                # Create a tracker only for main GPS devices (not Bluetooth sensors)
-                if device.device_type in ["gps", "tracker"]:
-                    tracker_entity = NorthTrackerDeviceTracker(coordinator, device.id, DEVICE_TRACKER_DESCRIPTION)
+                # Use exists_fn to check if device should have a tracker
+                if DEVICE_TRACKER_DESCRIPTION.exists_fn and DEVICE_TRACKER_DESCRIPTION.exists_fn(device):
+                    tracker_entity = NorthTrackerDeviceTracker(coordinator, device_id, DEVICE_TRACKER_DESCRIPTION)
                     new_entities.append(tracker_entity)
                     LOGGER.debug("Created device tracker for device %s", device.name)
+                else:
+                    LOGGER.debug("Skipping device tracker creation for device: %s (type: %s) - exists_fn returned False", 
+                               device.name, getattr(device, 'device_type', 'unknown'))
                 added_devices.add(device_id)
 
         if new_entities:
@@ -59,13 +97,13 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
     def __init__(
         self,
         coordinator: NorthTrackerDataUpdateCoordinator,
-        device_id: int,
+        device_id: int | str,
         description: TrackerEntityDescription,
     ) -> None:
         """Initialize the device tracker."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = f"{self._device_id}_tracker"
+        self._attr_unique_id = f"{device_id}_tracker"
 
     @property
     def latitude(self) -> float | None:
@@ -77,15 +115,7 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         if device is None:
             return None
             
-        # Only return latitude if we have a valid position
-        if not device.has_position:
-            return None
-            
-        lat = device.latitude
-        if lat is None:
-            return None
-            
-        return lat
+        return get_latitude(device)
 
     @property
     def longitude(self) -> float | None:
@@ -97,15 +127,7 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         if device is None:
             return None
             
-        # Only return longitude if we have a valid position
-        if not device.has_position:
-            return None
-            
-        lon = device.longitude
-        if lon is None:
-            return None
-            
-        return lon
+        return get_longitude(device)
 
     @property
     def location_name(self) -> str | None:
@@ -117,15 +139,7 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         if device is None:
             return "unavailable"
             
-        # If we have valid GPS coordinates, don't set location_name (let HA use coordinates)
-        if device.has_position and device.latitude is not None and device.longitude is not None:
-            return None
-            
-        # Return a meaningful state when location is not available
-        if device.last_seen:
-            return "unknown"
-        else:
-            return "offline"
+        return get_location_name(device)
 
     @property
     def source_type(self) -> SourceType:
@@ -139,9 +153,10 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
             return 0
             
         device = self.device
-        if device is None or not device.has_position:
+        if device is None:
             return 0
-        return device.gps_accuracy
+            
+        return get_location_accuracy(device)
 
     @property
     def extra_state_attributes(self) -> dict[str, any] | None:
@@ -155,26 +170,26 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
             LOGGER.debug("Device tracker device is None, no attributes")
             return None
             
-        attributes = {}
+        # Start with common attributes from base class
+        attributes = super().extra_state_attributes or {}
         
-        # Always include position status
-        attributes["has_position"] = device.has_position
-        
-        # Only include valid attributes
-        if device.speed is not None:
+        # Add device tracker specific attributes
+        if hasattr(device, 'speed') and device.speed is not None:
             attributes["speed"] = device.speed
-        if device.course is not None:
+        if hasattr(device, 'course') and device.course is not None:
             attributes["course"] = device.course
-        if device.last_seen:
-            attributes["last_seen"] = device.last_seen
             
         # Include GPS accuracy only if we have a position
-        if device.has_position and device.gps_accuracy > 0:
+        if (hasattr(device, 'has_position') and device.has_position and 
+            hasattr(device, 'gps_accuracy') and device.gps_accuracy > 0):
             attributes["gps_accuracy"] = device.gps_accuracy
             
         # Add location status for debugging
-        if not device.has_position:
-            if device.last_seen:
+        has_position = hasattr(device, 'has_position') and device.has_position
+        has_last_seen = hasattr(device, 'last_seen') and device.last_seen
+        
+        if not has_position:
+            if has_last_seen:
                 attributes["location_status"] = "no_gps_fix"
             else:
                 attributes["location_status"] = "offline"

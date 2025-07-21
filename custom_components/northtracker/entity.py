@@ -1,6 +1,8 @@
 """Base entity for the North-Tracker integration."""
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -63,3 +65,37 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
             LOGGER.debug("Entity for device %s not available: coordinator_success=%s, device_available=%s", 
                         device.name, self.coordinator.last_update_success, device.available)
         return is_available
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return additional state attributes common to all North-Tracker entities."""
+        device = self.device
+        if device is None:
+            return None
+        
+        attributes = {}
+        
+        # Common device attributes that all entities can benefit from
+        if hasattr(device, 'device_type') and device.device_type:
+            attributes["device_type"] = device.device_type
+            
+        if hasattr(device, 'serial_number') and device.serial_number:
+            attributes["serial_number"] = device.serial_number
+            
+        # Include last seen for all entities that have it
+        if hasattr(device, 'last_seen') and device.last_seen:
+            attributes["last_seen"] = device.last_seen
+        
+        # For GPS devices, include basic location info
+        if hasattr(device, 'has_position'):
+            attributes["has_position"] = device.has_position
+            
+        # For Bluetooth devices, include connection info  
+        if hasattr(device, 'device_type') and device.device_type == "bluetooth_sensor":
+            # Bluetooth sensors are connected through their parent GPS device
+            if hasattr(device, 'parent_device'):
+                parent = device.parent_device
+                if hasattr(parent, 'has_position'):
+                    attributes["parent_has_position"] = parent.has_position
+        
+        return attributes if attributes else None

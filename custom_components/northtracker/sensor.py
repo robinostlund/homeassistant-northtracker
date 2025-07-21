@@ -27,12 +27,16 @@ from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 
+# Unified sensor descriptions for both main GPS devices and Bluetooth sensors
 SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
+    # GPS device sensors
     SensorEntityDescription(
         key="last_seen",
         translation_key="last_seen",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda device: device.last_seen,
+        exists_fn=lambda device: hasattr(device, 'last_seen') and device.last_seen is not None,
     ),
     SensorEntityDescription(
         key="battery_voltage",
@@ -42,6 +46,8 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.VOLTAGE,
         suggested_display_precision=2,
         icon= "mdi:battery",
+        value_fn=lambda device: device.battery_voltage,
+        exists_fn=lambda device: hasattr(device, 'battery_voltage') and device.battery_voltage is not None,
     ),
     SensorEntityDescription(
         key="odometer",
@@ -50,6 +56,8 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
         icon="mdi:counter",
+        value_fn=lambda device: device.odometer,
+        exists_fn=lambda device: hasattr(device, 'odometer') and device.odometer is not None,
     ),
     SensorEntityDescription(
         key="gps_signal",
@@ -59,6 +67,8 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_display_precision=0,
         icon="mdi:signal",
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda device: device.gps_signal,
+        exists_fn=lambda device: hasattr(device, 'gps_signal') and device.gps_signal is not None,
     ),
     SensorEntityDescription(
         key="network_signal",
@@ -68,6 +78,8 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_display_precision=0,
         icon="mdi:signal",
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda device: device.network_signal,
+        exists_fn=lambda device: hasattr(device, 'network_signal') and device.network_signal is not None,
     ),
     SensorEntityDescription(
         key="speed",
@@ -78,6 +90,8 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         suggested_display_precision=0,
         icon="mdi:speedometer",
         entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda device: device.speed,
+        exists_fn=lambda device: hasattr(device, 'speed') and device.speed is not None,
     ),
     SensorEntityDescription(
         key="report_frequency",
@@ -88,55 +102,43 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.DURATION,
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:counter",
+        value_fn=lambda device: device.report_frequency,
+        exists_fn=lambda device: hasattr(device, 'report_frequency') and device.report_frequency is not None,
     ),
-)
-
-# Bluetooth sensor descriptions
-BLUETOOTH_SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
+    # Bluetooth sensor sensors
     SensorEntityDescription(
         key="temperature",
-        translation_key="bluetooth_temperature",
+        translation_key="temperature",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         suggested_display_precision=1,
         icon="mdi:thermometer",
+        value_fn=lambda device: device.temperature,
+        exists_fn=lambda device: hasattr(device, 'temperature') and device.temperature is not None,
     ),
     SensorEntityDescription(
         key="humidity",
-        translation_key="bluetooth_humidity",
+        translation_key="humidity",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.HUMIDITY,
         suggested_display_precision=0,
         icon="mdi:water-percent",
+        value_fn=lambda device: device.humidity,
+        exists_fn=lambda device: hasattr(device, 'humidity') and device.humidity is not None,
     ),
     SensorEntityDescription(
         key="battery_percentage",
-        translation_key="bluetooth_battery_percentage",
+        translation_key="battery_percentage",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
         suggested_display_precision=0,
         icon="mdi:battery",
         entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    SensorEntityDescription(
-        key="battery_voltage",
-        translation_key="bluetooth_battery_voltage",
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
-        device_class=SensorDeviceClass.VOLTAGE,
-        suggested_display_precision=2,
-        icon="mdi:battery",
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    SensorEntityDescription(
-        key="last_seen",
-        translation_key="bluetooth_last_seen",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        icon="mdi:clock-outline",
+        value_fn=lambda device: device.battery_percentage,
+        exists_fn=lambda device: hasattr(device, 'battery_percentage') and device.battery_percentage is not None,
     ),
 )
 
@@ -155,40 +157,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 LOGGER.debug("Discovering sensors for new device: %s (ID: %s)", device.name, device_id)
                 LOGGER.debug("Device type: %s, Name: %s", device.device_type, device.name)
                 
-                # Handle different device types
-                if device.device_type == "bluetooth_sensor":
-                    # This is a virtual Bluetooth sensor device
-                    LOGGER.debug("Adding Bluetooth sensors for device: %s", device.name)
-                    bt_data = device.sensor_data
-                    
-                    # Create sensors based on descriptions and availability
-                    for description in BLUETOOTH_SENSOR_DESCRIPTIONS:
-                        should_create = False
-                        
-                        # Check if this sensor type should be created
-                        if description.key == "temperature" and bt_data.get("enable_temperature", False):
-                            should_create = True
-                        elif description.key == "humidity" and bt_data.get("enable_humidity", False):
-                            should_create = True
-                        elif description.key in ["battery_percentage", "battery_voltage", "last_seen"] and bt_data.get("has_data", False):
-                            should_create = True
-                        
-                        if should_create:
-                            sensor_entity = NorthTrackerBluetoothSensor(coordinator, device_id, description)
-                            new_entities.append(sensor_entity)
-                            LOGGER.debug("Created Bluetooth sensor: %s for device %s", description.key, device.name)
-                
-                elif device.device_type in ["gps", "tracker"]:
-                    # This is a main GPS tracker device - add standard sensors only
-                    LOGGER.debug("Adding standard sensors for GPS device: %s", device.name)
-                    for description in SENSOR_DESCRIPTIONS:
-                        sensor_entity = NorthTrackerSensor(coordinator, device.id, description)
+                # Use unified sensor descriptions for all device types
+                for description in SENSOR_DESCRIPTIONS:
+                    if description.exists_fn and description.exists_fn(device):
+                        # Create sensor entity - exists_fn already determined capability
+                        sensor_entity = NorthTrackerSensor(coordinator, device_id, description)
                         new_entities.append(sensor_entity)
                         LOGGER.debug("Created sensor: %s for device %s", description.key, device.name)
-                
-                else:
-                    LOGGER.debug("Skipping sensor creation for device: %s (type: %s) - unknown device type", 
-                               device.name, device.device_type)
                 
                 added_devices.add(device_id)
         
@@ -203,13 +178,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
 
 class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
-    """Defines a North-Tracker sensor."""
+    """Defines a North-Tracker sensor for both GPS and Bluetooth devices."""
 
-    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int, description: SensorEntityDescription) -> None:
+    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int | str, description: SensorEntityDescription) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = f"{self._device_id}_{description.key}"
+        self._attr_unique_id = f"{device_id}_{description.key}"
 
     @property
     def native_value(self) -> StateType:
@@ -223,7 +198,13 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
             LOGGER.debug("Sensor %s device is None", self.entity_description.key)
             return None
             
-        value = getattr(device, self.entity_description.key, None)
+        # Use value_fn from entity description
+        if hasattr(self.entity_description, 'value_fn') and self.entity_description.value_fn:
+            value = self.entity_description.value_fn(device)
+        else:
+            # This should not happen with our current setup, but keeping as fallback
+            value = getattr(device, self.entity_description.key, None)
+        
         LOGGER.debug("Sensor %s for device %s has raw value: %s", self.entity_description.key, device.name, value)
         
         # Validate the value based on the sensor type
@@ -242,7 +223,7 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
             if not (0 <= value <= 100):
                 LOGGER.warning("Signal strength out of range for device %s (%s): %s", device.name, self.entity_description.key, value)
                 return None
-        elif self.entity_description.key == "network_signal" and not device.has_position:
+        elif self.entity_description.key == "network_signal" and hasattr(device, 'has_position') and not device.has_position:
             # Network signal should only be available when device has GPS data
             LOGGER.debug("Network signal unavailable for device %s - no GPS position data", device.name)
             return None
@@ -250,69 +231,13 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
         LOGGER.debug("Sensor %s for device %s returning validated value: %s", self.entity_description.key, device.name, value)
         return value
 
-
-class NorthTrackerBluetoothSensor(NorthTrackerEntity, SensorEntity):
-    """Defines a North-Tracker Bluetooth sensor."""
-
-    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: str, 
-                 description: SensorEntityDescription) -> None:
-        """Initialize the Bluetooth sensor."""
-        super().__init__(coordinator, device_id)
-        self.entity_description = description
-        
-        # Get Bluetooth device info
-        device = self.device
-        if device:
-            self._sensor_name = device.name
-            self._serial_number = device.serial_number
-        else:
-            self._sensor_name = "Unknown Bluetooth Sensor"
-            self._serial_number = "unknown"
-        
-        # Build unique ID and entity ID
-        self._attr_unique_id = f"{device_id}_{description.key}"
-        # Don't set _attr_name manually - let Home Assistant combine device name + entity description
-        # since _attr_has_entity_name = True in the base class
-
-    @property
-    def native_value(self) -> StateType:
-        """Return the state of the Bluetooth sensor."""
-        if not self.available:
-            LOGGER.debug("Bluetooth sensor %s not available", self._attr_unique_id)
-            return None
-            
-        device = self.device
-        if device is None:
-            LOGGER.debug("Bluetooth sensor %s device is None", self._attr_unique_id)
-            return None
-        
-        # Get the appropriate value based on sensor type
-        sensor_key = self.entity_description.key
-        if sensor_key == "temperature":
-            value = device.temperature
-        elif sensor_key == "humidity":
-            value = device.humidity
-        elif sensor_key == "battery_percentage":
-            value = device.battery_percentage
-        elif sensor_key == "battery_voltage":
-            value = device.battery_voltage
-        elif sensor_key == "last_seen":
-            value = device.last_seen
-        else:
-            LOGGER.warning("Unknown Bluetooth sensor type: %s", sensor_key)
-            return None
-        
-        LOGGER.debug("Bluetooth sensor %s for device %s returning value: %s", 
-                    sensor_key, device.name, value)
-        return value
-
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return additional state attributes for Bluetooth sensor."""
+        """Return additional state attributes."""
         attributes = super().extra_state_attributes or {}
-        attributes.update({
-            "serial_number": self._serial_number,
-            "sensor_name": self._sensor_name,
-            "sensor_type": self.entity_description.key,
-        })
-        return attributes
+        
+        # Add sensor-specific attributes
+        if hasattr(self, 'entity_description'):
+            attributes["sensor_type"] = self.entity_description.key
+        
+        return attributes if attributes else None

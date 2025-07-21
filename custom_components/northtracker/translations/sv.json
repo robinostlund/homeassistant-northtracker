@@ -67,20 +67,14 @@
             "report_frequency": {
                 "name": "Rapporteringsfrekvens"
             },
-            "bluetooth_temperature": {
+            "temperature": {
                 "name": "Temperatur"
             },
-            "bluetooth_humidity": {
+            "humidity": {
                 "name": "Luftfuktighet"
             },
-            "bluetooth_battery_percentage": {
+            "battery_percentage": {
                 "name": "Batteri"
-            },
-            "bluetooth_battery_voltage": {
-                "name": "Batterispänning"
-            },
-            "bluetooth_last_seen": {
-                "name": "Senast sedd"
             }
         },
         "switch": {
@@ -128,11 +122,14 @@
             }
         },
         "binary_sensor": {
+            "connection": {
+                "name": "Anslutning"
+            },
+            "magnetic_contact": {
+                "name": "Magnetkontakt"
+            },
             "bluetooth": {
                 "name": "Bluetooth"
-            },
-            "bluetooth_magnetic_contact": {
-                "name": "Magnetkontakt"
             }
         },
         "device_tracker": {

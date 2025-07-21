@@ -26,6 +26,8 @@ NUMBER_DESCRIPTIONS: tuple[NumberEntityDescription, ...] = (
         native_step=0.1,
         native_unit_of_measurement="V",
         icon="mdi:battery-alert",
+        value_fn=lambda device: device.low_battery_threshold,
+        exists_fn=lambda device: hasattr(device, 'low_battery_threshold') and device.low_battery_threshold is not None,
     ),
 )
 
@@ -43,16 +45,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             if device_id not in added_devices:
                 LOGGER.debug("Discovering numbers for new device: %s (ID: %s)", device.name, device_id)
                 
-                # Handle different device types
-                if device.device_type in ["gps", "tracker"]:
-                    # This is a main GPS tracker device - add number entities
-                    for description in NUMBER_DESCRIPTIONS:
-                        if hasattr(device, description.key):
-                            number_entity = NorthTrackerNumber(coordinator, device.id, description)
-                            new_entities.append(number_entity)
-                            LOGGER.debug("Created number entity: %s for device %s", description.key, device.name)
-                        else:
-                            LOGGER.debug("Device %s does not have attribute %s, skipping number entity", device.name, description.key)
+                # Use unified number descriptions with exists_fn filtering
+                for description in NUMBER_DESCRIPTIONS:
+                    if description.exists_fn and description.exists_fn(device):
+                        number_entity = NorthTrackerNumber(coordinator, device_id, description)
+                        new_entities.append(number_entity)
+                        LOGGER.debug("Created number entity: %s for device %s", description.key, device.name)
+                    else:
+                        LOGGER.debug("Skipping number creation for device: %s - exists_fn returned False for %s", 
+                                   device.name, description.key)
                 
                 added_devices.add(device_id)
 
@@ -72,13 +73,13 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
     def __init__(
         self, 
         coordinator: NorthTrackerDataUpdateCoordinator, 
-        device_id: int, 
+        device_id: int | str, 
         description: NumberEntityDescription,
     ) -> None:
         """Initialize the number entity."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = f"{self._device_id}_{description.key}"
+        self._attr_unique_id = f"{device_id}_{description.key}"
 
     @property
     def native_value(self) -> float | None:
@@ -92,7 +93,13 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
             LOGGER.debug("Number entity %s device is None", self.entity_description.key)
             return None
             
-        value = getattr(device, self.entity_description.key, None)
+        # Use value_fn from entity description
+        if hasattr(self.entity_description, 'value_fn') and self.entity_description.value_fn:
+            value = self.entity_description.value_fn(device)
+        else:
+            # Fallback to getattr for backwards compatibility
+            value = getattr(device, self.entity_description.key, None)
+            
         LOGGER.debug("Number entity %s for device %s has value: %s", self.entity_description.key, device.name, value)
         return value
 
@@ -108,10 +115,10 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
         if self.entity_description.key == "low_battery_threshold":
             try:
                 # Get current enabled status
-                current_enabled = device.low_battery_alert_enabled
+                current_enabled = getattr(device, 'low_battery_alert_enabled', False)
                 
                 # Set the new threshold while keeping the current enabled status
-                resp = await device.tracker.set_low_battery_alert(device.imei, current_enabled, value)
+                resp = await device.tracker.set_low_battery_alert(getattr(device, 'imei', ''), current_enabled, value)
                 if not resp.success:
                     LOGGER.error("Failed to set low battery threshold to %.1f for device '%s': API returned success=False", 
                                value, device.name)

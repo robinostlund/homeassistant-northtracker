@@ -639,19 +639,15 @@ class NorthTrackerDevice:
         for sensor in paired_sensors:
             if isinstance(sensor, dict):
                 serial_number = sensor.get("SerialNumber")
+                paired_slot = sensor.get("PairedSlot")
                 bluetooth_info = sensor.get("bluetooth_info", {})
                 latest_data = sensor.get("latest_sensor_data", {})
                 
-                if serial_number and bluetooth_info:
-                    # Get the raw name from API
-                    raw_name = bluetooth_info.get("Name", f"Bluetooth Sensor {serial_number}")
-                    
-                    # Clean the name to remove potential duplications
-                    clean_name = self._clean_bluetooth_sensor_name(raw_name)
-                    
+                if serial_number and paired_slot and bluetooth_info:
                     sensor_config = {
                         "serial_number": serial_number,
-                        "name": clean_name,
+                        "paired_slot": int(paired_slot),  # Store PairedSlot as int for device.id
+                        "name": bluetooth_info.get("Name", f"Bluetooth Sensor {serial_number}"),
                         "enable_temperature": bool(bluetooth_info.get("EnableTemperature", 0)),
                         "enable_humidity": bool(bluetooth_info.get("EnableHumidity", 0)),
                         "enable_door_sensor": bool(bluetooth_info.get("EnableDoorSensor", 0)),
@@ -659,57 +655,12 @@ class NorthTrackerDevice:
                         "latest_sensor_data": latest_data  # Include the actual sensor data
                     }
                     sensors.append(sensor_config)
-                    LOGGER.debug("Found Bluetooth sensor %s (%s) for device %s - temp:%s, humidity:%s, door:%s", 
-                               serial_number, sensor_config["name"], self.name,
+                    LOGGER.debug("Found Bluetooth sensor %s (%s) for device %s (PairedSlot %d) - temp:%s, humidity:%s, door:%s", 
+                               serial_number, sensor_config["name"], self.name, sensor_config["paired_slot"],
                                sensor_config["enable_temperature"], sensor_config["enable_humidity"],
                                sensor_config["enable_door_sensor"])
         
         return sensors
-
-    def _clean_bluetooth_sensor_name(self, raw_name: str) -> str:
-        """Clean Bluetooth sensor name to remove potential duplications.
-        
-        Some API responses may contain duplicated device names like:
-        'Askeladden C61 Batteriutrymme Askeladden C61 Batteriutrymme'
-        
-        This method cleans such duplications.
-        """
-        if not raw_name:
-            return raw_name
-            
-        # First check for repeated phrases (more complex duplications)
-        words = raw_name.split()
-        if len(words) >= 2:
-            # Check if the second half is identical to the first half
-            mid_point = len(words) // 2
-            if len(words) % 2 == 0:  # Even number of words
-                first_half = words[:mid_point]
-                second_half = words[mid_point:]
-                if first_half == second_half:
-                    cleaned_name = ' '.join(first_half)
-                    LOGGER.debug("Cleaned Bluetooth sensor name (phrase duplication): '%s' -> '%s'", raw_name, cleaned_name)
-                    return cleaned_name
-        
-        # Fallback: remove consecutive duplicate words
-        cleaned_words = []
-        i = 0
-        while i < len(words):
-            current_word = words[i]
-            cleaned_words.append(current_word)
-            
-            # Skip consecutive identical words
-            while i + 1 < len(words) and words[i + 1] == current_word:
-                i += 1
-                
-            i += 1
-        
-        cleaned_name = ' '.join(cleaned_words)
-        
-        # If the cleaned name is significantly different, log it for debugging
-        if cleaned_name != raw_name:
-            LOGGER.debug("Cleaned Bluetooth sensor name (word duplication): '%s' -> '%s'", raw_name, cleaned_name)
-            
-        return cleaned_name
 
     @property
     def available(self) -> bool:
@@ -1025,15 +976,20 @@ class NorthTrackerBluetoothDevice:
         self.tracker = parent_device.tracker
         self._bt_sensor_data = bt_sensor_data
         self._serial_number = bt_sensor_data["serial_number"]
+        self._paired_slot = bt_sensor_data["paired_slot"]  # PairedSlot as int
         self._sensor_name = bt_sensor_data["name"]
         
-        LOGGER.debug("Created Bluetooth device for sensor: %s (%s)", self._sensor_name, self._serial_number)
+        LOGGER.debug("Created Bluetooth device for sensor: %s (%s, PairedSlot %d, Device ID %d)", 
+                    self._sensor_name, self._serial_number, self._paired_slot, self.id)
 
     @property
-    def id(self) -> str:
-        """Return a unique device ID for this Bluetooth sensor."""
-        # Use parent ID + serial number to create unique ID
-        return f"{self.parent_device.id}_bt_{self._serial_number}"
+    def id(self) -> int:
+        """Return a unique device ID combining parent device ID and PairedSlot."""
+        # Create unique ID: parent_id * 10 + paired_slot
+        # Example: GPS device 100 with PairedSlot 1 -> 1001
+        # Example: GPS device 100 with PairedSlot 2 -> 1002
+        # Example: GPS device 200 with PairedSlot 1 -> 2001
+        return self.parent_device.id * 10 + self._paired_slot
     
     @property
     def name(self) -> str:
@@ -1164,7 +1120,3 @@ class NorthTrackerBluetoothDevice:
         """Update is handled by parent device. Always return False (no direct changes)."""
         # The parent device handles all updates for Bluetooth sensors
         return False
-
-    # def update_gps_data(self, gps_data: dict[str, Any]) -> bool:
-    #     """Bluetooth sensors don't have GPS data. Always return False."""
-    #     return False
