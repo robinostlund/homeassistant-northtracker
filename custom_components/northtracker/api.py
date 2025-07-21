@@ -643,9 +643,15 @@ class NorthTrackerDevice:
                 latest_data = sensor.get("latest_sensor_data", {})
                 
                 if serial_number and bluetooth_info:
+                    # Get the raw name from API
+                    raw_name = bluetooth_info.get("Name", f"Bluetooth Sensor {serial_number}")
+                    
+                    # Clean the name to remove potential duplications
+                    clean_name = self._clean_bluetooth_sensor_name(raw_name)
+                    
                     sensor_config = {
                         "serial_number": serial_number,
-                        "name": bluetooth_info.get("Name", f"Bluetooth Sensor {serial_number}"),
+                        "name": clean_name,
                         "enable_temperature": bool(bluetooth_info.get("EnableTemperature", 0)),
                         "enable_humidity": bool(bluetooth_info.get("EnableHumidity", 0)),
                         "enable_door_sensor": bool(bluetooth_info.get("EnableDoorSensor", 0)),
@@ -659,6 +665,51 @@ class NorthTrackerDevice:
                                sensor_config["enable_door_sensor"])
         
         return sensors
+
+    def _clean_bluetooth_sensor_name(self, raw_name: str) -> str:
+        """Clean Bluetooth sensor name to remove potential duplications.
+        
+        Some API responses may contain duplicated device names like:
+        'Askeladden C61 Batteriutrymme Askeladden C61 Batteriutrymme'
+        
+        This method cleans such duplications.
+        """
+        if not raw_name:
+            return raw_name
+            
+        # First check for repeated phrases (more complex duplications)
+        words = raw_name.split()
+        if len(words) >= 2:
+            # Check if the second half is identical to the first half
+            mid_point = len(words) // 2
+            if len(words) % 2 == 0:  # Even number of words
+                first_half = words[:mid_point]
+                second_half = words[mid_point:]
+                if first_half == second_half:
+                    cleaned_name = ' '.join(first_half)
+                    LOGGER.debug("Cleaned Bluetooth sensor name (phrase duplication): '%s' -> '%s'", raw_name, cleaned_name)
+                    return cleaned_name
+        
+        # Fallback: remove consecutive duplicate words
+        cleaned_words = []
+        i = 0
+        while i < len(words):
+            current_word = words[i]
+            cleaned_words.append(current_word)
+            
+            # Skip consecutive identical words
+            while i + 1 < len(words) and words[i + 1] == current_word:
+                i += 1
+                
+            i += 1
+        
+        cleaned_name = ' '.join(cleaned_words)
+        
+        # If the cleaned name is significantly different, log it for debugging
+        if cleaned_name != raw_name:
+            LOGGER.debug("Cleaned Bluetooth sensor name (word duplication): '%s' -> '%s'", raw_name, cleaned_name)
+            
+        return cleaned_name
 
     @property
     def available(self) -> bool:
