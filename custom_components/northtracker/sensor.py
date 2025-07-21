@@ -271,7 +271,8 @@ class NorthTrackerBluetoothSensor(NorthTrackerEntity, SensorEntity):
         
         # Build unique ID and entity ID
         self._attr_unique_id = f"{device_id}_{description.key}"
-        self._attr_name = f"{self._sensor_name} {description.key.replace('_', ' ').title()}"
+        # Don't set _attr_name manually - let Home Assistant combine device name + entity description
+        # since _attr_has_entity_name = True in the base class
 
     @property
     def native_value(self) -> StateType:
