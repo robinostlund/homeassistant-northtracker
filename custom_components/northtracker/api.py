@@ -138,6 +138,7 @@ class NorthTracker:
                     response.raise_for_status()
                     response_data = await response.json()
                     LOGGER.debug("GET response data keys: %s", list(response_data.keys()) if isinstance(response_data, dict) else "non-dict")
+                    LOGGER.debug("Full GET response data: %s", response_data)
                     return NorthTrackerResponse(response_data)
             else:
                 async with self.session.post(url, json=payload, headers=headers, timeout=timeout) as response:
@@ -163,6 +164,7 @@ class NorthTracker:
                     response.raise_for_status()
                     response_data = await response.json()
                     LOGGER.debug("POST response data keys: %s", list(response_data.keys()) if isinstance(response_data, dict) else "non-dict")
+                    LOGGER.debug("Full POST response data: %s", response_data)
                     return NorthTrackerResponse(response_data)
 
         except asyncio.TimeoutError as err:
