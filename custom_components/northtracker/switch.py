@@ -1,6 +1,8 @@
 """Switch platform for North-Tracker."""
 from __future__ import annotations
-from typing import Any
+
+from dataclasses import dataclass
+from typing import Any, Callable
 
 from homeassistant.components.switch import (
     SwitchDeviceClass,
@@ -14,9 +16,19 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
+from .api import NorthTrackerDevice
 
-STATIC_SWITCH_DESCRIPTIONS: tuple[SwitchEntityDescription, ...] = (
-    SwitchEntityDescription(
+
+@dataclass(kw_only=True)
+class NorthTrackerSwitchEntityDescription(SwitchEntityDescription):
+    """Describes a North-Tracker switch entity with custom attributes."""
+    
+    value_fn: Callable[[NorthTrackerDevice], Any] | None = None
+    exists_fn: Callable[[NorthTrackerDevice], bool] | None = None
+
+
+STATIC_SWITCH_DESCRIPTIONS: tuple[NorthTrackerSwitchEntityDescription, ...] = (
+    NorthTrackerSwitchEntityDescription(
         key="alarm_status",
         translation_key="alarm",
         icon="mdi:alarm-light",
@@ -24,7 +36,7 @@ STATIC_SWITCH_DESCRIPTIONS: tuple[SwitchEntityDescription, ...] = (
         value_fn=lambda device: getattr(device, 'alarm_status', False),
         exists_fn=lambda device: hasattr(device, 'alarm_status') and getattr(device, 'alarm_status', None) is not None,
     ),
-    SwitchEntityDescription(
+    NorthTrackerSwitchEntityDescription(
         key="low_battery_alert_enabled",
         translation_key="low_battery_alert",
         icon="mdi:battery-alert", 
@@ -52,7 +64,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 # Create switches for each available digital output
                 if hasattr(device, 'available_outputs') and device.available_outputs:
                     for output_num in device.available_outputs:
-                        description = SwitchEntityDescription(
+                        description = NorthTrackerSwitchEntityDescription(
                             key=f"output_status_{output_num}",
                             translation_key=f"output_{output_num}",
                             device_class=SwitchDeviceClass.SWITCH,
@@ -67,7 +79,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 # Create switches for each available digital input (alert control)
                 if hasattr(device, 'available_inputs') and device.available_inputs:
                     for input_num in device.available_inputs:
-                        description = SwitchEntityDescription(
+                        description = NorthTrackerSwitchEntityDescription(
                             key=f"input_status_{input_num}",
                             translation_key=f"input_{input_num}",
                             device_class=SwitchDeviceClass.SWITCH,
@@ -108,7 +120,7 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         self, 
         coordinator: NorthTrackerDataUpdateCoordinator, 
         device_id: int | str, 
-        description: SwitchEntityDescription,
+        description: NorthTrackerSwitchEntityDescription,
         output_number: int | None = None,
         input_number: int | None = None
     ) -> None:

@@ -1,7 +1,8 @@
 """Binary sensor platform for North-Tracker."""
 from __future__ import annotations
 
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Callable
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -15,11 +16,20 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
+from .api import NorthTrackerDevice
+
+
+@dataclass(kw_only=True)
+class NorthTrackerBinarySensorEntityDescription(BinarySensorEntityDescription):
+    """Describes a North-Tracker binary sensor entity with custom attributes."""
+    
+    value_fn: Callable[[NorthTrackerDevice], Any] | None = None
+    exists_fn: Callable[[NorthTrackerDevice], bool] | None = None
 
 # Unified binary sensor descriptions for both main GPS devices and Bluetooth sensors
-BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
+BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...] = (
     # GPS/tracker device binary sensors
-    BinarySensorEntityDescription(
+    NorthTrackerBinarySensorEntityDescription(
         key="bluetooth_enabled",
         translation_key="connection",
         # device_class=BinarySensorDeviceClass.CONNECTIVITY,
@@ -28,7 +38,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
         exists_fn=lambda device: hasattr(device, 'bluetooth_enabled') and device.bluetooth_enabled is not None,
     ),
     # Bluetooth sensor binary sensors
-    BinarySensorEntityDescription(
+    NorthTrackerBinarySensorEntityDescription(
         key="magnetic_contact",
         translation_key="magnetic_contact",
         device_class=BinarySensorDeviceClass.DOOR,
@@ -79,7 +89,7 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
         self, 
         coordinator: NorthTrackerDataUpdateCoordinator, 
         device_id: int | str, 
-        description: BinarySensorEntityDescription,
+        description: NorthTrackerBinarySensorEntityDescription,
     ) -> None:
         """Initialize the binary sensor."""
         super().__init__(coordinator, device_id)

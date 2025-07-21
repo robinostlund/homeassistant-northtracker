@@ -1,7 +1,8 @@
 """Sensor platform for North-Tracker."""
 from __future__ import annotations
 
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Callable
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -26,11 +27,20 @@ from homeassistant.helpers.typing import StateType
 from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
+from .api import NorthTrackerDevice
+
+
+@dataclass(kw_only=True)
+class NorthTrackerSensorEntityDescription(SensorEntityDescription):
+    """Describes a North-Tracker sensor entity with custom attributes."""
+    
+    value_fn: Callable[[NorthTrackerDevice], Any] | None = None
+    exists_fn: Callable[[NorthTrackerDevice], bool] | None = None
 
 # Unified sensor descriptions for both main GPS devices and Bluetooth sensors
-SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
+SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
     # GPS device sensors
-    SensorEntityDescription(
+    NorthTrackerSensorEntityDescription(
         key="last_seen",
         translation_key="last_seen",
         device_class=SensorDeviceClass.TIMESTAMP,
@@ -38,7 +48,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         value_fn=lambda device: device.last_seen,
         exists_fn=lambda device: hasattr(device, 'last_seen') and device.last_seen is not None,
     ),
-    SensorEntityDescription(
+    NorthTrackerSensorEntityDescription(
         key="battery_voltage",
         translation_key="battery_voltage",
         state_class=SensorStateClass.MEASUREMENT,
@@ -49,7 +59,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         value_fn=lambda device: device.battery_voltage,
         exists_fn=lambda device: hasattr(device, 'battery_voltage') and device.battery_voltage is not None,
     ),
-    SensorEntityDescription(
+    NorthTrackerSensorEntityDescription(
         key="odometer",
         translation_key="odometer",
         state_class=SensorStateClass.TOTAL,
@@ -59,7 +69,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         value_fn=lambda device: device.odometer,
         exists_fn=lambda device: hasattr(device, 'odometer') and device.odometer is not None,
     ),
-    SensorEntityDescription(
+    NorthTrackerSensorEntityDescription(
         key="gps_signal",
         translation_key="gps_signal",
         state_class=SensorStateClass.MEASUREMENT,
@@ -70,7 +80,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         value_fn=lambda device: device.gps_signal,
         exists_fn=lambda device: hasattr(device, 'gps_signal') and device.gps_signal is not None,
     ),
-    SensorEntityDescription(
+    NorthTrackerSensorEntityDescription(
         key="network_signal",
         translation_key="network_signal",
         state_class=SensorStateClass.MEASUREMENT,
@@ -81,7 +91,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         value_fn=lambda device: device.network_signal,
         exists_fn=lambda device: hasattr(device, 'network_signal') and device.network_signal is not None,
     ),
-    SensorEntityDescription(
+    NorthTrackerSensorEntityDescription(
         key="speed",
         translation_key="speed",
         state_class=SensorStateClass.MEASUREMENT,
@@ -93,7 +103,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         value_fn=lambda device: device.speed,
         exists_fn=lambda device: hasattr(device, 'speed') and device.speed is not None,
     ),
-    SensorEntityDescription(
+    NorthTrackerSensorEntityDescription(
         key="report_frequency",
         translation_key="report_frequency",
         state_class=SensorStateClass.MEASUREMENT,
@@ -106,7 +116,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         exists_fn=lambda device: hasattr(device, 'report_frequency') and device.report_frequency is not None,
     ),
     # Bluetooth sensor sensors
-    SensorEntityDescription(
+    NorthTrackerSensorEntityDescription(
         key="temperature",
         translation_key="temperature",
         state_class=SensorStateClass.MEASUREMENT,
@@ -117,7 +127,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         value_fn=lambda device: device.temperature,
         exists_fn=lambda device: hasattr(device, 'temperature') and device.temperature is not None,
     ),
-    SensorEntityDescription(
+    NorthTrackerSensorEntityDescription(
         key="humidity",
         translation_key="humidity",
         state_class=SensorStateClass.MEASUREMENT,
@@ -128,7 +138,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         value_fn=lambda device: device.humidity,
         exists_fn=lambda device: hasattr(device, 'humidity') and device.humidity is not None,
     ),
-    SensorEntityDescription(
+    NorthTrackerSensorEntityDescription(
         key="battery_percentage",
         translation_key="battery_percentage",
         state_class=SensorStateClass.MEASUREMENT,
@@ -180,7 +190,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
     """Defines a North-Tracker sensor for both GPS and Bluetooth devices."""
 
-    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int | str, description: SensorEntityDescription) -> None:
+    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int | str, description: NorthTrackerSensorEntityDescription) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device_id)
         self.entity_description = description

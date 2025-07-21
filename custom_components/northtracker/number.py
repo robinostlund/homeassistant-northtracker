@@ -1,6 +1,8 @@
 """Number platform for North-Tracker."""
 from __future__ import annotations
-from typing import Any
+
+from dataclasses import dataclass
+from typing import Any, Callable
 
 from homeassistant.components.number import (
     NumberEntity,
@@ -14,10 +16,20 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
+from .api import NorthTrackerDevice
+
+
+@dataclass(kw_only=True)
+class NorthTrackerNumberEntityDescription(NumberEntityDescription):
+    """Describes a North-Tracker number entity with custom attributes."""
+    
+    value_fn: Callable[[NorthTrackerDevice], Any] | None = None
+    exists_fn: Callable[[NorthTrackerDevice], bool] | None = None
+
 
 # Number entity descriptions
-NUMBER_DESCRIPTIONS: tuple[NumberEntityDescription, ...] = (
-    NumberEntityDescription(
+NUMBER_DESCRIPTIONS: tuple[NorthTrackerNumberEntityDescription, ...] = (
+    NorthTrackerNumberEntityDescription(
         key="low_battery_threshold",
         translation_key="low_battery_threshold",
         mode=NumberMode.BOX,
@@ -74,7 +86,7 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
         self, 
         coordinator: NorthTrackerDataUpdateCoordinator, 
         device_id: int | str, 
-        description: NumberEntityDescription,
+        description: NorthTrackerNumberEntityDescription,
     ) -> None:
         """Initialize the number entity."""
         super().__init__(coordinator, device_id)
