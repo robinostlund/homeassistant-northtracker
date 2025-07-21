@@ -119,6 +119,12 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
             # Create device objects from the base details
             devices = {}
             for unit_data in units:
+                # Skip sensor entries with isSensor=true - these will be created from GPS device's PairedSensors
+                if unit_data.get('isSensor') is True:
+                    LOGGER.debug("Skipping sensor unit %s - will be created from GPS device's PairedSensors instead", 
+                               unit_data.get('NameOnly', 'Unknown'))
+                    continue
+                
                 device_id = unit_data.get('ID')
                 if device_id is None:
                     LOGGER.warning("Unit data missing ID field, skipping: %s", unit_data)
