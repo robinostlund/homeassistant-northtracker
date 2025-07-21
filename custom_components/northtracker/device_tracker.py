@@ -71,50 +71,40 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
     def latitude(self) -> float | None:
         """Return latitude value of the device."""
         if not self.available:
-            LOGGER.debug("Device tracker not available")
             return None
             
         device = self.device
         if device is None:
-            LOGGER.debug("Device tracker device is None")
             return None
             
         # Only return latitude if we have a valid position
         if not device.has_position:
-            LOGGER.debug("Device tracker for %s has no valid position", device.name)
             return None
             
         lat = device.latitude
         if lat is None:
-            LOGGER.debug("Device tracker for %s latitude is None", device.name)
             return None
             
-        LOGGER.debug("Device tracker for %s latitude: %s", device.name, lat)
         return lat
 
     @property
     def longitude(self) -> float | None:
         """Return longitude value of the device."""
         if not self.available:
-            LOGGER.debug("Device tracker not available")
             return None
             
         device = self.device
         if device is None:
-            LOGGER.debug("Device tracker device is None")
             return None
             
         # Only return longitude if we have a valid position
         if not device.has_position:
-            LOGGER.debug("Device tracker for %s has no valid position", device.name)
             return None
             
         lon = device.longitude
         if lon is None:
-            LOGGER.debug("Device tracker for %s longitude is None", device.name)
             return None
             
-        LOGGER.debug("Device tracker for %s longitude: %s", device.name, lon)
         return lon
 
     @property
@@ -191,7 +181,6 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         else:
             attributes["location_status"] = "active"
         
-        LOGGER.debug("Device tracker for %s attributes: %s", device.name, attributes)
         return attributes if attributes else None
 
     @property
