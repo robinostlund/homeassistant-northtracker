@@ -684,11 +684,11 @@ class NorthTrackerDevice:
         return self._available_bluetooth_sensors
 
     @property
-    def id(self) -> int | str:
+    def id(self) -> int:
         """Return the device ID."""
         device_id = self._device_data.get("ID", 0)
-        # Some devices may have string IDs like "1250b"
-        return device_id
+        # Ensure device ID is always an integer
+        return int(device_id) if device_id is not None else 0
     
     @property
     def name(self) -> str:
@@ -1004,7 +1004,7 @@ class NorthTrackerBluetoothDevice:
     @property
     def model(self) -> str:
         """Return the device model."""
-        return "Bluetooth Sensor"
+        return "Sensor"
     
     @property
     def imei(self) -> str:

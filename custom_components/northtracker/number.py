@@ -85,7 +85,7 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
     def __init__(
         self, 
         coordinator: NorthTrackerDataUpdateCoordinator, 
-        device_id: int | str, 
+        device_id: int, 
         description: NorthTrackerNumberEntityDescription,
     ) -> None:
         """Initialize the number entity."""

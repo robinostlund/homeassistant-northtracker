@@ -31,7 +31,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...
     # GPS/tracker device binary sensors
     NorthTrackerBinarySensorEntityDescription(
         key="bluetooth_enabled",
-        translation_key="connection",
+        translation_key="bluetooth_enabled",
         # device_class=BinarySensorDeviceClass.CONNECTIVITY,
         icon="mdi:bluetooth",
         value_fn=lambda device: device.bluetooth_enabled,
@@ -88,7 +88,7 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
     def __init__(
         self, 
         coordinator: NorthTrackerDataUpdateCoordinator, 
-        device_id: int | str, 
+        device_id: int, 
         description: NorthTrackerBinarySensorEntityDescription,
     ) -> None:
         """Initialize the binary sensor."""

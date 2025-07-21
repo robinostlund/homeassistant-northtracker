@@ -122,14 +122,11 @@
             }
         },
         "binary_sensor": {
-            "connection": {
-                "name": "Anslutning"
-            },
             "magnetic_contact": {
                 "name": "Magnetkontakt"
             },
-            "bluetooth": {
-                "name": "Bluetooth"
+            "bluetooth_enabled": {
+                "name": "Bluetooth Aktiverad"
             }
         },
         "device_tracker": {

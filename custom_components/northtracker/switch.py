@@ -119,7 +119,7 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
     def __init__(
         self, 
         coordinator: NorthTrackerDataUpdateCoordinator, 
-        device_id: int | str, 
+        device_id: int, 
         description: NorthTrackerSwitchEntityDescription,
         output_number: int | None = None,
         input_number: int | None = None

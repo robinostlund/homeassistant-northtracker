@@ -108,7 +108,7 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
     def __init__(
         self,
         coordinator: NorthTrackerDataUpdateCoordinator,
-        device_id: int | str,
+        device_id: int,
         description: NorthTrackerTrackerEntityDescription,
     ) -> None:
         """Initialize the device tracker."""

@@ -56,6 +56,7 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.VOLTAGE,
         suggested_display_precision=2,
         icon= "mdi:battery",
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: device.battery_voltage,
         exists_fn=lambda device: hasattr(device, 'battery_voltage') and device.battery_voltage is not None,
     ),
@@ -190,7 +191,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
     """Defines a North-Tracker sensor for both GPS and Bluetooth devices."""
 
-    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int | str, description: NorthTrackerSensorEntityDescription) -> None:
+    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int, description: NorthTrackerSensorEntityDescription) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
