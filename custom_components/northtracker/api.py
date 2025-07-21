@@ -271,15 +271,15 @@ class NorthTracker:
             LOGGER.warning("Failed to fetch real-time tracking data")
         return response
 
-    async def get_unit_details(self, device_id: int | str, device_type: str) -> NorthTrackerResponse:
+    async def get_unit_details(self, device_id: int, device_type: str) -> NorthTrackerResponse:
         """Get detailed information for a specific unit."""
-        LOGGER.debug("Fetching detailed info for device %s (type: %s)", device_id, device_type)
+        LOGGER.debug("Fetching detailed info for device %d (type: %s)", device_id, device_type)
         url = f"{self.base_url}/user/terminal/edit-terminal"
         response = await self._post_data(url, {"device_id": device_id, "device_type": device_type})
         if response.success:
-            LOGGER.debug("Successfully fetched detailed info for device %s", device_id)
+            LOGGER.debug("Successfully fetched detailed info for device %d", device_id)
         else:
-            LOGGER.warning("Failed to fetch detailed info for device %s", device_id)
+            LOGGER.warning("Failed to fetch detailed info for device %d", device_id)
         return response
 
     async def get_unit_features(self, device_imei: str) -> NorthTrackerResponse:
@@ -287,15 +287,15 @@ class NorthTracker:
         url = f"{self.base_url}/user/terminal/get-unit-features"
         return await self._post_data(url, {"Imei": device_imei})
 
-    async def get_unit_lock_status(self, device_id: int | str) -> NorthTrackerResponse:
+    async def get_unit_lock_status(self, device_id: int) -> NorthTrackerResponse:
         """Get unit lock status by device ID."""
-        LOGGER.debug("Fetching lock status for device ID %s", device_id)
+        LOGGER.debug("Fetching lock status for device ID %d", device_id)
         url = f"{self.base_url}/user/terminal/access/lockstatus"
         response = await self._post_data(url, {"terminal_id": device_id})
         if response.success:
-            LOGGER.debug("Successfully fetched lock status for device ID %s", device_id)
+            LOGGER.debug("Successfully fetched lock status for device ID %d", device_id)
         else:
-            LOGGER.warning("Failed to fetch lock status for device ID %s", device_id)
+            LOGGER.warning("Failed to fetch lock status for device ID %d", device_id)
         return response
 
     async def update_unit_features(self, device_imei: str, features_data: dict) -> NorthTrackerResponse:
@@ -386,9 +386,9 @@ class NorthTracker:
         
         return await self.update_unit_features(device_imei, final_settings)
 
-    async def output_turn_on(self, device_id: int | str, output_number: int) -> NorthTrackerResponse:
+    async def output_turn_on(self, device_id: int, output_number: int) -> NorthTrackerResponse:
         """Turn on a digital output."""
-        LOGGER.debug("Turning on output %d for device ID %s", output_number, device_id)
+        LOGGER.debug("Turning on output %d for device ID %d", output_number, device_id)
         url = f"{self.base_url}/user/terminal/relaysetting/sendmsg"
         payload = {
             "terminal_id": device_id,
@@ -397,14 +397,14 @@ class NorthTracker:
         }
         response = await self._post_data(url, payload)
         if response.success:
-            LOGGER.debug("Successfully sent turn ON command for output %d, device ID %s", output_number, device_id)
+            LOGGER.debug("Successfully sent turn ON command for output %d, device ID %d", output_number, device_id)
         else:
-            LOGGER.warning("Failed to turn on output %d for device ID %s", output_number, device_id)
+            LOGGER.warning("Failed to turn on output %d for device ID %d", output_number, device_id)
         return response
 
-    async def output_turn_off(self, device_id: int | str, output_number: int) -> NorthTrackerResponse:
+    async def output_turn_off(self, device_id: int, output_number: int) -> NorthTrackerResponse:
         """Turn off a digital output."""
-        LOGGER.debug("Turning off output %d for device ID %s", output_number, device_id)
+        LOGGER.debug("Turning off output %d for device ID %d", output_number, device_id)
         url = f"{self.base_url}/user/terminal/relaysetting/sendmsg"
         payload = {
             "terminal_id": device_id,
@@ -413,14 +413,14 @@ class NorthTracker:
         }
         response = await self._post_data(url, payload)
         if response.success:
-            LOGGER.debug("Successfully sent turn OFF command for output %d, device ID %s", output_number, device_id)
+            LOGGER.debug("Successfully sent turn OFF command for output %d, device ID %d", output_number, device_id)
         else:
-            LOGGER.warning("Failed to turn off output %d for device ID %s", output_number, device_id)
+            LOGGER.warning("Failed to turn off output %d for device ID %d", output_number, device_id)
         return response
 
-    async def input_turn_on(self, device_id: int | str, input_number: int) -> NorthTrackerResponse:
+    async def input_turn_on(self, device_id: int, input_number: int) -> NorthTrackerResponse:
         """Enable alert for a digital input."""
-        LOGGER.debug("Enabling alert for input %d on device ID %s", input_number, device_id)
+        LOGGER.debug("Enabling alert for input %d on device ID %d", input_number, device_id)
         # Note: This might use a different endpoint than outputs - may need adjustment
         url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
         payload = {
@@ -430,14 +430,14 @@ class NorthTracker:
         }
         response = await self._post_data(url, payload)
         if response.success:
-            LOGGER.debug("Successfully enabled alert for input %d, device ID %s", input_number, device_id)
+            LOGGER.debug("Successfully enabled alert for input %d, device ID %d", input_number, device_id)
         else:
-            LOGGER.warning("Failed to enable alert for input %d on device ID %s", input_number, device_id)
+            LOGGER.warning("Failed to enable alert for input %d on device ID %d", input_number, device_id)
         return response
 
-    async def input_turn_off(self, device_id: int | str, input_number: int) -> NorthTrackerResponse:
+    async def input_turn_off(self, device_id: int, input_number: int) -> NorthTrackerResponse:
         """Disable alert for a digital input."""
-        LOGGER.debug("Disabling alert for input %d on device ID %s", input_number, device_id)
+        LOGGER.debug("Disabling alert for input %d on device ID %d", input_number, device_id)
         # Note: This might use a different endpoint than outputs - may need adjustment
         url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
         payload = {
@@ -447,9 +447,9 @@ class NorthTracker:
         }
         response = await self._post_data(url, payload)
         if response.success:
-            LOGGER.debug("Successfully disabled alert for input %d, device ID %s", input_number, device_id)
+            LOGGER.debug("Successfully disabled alert for input %d, device ID %d", input_number, device_id)
         else:
-            LOGGER.warning("Failed to disable alert for input %d on device ID %s", input_number, device_id)
+            LOGGER.warning("Failed to disable alert for input %d on device ID %d", input_number, device_id)
         return response
 
     async def output_check_ack(self, ack_id: int) -> NorthTrackerResponse:

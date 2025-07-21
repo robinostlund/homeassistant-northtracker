@@ -43,7 +43,7 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
             LOGGER.warning("Update interval too low (%.2f), setting to minimum of %.2f minutes", update_interval_minutes, MIN_UPDATE_INTERVAL)
             update_interval_minutes = MIN_UPDATE_INTERVAL
         elif update_interval_minutes > MAX_UPDATE_INTERVAL:
-            LOGGER.warning("Update interval too high (%.2f), setting to maximum of %d minutes", update_interval_minutes, MAX_UPDATE_INTERVAL)
+            LOGGER.warning("Update interval too high (%.2f), setting to maximum of %.2f minutes", update_interval_minutes, MAX_UPDATE_INTERVAL)
             update_interval_minutes = MAX_UPDATE_INTERVAL
             
         update_interval = timedelta(minutes=update_interval_minutes)
@@ -209,11 +209,14 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                     # Continue with other devices even if one fails
 
             # Update all devices in parallel with limited concurrency, but only main GPS devices
-            # Bluetooth sensors get their data from their parent device and should not be updated directly
-            main_devices = [device for device in devices.values() if device.device_type != "bluetooth_sensor"]
+            # Only GPS devices can be updated via the edit-terminal API
+            # Bluetooth sensors and other device types get their data from their parent device
+            main_devices = [device for device in devices.values() 
+                          if device.device_type == "gps"]
+            excluded_count = len(devices) - len(main_devices)
             if main_devices:
-                LOGGER.debug("Starting parallel device detail updates for %d main devices (excluding %d Bluetooth sensors)", 
-                           len(main_devices), len(devices) - len(main_devices))
+                LOGGER.debug("Starting parallel device detail updates for %d GPS devices (excluding %d other devices)", 
+                           len(main_devices), excluded_count)
                 tasks = [update_device_details(device) for device in main_devices]
                 # Limit concurrent requests to avoid overwhelming the API
                 semaphore = asyncio.Semaphore(5)
