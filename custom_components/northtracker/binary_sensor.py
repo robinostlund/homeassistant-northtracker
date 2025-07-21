@@ -29,8 +29,8 @@ STATIC_BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
 # Bluetooth binary sensor descriptions
 BLUETOOTH_BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(
-        key="magnetic_field",
-        translation_key="bluetooth_door",
+        key="magnetic_contact",
+        translation_key="bluetooth_magnetic_contact",
         device_class=BinarySensorDeviceClass.DOOR,
         icon="mdi:magnet",
     ),

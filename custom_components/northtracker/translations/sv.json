@@ -131,8 +131,8 @@
             "bluetooth": {
                 "name": "Bluetooth"
             },
-            "bluetooth_door": {
-                "name": "Dörr"
+            "bluetooth_magnetic_contact": {
+                "name": "Magnetkontakt"
             }
         },
         "device_tracker": {
