@@ -1,6 +1,9 @@
 """Device tracker platform for North-Tracker."""
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Any, Callable
+
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import (
     TrackerEntity,
@@ -13,9 +16,17 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
+from .api import NorthTrackerDevice
+
+
+@dataclass(kw_only=True)
+class NorthTrackerTrackerEntityDescription(TrackerEntityDescription):
+    """Describes a North-Tracker device tracker entity with custom attributes."""
+    
+    exists_fn: Callable[[NorthTrackerDevice], bool] | None = None
 
 # Device tracker entity description
-DEVICE_TRACKER_DESCRIPTION = TrackerEntityDescription(
+DEVICE_TRACKER_DESCRIPTION = NorthTrackerTrackerEntityDescription(
     key="location",
     translation_key="location",
     icon="mdi:crosshairs-gps",
@@ -98,7 +109,7 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         self,
         coordinator: NorthTrackerDataUpdateCoordinator,
         device_id: int | str,
-        description: TrackerEntityDescription,
+        description: NorthTrackerTrackerEntityDescription,
     ) -> None:
         """Initialize the device tracker."""
         super().__init__(coordinator, device_id)
