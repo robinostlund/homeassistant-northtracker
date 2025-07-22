@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerDevice
+from .api import NorthTrackerGpsDevice
 from .base import validate_entity_id
 
 
@@ -24,7 +24,7 @@ from .base import validate_entity_id
 class NorthTrackerTrackerEntityDescription(TrackerEntityDescription):
     """Describes a North-Tracker device tracker entity with custom attributes."""
     
-    exists_fn: Callable[[NorthTrackerDevice], bool] | None = None
+    exists_fn: Callable[[NorthTrackerGpsDevice], bool] | None = None
 
 # Device tracker entity description
 DEVICE_TRACKER_DESCRIPTION = NorthTrackerTrackerEntityDescription(

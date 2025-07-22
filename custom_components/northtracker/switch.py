@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, LOGGER, DEFAULT_BATTERY_LOW_THRESHOLD
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerDevice
+from .api import NorthTrackerGpsDevice
 from .base import validate_entity_id
 
 
@@ -24,8 +24,8 @@ from .base import validate_entity_id
 class NorthTrackerSwitchEntityDescription(SwitchEntityDescription):
     """Describes a North-Tracker switch entity with custom attributes."""
     
-    value_fn: Callable[[NorthTrackerDevice], Any] | None = None
-    exists_fn: Callable[[NorthTrackerDevice], bool] | None = None
+    value_fn: Callable[[NorthTrackerGpsDevice], Any] | None = None
+    exists_fn: Callable[[NorthTrackerGpsDevice], bool] | None = None
 
 
 STATIC_SWITCH_DESCRIPTIONS: tuple[NorthTrackerSwitchEntityDescription, ...] = (

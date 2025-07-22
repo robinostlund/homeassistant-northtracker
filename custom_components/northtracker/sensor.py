@@ -27,7 +27,7 @@ from homeassistant.helpers.typing import StateType
 from .const import DOMAIN, LOGGER, MIN_SIGNAL_STRENGTH, MAX_SIGNAL_STRENGTH, SIGNAL_EXCELLENT_THRESHOLD, SIGNAL_GOOD_THRESHOLD, SIGNAL_POOR_THRESHOLD, MAX_BATTERY_VOLTAGE_READING
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerDevice, get_signal_quality_text
+from .api import NorthTrackerGpsDevice, get_signal_quality_text
 from .base import validate_entity_id
 
 
@@ -35,8 +35,8 @@ from .base import validate_entity_id
 class NorthTrackerSensorEntityDescription(SensorEntityDescription):
     """Describes a North-Tracker sensor entity with custom attributes."""
     
-    value_fn: Callable[[NorthTrackerDevice], Any] | None = None
-    exists_fn: Callable[[NorthTrackerDevice], bool] | None = None
+    value_fn: Callable[[NorthTrackerGpsDevice], Any] | None = None
+    exists_fn: Callable[[NorthTrackerGpsDevice], bool] | None = None
 
 # Unified sensor descriptions for both main GPS devices and Bluetooth sensors
 SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (

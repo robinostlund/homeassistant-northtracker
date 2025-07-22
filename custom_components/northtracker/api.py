@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import aiohttp
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from typing import Any
 
 from .const import (
@@ -13,6 +14,7 @@ from .const import (
     API_TIMEOUT, 
     API_MAX_RETRIES, 
     API_RATE_LIMIT_WARNING_THRESHOLD,
+    API_TIMEZONE,
     LOGGER_TOKEN_PREVIEW_LENGTH,
     MAX_BLUETOOTH_SENSORS_PER_DEVICE,
     DEVICE_ID_MULTIPLIER,
@@ -25,6 +27,30 @@ from .const import (
     GPS_COORDINATE_PRECISION,
     DEFAULT_BATTERY_LOW_THRESHOLD
 )
+
+
+def parse_northtracker_timestamp(timestamp_str: str) -> datetime | None:
+    """Parse a North-Tracker timestamp string to datetime with correct timezone.
+    
+    North-Tracker API returns timestamps in local timezone (Europe/Stockholm)
+    even though they appear to be naive timestamps.
+    
+    Args:
+        timestamp_str: Timestamp string from API (e.g., "2025-07-21 13:57:32")
+        
+    Returns:
+        datetime object with correct timezone or None if parsing fails
+    """
+    if not timestamp_str:
+        return None
+    
+    try:
+        # Parse the timestamp and assign the correct timezone
+        naive_dt = datetime.fromisoformat(timestamp_str)
+        return naive_dt.replace(tzinfo=ZoneInfo(API_TIMEZONE))
+    except (ValueError, TypeError) as err:
+        LOGGER.warning("Invalid timestamp format: %s (%s)", timestamp_str, err)
+        return None
 
 
 def get_signal_quality_text(signal_percentage: int | None) -> str:
@@ -88,7 +114,7 @@ class NorthTracker:
         self.base_url = API_BASE_URL
         self.http_headers = {
             "Content-Type": "application/json",
-            "Timezone": "Europe/Stockholm",
+            "Timezone": API_TIMEZONE,
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
             "X-Request-Type": "web",
         }
@@ -542,8 +568,8 @@ class NorthTrackerResponse:
         return self.response_data.get("data", {})
 
 
-class NorthTrackerDevice:
-    """Represents a North-Tracker device with all its data and capabilities."""
+class NorthTrackerGpsDevice:
+    """Represents a North-Tracker GPS device with all its data and capabilities."""
     
     def __init__(self, tracker: NorthTracker, device_data: dict[str, Any]) -> None:
         """Initialize a device instance."""
@@ -854,15 +880,7 @@ class NorthTrackerDevice:
     def last_seen(self) -> datetime | None:
         """Return the last seen timestamp."""
         last_seen_str = self._device_data.get("LastSeen")
-        if not last_seen_str:
-            return None
-        
-        try:
-            # Parse the timestamp (assuming format like "2025-07-18 22:05:52")
-            return datetime.fromisoformat(last_seen_str).replace(tzinfo=timezone.utc)
-        except (ValueError, TypeError):
-            LOGGER.warning("Invalid last seen timestamp: %s", last_seen_str)
-            return None
+        return parse_northtracker_timestamp(last_seen_str)
 
     @property
     def battery_voltage(self) -> float | None:
@@ -1037,10 +1055,10 @@ class NorthTrackerDevice:
         return state if state is not None else False
 
 
-class NorthTrackerBluetoothDevice:
+class NorthTrackerSensorDevice:
     """Represents a virtual Bluetooth sensor device connected to a main GPS tracker."""
     
-    def __init__(self, parent_device: NorthTrackerDevice, bt_sensor_data: dict[str, Any]) -> None:
+    def __init__(self, parent_device: NorthTrackerGpsDevice, bt_sensor_data: dict[str, Any]) -> None:
         """Initialize a Bluetooth sensor device instance."""
         self.parent_device = parent_device
         self.tracker = parent_device.tracker
@@ -1176,14 +1194,7 @@ class NorthTrackerBluetoothDevice:
         for sensor in self.parent_device._available_bluetooth_sensors:
             if sensor["serial_number"] == self._serial_number:
                 send_time_str = sensor.get("latest_sensor_data", {}).get("Send_Time")
-                if not send_time_str:
-                    return None
-                try:
-                    # Parse the timestamp (assuming format like "2025-07-19 10:55:08")
-                    return datetime.fromisoformat(send_time_str).replace(tzinfo=timezone.utc)
-                except (ValueError, TypeError):
-                    LOGGER.warning("Invalid Bluetooth sensor last seen timestamp for %s: %s", self._serial_number, send_time_str)
-                    return None
+                return parse_northtracker_timestamp(send_time_str)
         return None
     
     async def async_update(self) -> bool:

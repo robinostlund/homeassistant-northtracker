@@ -8,7 +8,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
-from .api import NorthTrackerDevice
+from .api import NorthTrackerGpsDevice
 from .base import validate_device_name
 
 
@@ -46,7 +46,7 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
             )
 
     @property
-    def device(self) -> NorthTrackerDevice | None:
+    def device(self) -> NorthTrackerGpsDevice | None:
         """Return the device object for this entity."""
         if self._device_id not in self.coordinator.data:
             LOGGER.warning("Device ID %s not found in coordinator data", self._device_id)

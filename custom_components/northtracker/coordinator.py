@@ -12,11 +12,11 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
-from .api import NorthTracker, NorthTrackerDevice, NorthTrackerBluetoothDevice, APIError, AuthenticationError, RateLimitError
+from .api import NorthTracker, NorthTrackerGpsDevice, NorthTrackerSensorDevice, APIError, AuthenticationError, RateLimitError
 from .const import DOMAIN, LOGGER, DEFAULT_UPDATE_INTERVAL, MIN_UPDATE_INTERVAL, MAX_UPDATE_INTERVAL
 
 
-class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTrackerDevice]]):
+class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTrackerGpsDevice]]):
     """Class to manage fetching North-Tracker data."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -59,7 +59,7 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
         """Check if a device has changes that require entity updates."""
         return device_id in self._devices_with_changes
 
-    async def _async_update_data(self) -> dict[int, NorthTrackerDevice]:
+    async def _async_update_data(self) -> dict[int, NorthTrackerGpsDevice]:
         """Fetch data from API endpoint."""
         start_time = datetime.now()
         LOGGER.debug("Starting coordinator data update")
@@ -130,7 +130,7 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                     LOGGER.warning("Unit data missing ID field, skipping: %s", unit_data)
                     continue
                 try:
-                    device = NorthTrackerDevice(self.api, unit_data)
+                    device = NorthTrackerGpsDevice(self.api, unit_data)
                     devices[device_id] = device
                     LOGGER.debug("Created device object for ID %s (%s)", device_id, device.name)
                 except Exception as err:
@@ -180,7 +180,7 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                     LOGGER.debug("Creating virtual Bluetooth devices for %s", main_device.name)
                     for bt_sensor in main_device.available_bluetooth_sensors:
                         try:
-                            bt_device = NorthTrackerBluetoothDevice(main_device, bt_sensor)
+                            bt_device = NorthTrackerSensorDevice(main_device, bt_sensor)
                             devices[bt_device.id] = bt_device
                             bluetooth_devices_count += 1
                             LOGGER.debug("Created virtual Bluetooth device: %s (ID %s, PairedSlot %d)", 
@@ -197,13 +197,13 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
                 if hasattr(device, 'available_inputs'):  # Main GPS device
                     LOGGER.debug("Device %s capabilities: inputs=%s, outputs=%s", 
                                device.name, device.available_inputs, device.available_outputs)
-                else:  # Bluetooth device
-                    LOGGER.debug("Bluetooth device %s (ID: %s, PairedSlot: %s, serial: %s)", 
+                else:  # Sensor device
+                    LOGGER.debug("Sensor device %s (ID: %s, PairedSlot: %s, serial: %s)", 
                                device.name, device.id, device._paired_slot, device.serial_number)
 
             # 3. Fetch extra (non-location) details for each device in parallel
             # Only update main GPS/tracker devices, not Bluetooth sensors (they get data from their parent device)
-            async def update_device_details(device: NorthTrackerDevice) -> None:
+            async def update_device_details(device: NorthTrackerGpsDevice) -> None:
                 """Update a single device's details."""
                 try:
                     # Track if device data actually changed

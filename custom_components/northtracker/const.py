@@ -26,6 +26,7 @@ API_TIMEOUT = 30  # seconds
 API_MAX_RETRIES = 3
 API_RETRY_DELAY = 1  # seconds
 API_RATE_LIMIT_WARNING_THRESHOLD = 80  # percent
+API_TIMEZONE = "Europe/Stockholm"  # timezone used by North-Tracker API
 
 # Device Constants  
 MAX_BLUETOOTH_SENSORS_PER_DEVICE = 9  # slots 1-9
