@@ -44,8 +44,8 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...
         translation_key="magnetic_contact",
         device_class=BinarySensorDeviceClass.DOOR,
         icon="mdi:magnet",
-        value_fn=lambda device: device.magnetic_contact_open,
-        exists_fn=lambda device: hasattr(device, 'magnetic_contact_open') and device.magnetic_contact_open is not None,
+        value_fn=lambda device: device.magnetic_contact,
+        exists_fn=lambda device: hasattr(device, 'magnetic_contact') and device.magnetic_contact is not None,
     ),
 )
 
