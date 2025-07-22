@@ -879,7 +879,7 @@ class NorthTrackerGpsDevice:
     @property
     def last_seen(self) -> datetime | None:
         """Return the last seen timestamp."""
-        last_seen_str = self._device_data.get("LastSeen")
+        last_seen_str = self._device_gps_data.get("Send_Time")
         return parse_northtracker_timestamp(last_seen_str)
 
     @property
