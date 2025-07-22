@@ -13,10 +13,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER, MIN_BATTERY_VOLTAGE_THRESHOLD, MAX_BATTERY_VOLTAGE_THRESHOLD
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 from .api import NorthTrackerDevice
+from .base import validate_entity_id
 
 
 @dataclass(kw_only=True)
@@ -33,8 +34,8 @@ NUMBER_DESCRIPTIONS: tuple[NorthTrackerNumberEntityDescription, ...] = (
         key="low_battery_threshold",
         translation_key="low_battery_threshold",
         mode=NumberMode.BOX,
-        native_min_value=10.0,
-        native_max_value=30.0,
+        native_min_value=MIN_BATTERY_VOLTAGE_THRESHOLD,
+        native_max_value=MAX_BATTERY_VOLTAGE_THRESHOLD,
         native_step=0.1,
         native_unit_of_measurement="V",
         icon="mdi:battery-alert",
@@ -46,37 +47,21 @@ NUMBER_DESCRIPTIONS: tuple[NorthTrackerNumberEntityDescription, ...] = (
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the number platform and discover new entities."""
-    coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    added_devices = set()
-
-    def discover_numbers() -> None:
-        """Discover and add new number entities."""
-        LOGGER.debug("Starting number discovery, current devices: %d", len(coordinator.data))
-        new_entities = []
-        for device_id, device in coordinator.data.items():
-            if device_id not in added_devices:
-                LOGGER.debug("Discovering numbers for new device: %s (ID: %s)", device.name, device_id)
-                
-                # Use unified number descriptions with exists_fn filtering
-                for description in NUMBER_DESCRIPTIONS:
-                    if description.exists_fn and description.exists_fn(device):
-                        number_entity = NorthTrackerNumber(coordinator, device_id, description)
-                        new_entities.append(number_entity)
-                        LOGGER.debug("Created number entity: %s for device %s", description.key, device.name)
-                    else:
-                        LOGGER.debug("Skipping number creation for device: %s - exists_fn returned False for %s", 
-                                   device.name, description.key)
-                
-                added_devices.add(device_id)
-
-        if new_entities:
-            LOGGER.debug("Adding %d new number entities", len(new_entities))
-            async_add_entities(new_entities)
-        else:
-            LOGGER.debug("No new number entities to add")
-
-    entry.async_on_unload(coordinator.async_add_listener(discover_numbers))
-    discover_numbers()
+    from .base import BasePlatformSetup
+    
+    def create_number_entity(coordinator, device_id, description):
+        """Create a number entity instance."""
+        return NorthTrackerNumber(coordinator, device_id, description)
+    
+    # Use the generic platform setup helper
+    platform_setup = BasePlatformSetup(
+        platform_name="number",
+        entity_class=NorthTrackerNumber,
+        entity_descriptions=NUMBER_DESCRIPTIONS,
+        create_entity_callback=create_number_entity
+    )
+    
+    await platform_setup.async_setup_entry(hass, entry, async_add_entities)
 
 
 class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
@@ -91,7 +76,7 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
         """Initialize the number entity."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = f"{device_id}_{description.key}"
+        self._attr_unique_id = validate_entity_id(f"{device_id}_{description.key}")
 
     @property
     def native_value(self) -> float | None:

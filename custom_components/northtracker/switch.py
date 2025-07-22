@@ -13,10 +13,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER, DEFAULT_BATTERY_LOW_THRESHOLD
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 from .api import NorthTrackerDevice
+from .base import validate_entity_id
 
 
 @dataclass(kw_only=True)
@@ -49,68 +50,54 @@ STATIC_SWITCH_DESCRIPTIONS: tuple[NorthTrackerSwitchEntityDescription, ...] = (
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the switch platform and discover new entities."""
-    coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-
-    added_devices = set()
-
-    def discover_switches() -> None:
-        """Discover and add new switches."""
-        LOGGER.debug("Starting switch discovery, current devices: %d", len(coordinator.data))
-        new_entities = []
-        for device_id, device in coordinator.data.items():
-            if device_id not in added_devices:
-                LOGGER.debug("Discovering switches for new device: %s (ID: %s)", device.name, device_id)
-                
-                # Create switches for each available digital output
-                if hasattr(device, 'available_outputs') and device.available_outputs:
-                    for output_num in device.available_outputs:
-                        description = NorthTrackerSwitchEntityDescription(
-                            key=f"output_status_{output_num}",
-                            translation_key=f"output_{output_num}",
-                            device_class=SwitchDeviceClass.SWITCH,
-                            name=f"Output {output_num}",
-                        )
-                        switch_entity = NorthTrackerSwitch(coordinator, device_id, description, output_number=output_num)
-                        new_entities.append(switch_entity)
-                        LOGGER.debug("Created switch for output %d on device %s", output_num, device.name)
-                else:
-                    LOGGER.debug("No available outputs found for device %s", device.name)
-                
-                # Create switches for each available digital input (alert control)
-                if hasattr(device, 'available_inputs') and device.available_inputs:
-                    for input_num in device.available_inputs:
-                        description = NorthTrackerSwitchEntityDescription(
-                            key=f"input_status_{input_num}",
-                            translation_key=f"input_{input_num}",
-                            device_class=SwitchDeviceClass.SWITCH,
-                            name=f"Input {input_num}",
-                            # icon="mdi:electric-switch",
-                        )
-                        switch_entity = NorthTrackerSwitch(coordinator, device_id, description, input_number=input_num)
-                        new_entities.append(switch_entity)
-                        LOGGER.debug("Created switch for input %d on device %s", input_num, device.name)
-                else:
-                    LOGGER.debug("No available inputs found for device %s", device.name)
-                
-                # Add static switches (like alarm) that exist for all devices
-                for description in STATIC_SWITCH_DESCRIPTIONS:
-                    if description.exists_fn and description.exists_fn(device):
-                        switch_entity = NorthTrackerSwitch(coordinator, device_id, description)
-                        new_entities.append(switch_entity)
-                        LOGGER.debug("Created static switch: %s for device %s", description.key, device.name)
-                    else:
-                        LOGGER.debug("Skipping static switch %s for device %s - exists_fn returned False", description.key, device.name)
-                
-                added_devices.add(device_id)
-        
-        if new_entities:
-            LOGGER.debug("Adding %d new switch entities", len(new_entities))
-            async_add_entities(new_entities)
+    from .base import AdvancedPlatformSetup
+    
+    def create_switch_entity(coordinator, device_id, description):
+        """Create a switch entity instance."""
+        return NorthTrackerSwitch(coordinator, device_id, description)
+    
+    def create_dynamic_switches(device, device_id: int, coordinator, new_entities: list) -> None:
+        """Create dynamic switches for device inputs/outputs."""
+        # Create switches for each available digital output
+        if hasattr(device, 'available_outputs') and device.available_outputs:
+            for output_num in device.available_outputs:
+                description = NorthTrackerSwitchEntityDescription(
+                    key=f"output_status_{output_num}",
+                    translation_key=f"output_{output_num}",
+                    device_class=SwitchDeviceClass.SWITCH,
+                    name=f"Output {output_num}",
+                )
+                switch_entity = NorthTrackerSwitch(coordinator, device_id, description, output_number=output_num)
+                new_entities.append(switch_entity)
+                LOGGER.debug("Created switch for output %d on device %s", output_num, device.name)
         else:
-            LOGGER.debug("No new switch entities to add")
-
-    entry.async_on_unload(coordinator.async_add_listener(discover_switches))
-    discover_switches()
+            LOGGER.debug("No available outputs found for device %s", device.name)
+        
+        # Create switches for each available digital input (alert control)
+        if hasattr(device, 'available_inputs') and device.available_inputs:
+            for input_num in device.available_inputs:
+                description = NorthTrackerSwitchEntityDescription(
+                    key=f"input_status_{input_num}",
+                    translation_key=f"input_{input_num}",
+                    device_class=SwitchDeviceClass.SWITCH,
+                    name=f"Input {input_num}",
+                )
+                switch_entity = NorthTrackerSwitch(coordinator, device_id, description, input_number=input_num)
+                new_entities.append(switch_entity)
+                LOGGER.debug("Created switch for input %d on device %s", input_num, device.name)
+        else:
+            LOGGER.debug("No available inputs found for device %s", device.name)
+    
+    # Use the advanced platform setup helper
+    platform_setup = AdvancedPlatformSetup(
+        platform_name="switch",
+        entity_class=NorthTrackerSwitch,
+        entity_descriptions=STATIC_SWITCH_DESCRIPTIONS,
+        create_entity_callback=create_switch_entity,
+        custom_entity_creator=create_dynamic_switches
+    )
+    
+    await platform_setup.async_setup_entry(hass, entry, async_add_entities)
 
 
 class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
@@ -129,7 +116,7 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         self.entity_description = description
         self._output_number = output_number
         self._input_number = input_number
-        self._attr_unique_id = f"{device_id}_{description.key}"
+        self._attr_unique_id = validate_entity_id(f"{device_id}_{description.key}")
         # Track pending state changes to provide immediate feedback
         self._pending_state: bool | None = None
 
@@ -231,7 +218,7 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
                 self.async_write_ha_state()
                 
                 # Get current threshold
-                current_threshold = getattr(device, 'low_battery_threshold', None) or 12.1
+                current_threshold = getattr(device, 'low_battery_threshold', None) or DEFAULT_BATTERY_LOW_THRESHOLD
                 
                 resp = await device.tracker.set_low_battery_alert(getattr(device, 'imei', ''), True, current_threshold)
                 if not resp.success:
@@ -316,7 +303,7 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
                 self.async_write_ha_state()
                 
                 # Get current threshold
-                current_threshold = getattr(device, 'low_battery_threshold', None) or 12.1
+                current_threshold = getattr(device, 'low_battery_threshold', None) or DEFAULT_BATTERY_LOW_THRESHOLD
                 
                 resp = await device.tracker.set_low_battery_alert(getattr(device, 'imei', ''), False, current_threshold)
                 if not resp.success:

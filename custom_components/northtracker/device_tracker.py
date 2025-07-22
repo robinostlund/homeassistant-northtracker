@@ -17,6 +17,7 @@ from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 from .api import NorthTrackerDevice
+from .base import validate_entity_id
 
 
 @dataclass(kw_only=True)
@@ -72,34 +73,21 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the device tracker platform and discover new entities."""
-    coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    added_devices = set()
-
-    def discover_trackers() -> None:
-        """Discover and add new tracker entities."""
-        LOGGER.debug("Starting device tracker discovery, current devices: %d", len(coordinator.data))
-        new_entities = []
-        for device_id, device in coordinator.data.items():
-            if device_id not in added_devices:
-                LOGGER.debug("Discovering tracker for new device: %s (ID: %s)", device.name, device_id)
-                # Use exists_fn to check if device should have a tracker
-                if DEVICE_TRACKER_DESCRIPTION.exists_fn and DEVICE_TRACKER_DESCRIPTION.exists_fn(device):
-                    tracker_entity = NorthTrackerDeviceTracker(coordinator, device_id, DEVICE_TRACKER_DESCRIPTION)
-                    new_entities.append(tracker_entity)
-                    LOGGER.debug("Created device tracker for device %s", device.name)
-                else:
-                    LOGGER.debug("Skipping device tracker creation for device: %s (type: %s) - exists_fn returned False", 
-                               device.name, getattr(device, 'device_type', 'unknown'))
-                added_devices.add(device_id)
-
-        if new_entities:
-            LOGGER.debug("Adding %d new device tracker entities", len(new_entities))
-            async_add_entities(new_entities)
-        else:
-            LOGGER.debug("No new device tracker entities to add")
-
-    entry.async_on_unload(coordinator.async_add_listener(discover_trackers))
-    discover_trackers()
+    from .base import BasePlatformSetup
+    
+    def create_device_tracker_entity(coordinator, device_id, description):
+        """Create a device tracker entity instance."""
+        return NorthTrackerDeviceTracker(coordinator, device_id, description)
+    
+    # Use the generic platform setup helper with single description as list
+    platform_setup = BasePlatformSetup(
+        platform_name="device_tracker", 
+        entity_class=NorthTrackerDeviceTracker,
+        entity_descriptions=[DEVICE_TRACKER_DESCRIPTION],
+        create_entity_callback=create_device_tracker_entity
+    )
+    
+    await platform_setup.async_setup_entry(hass, entry, async_add_entities)
 
 
 class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
@@ -114,7 +102,7 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         """Initialize the device tracker."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = f"{device_id}_tracker"
+        self._attr_unique_id = validate_entity_id(f"{device_id}_tracker")
 
     @property
     def latitude(self) -> float | None:

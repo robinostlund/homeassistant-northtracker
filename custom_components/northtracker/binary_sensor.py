@@ -17,6 +17,7 @@ from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 from .api import NorthTrackerDevice
+from .base import validate_entity_id
 
 
 @dataclass(kw_only=True)
@@ -51,35 +52,21 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the binary sensor platform and discover new entities."""
-    coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    added_devices = set()
-
-    def discover_binary_sensors() -> None:
-        """Discover and add new binary sensors."""
-        LOGGER.debug("Starting binary sensor discovery, current devices: %d", len(coordinator.data))
-        new_entities = []
-        for device_id, device in coordinator.data.items():
-            if device_id not in added_devices:
-                LOGGER.debug("Discovering binary sensors for new device: %s (ID: %s)", device.name, device_id)
-                
-                # Use unified binary sensor descriptions for all device types
-                for description in BINARY_SENSOR_DESCRIPTIONS:
-                    if description.exists_fn and description.exists_fn(device):
-                        # Create binary sensor entity - exists_fn already determined capability
-                        binary_sensor_entity = NorthTrackerBinarySensor(coordinator, device_id, description)
-                        new_entities.append(binary_sensor_entity)
-                        LOGGER.debug("Created binary sensor: %s for device %s", description.key, device.name)
-                
-                added_devices.add(device_id)
-
-        if new_entities:
-            LOGGER.debug("Adding %d new binary sensor entities", len(new_entities))
-            async_add_entities(new_entities)
-        else:
-            LOGGER.debug("No new binary sensor entities to add")
-
-    entry.async_on_unload(coordinator.async_add_listener(discover_binary_sensors))
-    discover_binary_sensors()
+    from .base import BasePlatformSetup
+    
+    def create_binary_sensor_entity(coordinator, device_id, description):
+        """Create a binary sensor entity instance."""
+        return NorthTrackerBinarySensor(coordinator, device_id, description)
+    
+    # Use the generic platform setup helper
+    platform_setup = BasePlatformSetup(
+        platform_name="binary_sensor",
+        entity_class=NorthTrackerBinarySensor,
+        entity_descriptions=BINARY_SENSOR_DESCRIPTIONS,
+        create_entity_callback=create_binary_sensor_entity
+    )
+    
+    await platform_setup.async_setup_entry(hass, entry, async_add_entities)
 
 
 class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
@@ -94,7 +81,7 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
         """Initialize the binary sensor."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = f"{device_id}_{description.key}"
+        self._attr_unique_id = validate_entity_id(f"{device_id}_{description.key}")
 
     @property
     def is_on(self) -> bool | None:

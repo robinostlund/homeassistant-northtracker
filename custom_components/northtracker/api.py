@@ -6,7 +6,62 @@ import aiohttp
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from .const import LOGGER
+from .const import (
+    DOMAIN, 
+    LOGGER, 
+    API_BASE_URL, 
+    API_TIMEOUT, 
+    API_MAX_RETRIES, 
+    API_RATE_LIMIT_WARNING_THRESHOLD,
+    LOGGER_TOKEN_PREVIEW_LENGTH,
+    MAX_BLUETOOTH_SENSORS_PER_DEVICE,
+    DEVICE_ID_MULTIPLIER,
+    SIGNAL_SCALE_MIN,
+    SIGNAL_SCALE_MAX,
+    MAX_SIGNAL_STRENGTH,
+    SIGNAL_EXCELLENT_THRESHOLD,
+    SIGNAL_GOOD_THRESHOLD, 
+    SIGNAL_POOR_THRESHOLD,
+    GPS_COORDINATE_PRECISION,
+    DEFAULT_BATTERY_LOW_THRESHOLD
+)
+
+
+def get_signal_quality_text(signal_percentage: int | None) -> str:
+    """Get human-readable signal quality text based on percentage.
+    
+    Args:
+        signal_percentage: Signal strength as percentage (0-100%)
+        
+    Returns:
+        Human-readable signal quality text
+    """
+    if signal_percentage is None:
+        return "Unknown"
+    
+    if signal_percentage >= SIGNAL_EXCELLENT_THRESHOLD:
+        return "Excellent"
+    elif signal_percentage >= SIGNAL_GOOD_THRESHOLD:
+        return "Good"
+    elif signal_percentage >= SIGNAL_POOR_THRESHOLD:
+        return "Fair"
+    else:
+        return "Poor"
+
+
+def round_gps_coordinate(coordinate: float | None) -> float | None:
+    """Round GPS coordinate to configured precision.
+    
+    Args:
+        coordinate: GPS coordinate (latitude or longitude)
+        
+    Returns:
+        Rounded coordinate or None if input was None
+    """
+    if coordinate is None:
+        return None
+    
+    return round(coordinate, GPS_COORDINATE_PRECISION)
 
 
 class NorthTrackerException(Exception):
@@ -30,7 +85,7 @@ class NorthTracker:
     def __init__(self, session: aiohttp.ClientSession) -> None:
         """Initialize the North-Tracker API client."""
         self.session = session
-        self.base_url = "https://apiv2.northtracker.com/api/v1"
+        self.base_url = API_BASE_URL
         self.http_headers = {
             "Content-Type": "application/json",
             "Timezone": "Europe/Stockholm",
@@ -56,7 +111,7 @@ class NorthTracker:
         # Warn if rate limit is getting low
         if self.rate_limit > 0:
             usage_percent = ((self.rate_limit - self.rate_limit_remaining) / self.rate_limit) * 100
-            if usage_percent > 80:
+            if usage_percent > API_RATE_LIMIT_WARNING_THRESHOLD:
                 LOGGER.warning("Rate limit usage high: %.1f%% (%d/%d requests used)", 
                              usage_percent, self.rate_limit - self.rate_limit_remaining, self.rate_limit)
 
@@ -81,7 +136,7 @@ class NorthTracker:
         url: str, 
         payload: dict[str, Any] | None = None,
         retry_count: int = 0,
-        max_retries: int = 3
+        max_retries: int = API_MAX_RETRIES
     ) -> NorthTrackerResponse:
         """Make an authenticated request with retry logic."""
         LOGGER.debug("Making %s request to %s (attempt %d/%d)", method, url, retry_count + 1, max_retries + 1)
@@ -94,7 +149,7 @@ class NorthTracker:
             LOGGER.debug("Request payload: %s", safe_payload)
         
         if retry_count > 0:
-            wait_time = min(2 ** retry_count, 30)
+            wait_time = min(2 ** retry_count, API_TIMEOUT)
             LOGGER.debug("Waiting %d seconds before retry", wait_time)
             await asyncio.sleep(wait_time)
 
@@ -102,17 +157,17 @@ class NorthTracker:
             headers = self.http_headers.copy()
             if self._token:
                 headers["Authorization"] = f"Bearer {self._token}"
-                LOGGER.debug("Using authentication token (preview: %s...)", self._token[:10])
+                LOGGER.debug("Using authentication token (preview: %s...)", self._token[:LOGGER_TOKEN_PREVIEW_LENGTH])
             else:
                 LOGGER.debug("No authentication token available")
 
             # Debug: Log all headers being sent (but mask authorization)
             debug_headers = headers.copy()
             if "Authorization" in debug_headers:
-                debug_headers["Authorization"] = f"Bearer {self._token[:10]}..." if self._token else "None"
+                debug_headers["Authorization"] = f"Bearer {self._token[:LOGGER_TOKEN_PREVIEW_LENGTH]}..." if self._token else "None"
             LOGGER.debug("Request headers: %s", debug_headers)
 
-            timeout = aiohttp.ClientTimeout(total=30)
+            timeout = aiohttp.ClientTimeout(total=API_TIMEOUT)
             
             if method.upper() == "GET":
                 async with self.session.get(url, headers=headers, timeout=timeout) as response:
@@ -198,7 +253,7 @@ class NorthTracker:
         
         try:
             # Make login request without authentication (bypass _get_data/_post_data)
-            timeout = aiohttp.ClientTimeout(total=30)
+            timeout = aiohttp.ClientTimeout(total=API_TIMEOUT)
             async with self.session.post(url, json=payload, headers=self.http_headers, timeout=timeout) as response:
                 await self._update_rate_limits(response)
                 LOGGER.debug("Login response: status=%d, content-type=%s", 
@@ -213,7 +268,7 @@ class NorthTracker:
                     # Set token expiration to 23 hours from now (assuming 24h validity)
                     self._token_expires = datetime.now() + timedelta(hours=23)
                     LOGGER.debug("Successfully authenticated, token expires at %s", self._token_expires)
-                    LOGGER.debug("Token preview: %s...", self._token[:10] if self._token else "empty")
+                    LOGGER.debug("Token preview: %s...", self._token[:LOGGER_TOKEN_PREVIEW_LENGTH] if self._token else "empty")
                 else:
                     LOGGER.error("Login failed: API returned success=False")
                     raise AuthenticationError("Login failed: Invalid response from server")
@@ -323,7 +378,7 @@ class NorthTracker:
             LOGGER.warning("Failed to update unit features for device IMEI %s", device_imei)
         return response
 
-    async def set_low_battery_alert(self, device_imei: str, enabled: bool, threshold: float = 12.1) -> NorthTrackerResponse:
+    async def set_low_battery_alert(self, device_imei: str, enabled: bool, threshold: float = DEFAULT_BATTERY_LOW_THRESHOLD) -> NorthTrackerResponse:
         """Enable/disable low battery alert and set threshold."""
         LOGGER.debug("Setting low battery alert for device IMEI %s: enabled=%s, threshold=%.1f", 
                     device_imei, enabled, threshold)
@@ -646,9 +701,16 @@ class NorthTrackerDevice:
                 latest_data = sensor.get("latest_sensor_data", {})
                 
                 if serial_number and paired_slot and bluetooth_info:
+                    # Validate slot is within the allowed range (1-9)
+                    slot_number = int(paired_slot)
+                    if slot_number > MAX_BLUETOOTH_SENSORS_PER_DEVICE:
+                        LOGGER.warning("Bluetooth sensor %s in slot %d exceeds maximum allowed slots (%d) - skipping", 
+                                     serial_number, slot_number, MAX_BLUETOOTH_SENSORS_PER_DEVICE)
+                        continue
+                    
                     sensor_config = {
                         "serial_number": serial_number,
-                        "paired_slot": int(paired_slot),  # Store PairedSlot as int for device.id
+                        "paired_slot": slot_number,  # Store PairedSlot as int for device.id
                         "name": bluetooth_info.get("Name", f"Bluetooth Sensor {serial_number}"),
                         "enable_temperature": bool(bluetooth_info.get("EnableTemperature", 0)),
                         "enable_humidity": bool(bluetooth_info.get("EnableHumidity", 0)),
@@ -661,6 +723,12 @@ class NorthTrackerDevice:
                                serial_number, sensor_config["name"], self.name, sensor_config["paired_slot"],
                                sensor_config["enable_temperature"], sensor_config["enable_humidity"],
                                sensor_config["enable_door_sensor"])
+        
+        # Enforce maximum number of sensors per device
+        if len(sensors) > MAX_BLUETOOTH_SENSORS_PER_DEVICE:
+            LOGGER.warning("Device %s has %d Bluetooth sensors, limiting to %d maximum", 
+                         self.name, len(sensors), MAX_BLUETOOTH_SENSORS_PER_DEVICE)
+            sensors = sensors[:MAX_BLUETOOTH_SENSORS_PER_DEVICE]
         
         return sensors
 
@@ -719,24 +787,24 @@ class NorthTrackerDevice:
 
     @property
     def latitude(self) -> float | None:
-        """Return current latitude."""
+        """Return current latitude with configured precision."""
         lat = self._device_gps_data.get("Latitude")
         if lat is None:
             return None
         try:
-            return float(lat)
+            return round_gps_coordinate(float(lat))
         except (ValueError, TypeError):
             LOGGER.warning("Invalid latitude value: %s", lat)
             return None
 
     @property
     def longitude(self) -> float | None:
-        """Return current longitude."""
+        """Return current longitude with configured precision."""
         lon = self._device_gps_data.get("Longitude")
         if lon is None:
             return None
         try:
-            return float(lon)
+            return round_gps_coordinate(float(lon))
         except (ValueError, TypeError):
             LOGGER.warning("Invalid longitude value: %s", lon)
             return None
@@ -772,12 +840,12 @@ class NorthTrackerDevice:
         try:
             # Convert 0-5 scale to 0-100% (5 = best signal = 100%)
             accuracy_int = int(accuracy)
-            if accuracy_int < 0:
+            if accuracy_int < SIGNAL_SCALE_MIN:
                 return 0
-            elif accuracy_int > 5:
-                return 100
+            elif accuracy_int > SIGNAL_SCALE_MAX:
+                return MAX_SIGNAL_STRENGTH
             else:
-                return int((accuracy_int / 5) * 100)
+                return int((accuracy_int / SIGNAL_SCALE_MAX) * MAX_SIGNAL_STRENGTH)
         except (ValueError, TypeError):
             LOGGER.warning("Invalid GPS signal value: %s", accuracy)
             return None
@@ -853,12 +921,12 @@ class NorthTrackerDevice:
         try:
             # Convert 0-5 scale to 0-100% (5 = best signal = 100%)
             signal_int = int(signal)
-            if signal_int < 0:
+            if signal_int < SIGNAL_SCALE_MIN:
                 return 0
-            elif signal_int > 5:
-                return 100
+            elif signal_int > SIGNAL_SCALE_MAX:
+                return MAX_SIGNAL_STRENGTH
             else:
-                return int((signal_int / 5) * 100)
+                return int((signal_int / SIGNAL_SCALE_MAX) * MAX_SIGNAL_STRENGTH)
         except (ValueError, TypeError):
             LOGGER.warning("Invalid network signal value: %s", signal)
             return None
@@ -991,7 +1059,7 @@ class NorthTrackerBluetoothDevice:
         # Example: GPS device 100 with PairedSlot 1 -> 1001
         # Example: GPS device 100 with PairedSlot 2 -> 1002
         # Example: GPS device 200 with PairedSlot 1 -> 2001
-        return self.parent_device.id * 10 + self._paired_slot
+        return self.parent_device.id * DEVICE_ID_MULTIPLIER + self._paired_slot
     
     @property
     def name(self) -> str:

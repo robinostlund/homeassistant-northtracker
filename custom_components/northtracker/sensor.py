@@ -24,10 +24,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER, MIN_SIGNAL_STRENGTH, MAX_SIGNAL_STRENGTH, SIGNAL_EXCELLENT_THRESHOLD, SIGNAL_GOOD_THRESHOLD, SIGNAL_POOR_THRESHOLD, MAX_BATTERY_VOLTAGE_READING
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerDevice
+from .api import NorthTrackerDevice, get_signal_quality_text
+from .base import validate_entity_id
 
 
 @dataclass(kw_only=True)
@@ -155,37 +156,21 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the sensor platform and discover new entities."""
-    coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+    from .base import BasePlatformSetup
     
-    added_devices = set()
-
-    def discover_sensors() -> None:
-        """Discover and add new sensors."""
-        LOGGER.debug("Starting sensor discovery, current devices: %d", len(coordinator.data))
-        new_entities = []
-        for device_id, device in coordinator.data.items():
-            if device_id not in added_devices:
-                LOGGER.debug("Discovering sensors for new device: %s (ID: %s)", device.name, device_id)
-                LOGGER.debug("Device type: %s, Name: %s", device.device_type, device.name)
-                
-                # Use unified sensor descriptions for all device types
-                for description in SENSOR_DESCRIPTIONS:
-                    if description.exists_fn and description.exists_fn(device):
-                        # Create sensor entity - exists_fn already determined capability
-                        sensor_entity = NorthTrackerSensor(coordinator, device_id, description)
-                        new_entities.append(sensor_entity)
-                        LOGGER.debug("Created sensor: %s for device %s", description.key, device.name)
-                
-                added_devices.add(device_id)
-        
-        if new_entities:
-            LOGGER.debug("Adding %d new sensor entities", len(new_entities))
-            async_add_entities(new_entities)
-        else:
-            LOGGER.debug("No new sensor entities to add")
-
-    entry.async_on_unload(coordinator.async_add_listener(discover_sensors))
-    discover_sensors()
+    def create_sensor_entity(coordinator, device_id, description):
+        """Create a sensor entity instance.""" 
+        return NorthTrackerSensor(coordinator, device_id, description)
+    
+    # Use the generic platform setup helper
+    platform_setup = BasePlatformSetup(
+        platform_name="sensor",
+        entity_class=NorthTrackerSensor,
+        entity_descriptions=SENSOR_DESCRIPTIONS,
+        create_entity_callback=create_sensor_entity
+    )
+    
+    await platform_setup.async_setup_entry(hass, entry, async_add_entities)
 
 
 class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
@@ -195,7 +180,7 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = f"{device_id}_{description.key}"
+        self._attr_unique_id = validate_entity_id(f"{device_id}_{description.key}")
 
     @property
     def native_value(self) -> StateType:
@@ -226,12 +211,12 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
         # Additional validation for specific sensor types
         if self.entity_description.key == "battery_voltage" and isinstance(value, (int, float)):
             # Battery voltage should be reasonable (0-50V for most vehicles)
-            if not (0 <= value <= 50):
+            if not (0 <= value <= MAX_BATTERY_VOLTAGE_READING):
                 LOGGER.warning("Battery voltage out of range for device %s: %s", device.name, value)
                 return None
         elif self.entity_description.key in ["gps_signal", "network_signal"] and isinstance(value, (int, float)):
             # Signal strength should be 0-100 percent
-            if not (0 <= value <= 100):
+            if not (MIN_SIGNAL_STRENGTH <= value <= MAX_SIGNAL_STRENGTH):
                 LOGGER.warning("Signal strength out of range for device %s (%s): %s", device.name, self.entity_description.key, value)
                 return None
         elif self.entity_description.key == "network_signal" and hasattr(device, 'has_position') and not device.has_position:
@@ -250,5 +235,11 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
         # Add sensor-specific attributes
         if hasattr(self, 'entity_description'):
             attributes["sensor_type"] = self.entity_description.key
+            
+            # Add signal quality text for signal sensors
+            if self.entity_description.key in ["gps_signal", "network_signal"]:
+                current_value = self.native_value
+                if isinstance(current_value, (int, float)):
+                    attributes["signal_quality"] = get_signal_quality_text(int(current_value))
         
         return attributes if attributes else None

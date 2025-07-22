@@ -9,6 +9,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .api import NorthTrackerDevice
+from .base import validate_device_name
 
 
 class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
@@ -30,7 +31,7 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
             
             self._attr_device_info = DeviceInfo(
                 identifiers={(DOMAIN, str(device.id))},
-                name=device.name,
+                name=validate_device_name(device.name),
                 manufacturer="North-Tracker",
                 model=device.model,
                 serial_number=device.imei,
