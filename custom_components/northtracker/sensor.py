@@ -146,10 +146,8 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
-        suggested_display_precision=0,
         icon="mdi:battery",
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda device: device.battery_percentage,
         exists_fn=lambda device: hasattr(device, 'battery_percentage') and device.battery_percentage is not None,
     ),
 )
