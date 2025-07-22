@@ -119,22 +119,36 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
             # Create device objects from the base details
             devices = {}
             for unit_data in units:
-                # Skip sensor entries with isSensor=true - these will be created from GPS device's PairedSensors
-                if unit_data.get('isSensor') is True:
-                    LOGGER.debug("Skipping sensor unit %s - will be created from GPS device's PairedSensors instead", 
-                               unit_data.get('NameOnly', 'Unknown'))
-                    continue
-                
+                device_type = unit_data.get('DeviceType', '').lower()
                 device_id = unit_data.get('ID')
+                device_name = unit_data.get('NameOnly', 'Unknown')
+                
                 if device_id is None:
                     LOGGER.warning("Unit data missing ID field, skipping: %s", unit_data)
                     continue
-                try:
-                    device = NorthTrackerGpsDevice(self.api, unit_data)
-                    devices[device_id] = device
-                    LOGGER.debug("Created device object for ID %s (%s)", device_id, device.name)
-                except Exception as err:
-                    LOGGER.error("Failed to create device object for ID %s: %s", device_id, err)
+                
+                # Only create devices for explicitly supported DeviceTypes
+                if device_type == 'gps':
+                    try:
+                        device = NorthTrackerGpsDevice(self.api, unit_data)
+                        devices[device_id] = device
+                        LOGGER.debug("Created GPS device: ID %s (%s)", device_id, device.name)
+                    except Exception as err:
+                        LOGGER.error("Failed to create GPS device for ID %s: %s", device_id, err)
+                        continue
+                        
+                elif device_type == 'sensor':
+                    # Sensor devices will be created as NorthTrackerSensorDevice from GPS device's PairedSensors
+                    # Note: If we ever want to support standalone sensors (not connected via PairedSensors),
+                    # we could create NorthTrackerSensorDevice(self.api, unit_data) here instead
+                    LOGGER.debug("Skipping standalone sensor unit %s (ID: %s) - sensors are created from GPS device's PairedSensors", 
+                               device_name, device_id)
+                    continue
+                    
+                else:
+                    # Unknown device type - log and skip
+                    LOGGER.info("Skipping unit %s (ID: %s) - unsupported DeviceType: %s", 
+                              device_name, device_id, device_type)
                     continue
                     
             LOGGER.debug("Successfully created %d device objects", len(devices))

@@ -581,6 +581,9 @@ class NorthTrackerGpsDevice:
         self._device_features_data: dict[str, Any] = {}
         self._last_update: datetime | None = None
         
+        # Log device initialization for debugging
+        LOGGER.debug("Initializing GPS device: %s (ID: %s)", self.name, self.id)
+        
         # Dynamically discover digital inputs and outputs
         self._available_inputs = self._discover_digital_inputs()
         self._available_outputs = self._discover_digital_outputs()
@@ -760,9 +763,13 @@ class NorthTrackerGpsDevice:
 
     @property
     def available(self) -> bool:
-        """Return True if device is available."""
-        # Consider device available if we have basic data
-        return bool(self._device_data.get("ID"))
+        """Return True if device is available.
+        
+        A GPS device is considered available if it has basic identifying information.
+        Since we only create GPS devices for DeviceType='gps', we don't need to 
+        re-check the device type here.
+        """
+        return bool(self._device_data.get("ID") and self._device_data.get("NameOnly"))
 
     @property
     def available_inputs(self) -> list[int]:
