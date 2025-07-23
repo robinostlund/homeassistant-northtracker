@@ -117,7 +117,6 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         value_fn=lambda device: device.report_frequency,
         exists_fn=lambda device: hasattr(device, 'report_frequency') and device.report_frequency is not None,
     ),
-    # Bluetooth sensor sensors
     NorthTrackerSensorEntityDescription(
         key="temperature",
         translation_key="temperature",
