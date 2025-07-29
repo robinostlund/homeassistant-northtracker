@@ -202,12 +202,22 @@ class NorthTracker:
                                response.status, response.headers.get('Content-Type'), 
                                self.rate_limit_remaining, self.rate_limit)
                     
-                    if response.status == 401 and retry_count == 0:
-                        LOGGER.debug("Token expired (401), attempting re-authentication")
-                        # Token might be expired, try to re-authenticate
+                    # Handle authentication errors and potential token expiration (401 + 5xx)
+                    if ((response.status == 401) or (500 <= response.status < 600)) and retry_count == 0 and self._token:
+                        LOGGER.warning("Authentication/server error %d - attempting re-authentication", response.status)
+                        # Save current token for comparison
+                        old_token = self._token
                         self._token = None
-                        await self._ensure_authenticated()
-                        return await self._request(method, url, payload, retry_count + 1, max_retries)
+                        try:
+                            await self._ensure_authenticated()
+                            # Only retry if we got a new token
+                            if self._token != old_token:
+                                LOGGER.debug("Got new token after %d error, retrying request", response.status)
+                                return await self._request(method, url, payload, retry_count + 1, max_retries)
+                        except AuthenticationError:
+                            LOGGER.warning("Re-authentication failed after %d error, continuing with original error", response.status)
+                            # Restore old token and continue with original error handling
+                            self._token = old_token
                     
                     if response.status == 429:
                         if retry_count < max_retries:
@@ -228,12 +238,22 @@ class NorthTracker:
                                response.status, response.headers.get('Content-Type'),
                                self.rate_limit_remaining, self.rate_limit)
                     
-                    if response.status == 401 and retry_count == 0:
-                        LOGGER.debug("Token expired (401), attempting re-authentication")
-                        # Token might be expired, try to re-authenticate
+                    # Handle authentication errors and potential token expiration (401 + 5xx)
+                    if ((response.status == 401) or (500 <= response.status < 600)) and retry_count == 0 and self._token:
+                        LOGGER.warning("Authentication/server error %d - attempting re-authentication", response.status)
+                        # Save current token for comparison
+                        old_token = self._token
                         self._token = None
-                        await self._ensure_authenticated()
-                        return await self._request(method, url, payload, retry_count + 1, max_retries)
+                        try:
+                            await self._ensure_authenticated()
+                            # Only retry if we got a new token
+                            if self._token != old_token:
+                                LOGGER.debug("Got new token after %d error, retrying request", response.status)
+                                return await self._request(method, url, payload, retry_count + 1, max_retries)
+                        except AuthenticationError:
+                            LOGGER.warning("Re-authentication failed after %d error, continuing with original error", response.status)
+                            # Restore old token and continue with original error handling
+                            self._token = old_token
                     
                     if response.status == 429:
                         if retry_count < max_retries:
