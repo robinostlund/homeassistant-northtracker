@@ -41,7 +41,7 @@ NUMBER_DESCRIPTIONS: tuple[NorthTrackerNumberEntityDescription, ...] = (
         # icon="mdi:battery-alert",
         value_fn=lambda device: device.low_battery_threshold,
         exists_fn=lambda device: hasattr(device, 'low_battery_threshold') and device.low_battery_threshold is not None,
-    )
+    ),
 )
 
 

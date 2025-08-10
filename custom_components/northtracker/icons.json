@@ -157,7 +157,7 @@
         },
         "device_tracker": {
             "location": {
-                "default": "mdi:map-marker"
+                "default": "mdi:crosshairs-gps"
             }
         }
     }
