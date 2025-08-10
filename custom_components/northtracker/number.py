@@ -23,7 +23,7 @@ from .base import validate_entity_id
 @dataclass(kw_only=True)
 class NorthTrackerNumberEntityDescription(NumberEntityDescription):
     """Describes a North-Tracker number entity with custom attributes."""
-    
+
     value_fn: Callable[[NorthTrackerGpsDevice], Any] | None = None
     exists_fn: Callable[[NorthTrackerGpsDevice], bool] | None = None
 
