@@ -30,7 +30,6 @@ class NorthTrackerTrackerEntityDescription(TrackerEntityDescription):
 DEVICE_TRACKER_DESCRIPTION = NorthTrackerTrackerEntityDescription(
     key="location",
     translation_key="location",
-    icon="mdi:crosshairs-gps",
     # Use exists_fn to determine if device should have a tracker (GPS devices only)
     exists_fn=lambda device: hasattr(device, 'device_type') and device.device_type in ["gps", "tracker"] and device.device_type is not None,
 )

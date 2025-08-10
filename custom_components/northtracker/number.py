@@ -38,7 +38,6 @@ NUMBER_DESCRIPTIONS: tuple[NorthTrackerNumberEntityDescription, ...] = (
         native_max_value=MAX_BATTERY_VOLTAGE_THRESHOLD,
         native_step=0.1,
         native_unit_of_measurement="V",
-        # icon="mdi:battery-alert",
         value_fn=lambda device: device.low_battery_threshold,
         exists_fn=lambda device: hasattr(device, 'low_battery_threshold') and device.low_battery_threshold is not None,
     ),

@@ -34,7 +34,6 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...
         key="bluetooth_enabled",
         translation_key="bluetooth_enabled",
         # device_class=BinarySensorDeviceClass.CONNECTIVITY,
-        # icon="mdi:bluetooth",
         value_fn=lambda device: device.bluetooth_enabled,
         exists_fn=lambda device: hasattr(device, 'bluetooth_enabled') and device.bluetooth_enabled is not None,
     ),
@@ -43,7 +42,6 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...
         key="magnetic_contact",
         translation_key="magnetic_contact",
         device_class=BinarySensorDeviceClass.OPENING,
-        # icon="mdi:magnet",
         value_fn=lambda device: not device.magnetic_contact,  # Invert: True=closed->False (closed), False=open->True (open)
         exists_fn=lambda device: hasattr(device, 'magnetic_contact') and device.magnetic_contact is not None,
     ),
