@@ -1,0 +1,79 @@
+{
+    "entity": {
+        "sensor": {
+            "last_seen": {
+                "default": "mdi:clock"
+            },
+            "battery_voltage": {
+                "default": "mdi:battery"
+            },
+            "odometer": {
+                "default": "mdi:speedometer"
+            },
+            "network_signal": {
+                "default": "mdi:signal",
+                "range": {
+                    "0": "mdi:signal-cellular-outline",
+                    "20": "mdi:signal-cellular-1",
+                    "50": "mdi:signal-cellular-2",
+                    "80": "mdi:signal-cellular-3"
+                }
+            },
+            "gps_signal": {
+                "default": "mdi:signal",
+                "range": {
+                    "0": "mdi:signal-cellular-outline",
+                    "20": "mdi:signal-cellular-1",
+                    "50": "mdi:signal-cellular-2",
+                    "80": "mdi:signal-cellular-3"
+                }
+            },
+            "speed": {
+                "default": "mdi:speedometer"
+            },
+            "report_frequency": {
+                "default": "mdi:timer"
+            },
+            "temperature": {
+                "default": "mdi:thermometer",
+                "range": {
+                    "-30": "mdi:thermometer-minus",
+                    "0": "mdi:thermometer",
+                    "30": "mdi:thermometer-plus"
+                }
+            },
+            "humidity": {
+                "default": "mdi:water-percent"
+            },
+            "battery_percentage": {
+                "default": "mdi:battery",
+                "range": {
+                    "0": "mdi:battery-outline",
+                    "10": "mdi:battery-10",
+                    "20": "mdi:battery-20",
+                    "30": "mdi:battery-30",
+                    "40": "mdi:battery-40",
+                    "50": "mdi:battery-50",
+                    "60": "mdi:battery-60",
+                    "70": "mdi:battery-70",
+                    "80": "mdi:battery-80",
+                    "90": "mdi:battery-90",
+                    "100": "mdi:battery"
+                }
+            }
+        },
+        "number": {
+            "low_battery_threshold": {
+                "default": "mdi:battery-alert"
+            }
+        },
+        "binary_sensor": {
+            "magnetic_contact": {
+                "default": "mdi:magnet"
+            },
+            "bluetooth_enabled": {
+                "default": "mdi:bluetooth"
+            }
+        }
+    }
+}

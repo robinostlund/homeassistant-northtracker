@@ -113,7 +113,7 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         suggested_unit_of_measurement=UnitOfTime.MINUTES,
         device_class=SensorDeviceClass.DURATION,
         entity_category=EntityCategory.DIAGNOSTIC,
-        icon="mdi:counter",
+        icon="mdi:timer",
         value_fn=lambda device: device.report_frequency,
         exists_fn=lambda device: hasattr(device, 'report_frequency') and device.report_frequency is not None,
     ),
