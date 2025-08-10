@@ -69,7 +69,11 @@
         },
         "binary_sensor": {
             "magnetic_contact": {
-                "default": "mdi:magnet"
+                "default": "mdi:door",
+                "state": {
+                    "on": "mdi:door-open",
+                    "off": "mdi:door-closed"
+                }
             },
             "bluetooth_enabled": {
                 "default": "mdi:bluetooth"
