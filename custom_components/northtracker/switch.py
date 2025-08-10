@@ -32,7 +32,7 @@ STATIC_SWITCH_DESCRIPTIONS: tuple[NorthTrackerSwitchEntityDescription, ...] = (
     NorthTrackerSwitchEntityDescription(
         key="alarm_status",
         translation_key="alarm",
-        icon="mdi:alarm-light",
+        # icon="mdi:alarm-light",
         device_class=SwitchDeviceClass.SWITCH,
         value_fn=lambda device: getattr(device, 'alarm_status', False),
         exists_fn=lambda device: hasattr(device, 'alarm_status') and getattr(device, 'alarm_status', None) is not None,
@@ -40,7 +40,7 @@ STATIC_SWITCH_DESCRIPTIONS: tuple[NorthTrackerSwitchEntityDescription, ...] = (
     NorthTrackerSwitchEntityDescription(
         key="low_battery_alert_enabled",
         translation_key="low_battery_alert",
-        icon="mdi:battery-alert", 
+        # icon="mdi:battery-alert", 
         device_class=SwitchDeviceClass.SWITCH,
         value_fn=lambda device: device.low_battery_alert_enabled,
         exists_fn=lambda device: hasattr(device, 'low_battery_alert_enabled') and device.low_battery_alert_enabled is not None,
