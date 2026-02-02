@@ -38,6 +38,7 @@ NUMBER_DESCRIPTIONS: tuple[NorthTrackerNumberEntityDescription, ...] = (
         native_max_value=MAX_BATTERY_VOLTAGE_THRESHOLD,
         native_step=0.1,
         native_unit_of_measurement="V",
+        entity_registry_enabled_default=False,
         value_fn=lambda device: device.low_battery_threshold,
         exists_fn=lambda device: hasattr(device, 'low_battery_threshold') and device.low_battery_threshold is not None,
     ),
@@ -81,49 +82,30 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
     def native_value(self) -> float | None:
         """Return the current value."""
         if not self.available:
-            LOGGER.debug("Number entity %s not available", self.entity_description.key)
             return None
             
         device = self.device
         if device is None:
-            LOGGER.debug("Number entity %s device is None", self.entity_description.key)
             return None
             
         # Use value_fn from entity description
         if hasattr(self.entity_description, 'value_fn') and self.entity_description.value_fn:
-            value = self.entity_description.value_fn(device)
-        else:
-            # Fallback to getattr for backwards compatibility
-            value = getattr(device, self.entity_description.key, None)
-            
-        LOGGER.debug("Number entity %s for device %s has value: %s", self.entity_description.key, device.name, value)
-        return value
+            return self.entity_description.value_fn(device)
+        return getattr(device, self.entity_description.key, None)
 
     async def async_set_native_value(self, value: float) -> None:
         """Set the value."""
         device = self.device
         if device is None:
-            LOGGER.error("Cannot set value for number entity %s: device is None", self.entity_description.key)
             return
-            
-        LOGGER.debug("Setting %s to %.1f for device %s", self.entity_description.key, value, device.name)
         
         if self.entity_description.key == "low_battery_threshold":
             try:
-                # Get current enabled status
                 current_enabled = getattr(device, 'low_battery_alert_enabled', False)
-                
-                # Set the new threshold while keeping the current enabled status
                 resp = await device.tracker.set_low_battery_alert(getattr(device, 'imei', ''), current_enabled, value)
                 if not resp.success:
-                    LOGGER.error("Failed to set low battery threshold to %.1f for device '%s': API returned success=False", 
-                               value, device.name)
+                    LOGGER.error("Failed to set low battery threshold for device '%s'", device.name)
                 else:
-                    LOGGER.debug("Successfully set low battery threshold to %.1f for device '%s'", value, device.name)
-                    # Request refresh to update the UI
                     await self.coordinator.async_request_refresh()
             except Exception as err:
-                LOGGER.error("Error setting low battery threshold to %.1f for device '%s': %s", 
-                           value, device.name, err)
-        else:
-            LOGGER.warning("Set value not implemented for number entity %s", self.entity_description.key)
+                LOGGER.error("Error setting low battery threshold for device '%s': %s", device.name, err)

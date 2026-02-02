@@ -13,7 +13,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 from .api import NorthTrackerGpsDevice
@@ -160,12 +160,10 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
     def extra_state_attributes(self) -> dict[str, any] | None:
         """Return extra state attributes."""
         if not self.available:
-            LOGGER.debug("Device tracker not available, no attributes")
             return None
             
         device = self.device
         if device is None:
-            LOGGER.debug("Device tracker device is None, no attributes")
             return None
             
         # Start with common attributes from base class
@@ -182,15 +180,12 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
             hasattr(device, 'gps_accuracy') and device.gps_accuracy > 0):
             attributes["gps_accuracy"] = device.gps_accuracy
             
-        # Add location status for debugging
+        # Add location status
         has_position = hasattr(device, 'has_position') and device.has_position
         has_last_seen = hasattr(device, 'last_seen') and device.last_seen
         
         if not has_position:
-            if has_last_seen:
-                attributes["location_status"] = "no_gps_fix"
-            else:
-                attributes["location_status"] = "offline"
+            attributes["location_status"] = "no_gps_fix" if has_last_seen else "offline"
         else:
             attributes["location_status"] = "active"
         
@@ -205,11 +200,4 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         """Handle updated data from the coordinator."""
         # Only trigger update if this device has actual data changes
         if self.coordinator.device_has_changes(self._device_id):
-            device = self.device
-            device_name = device.name if device else f"ID {self._device_id}"
-            LOGGER.debug("Updating device tracker for %s due to data changes detected by coordinator", device_name)
             super()._handle_coordinator_update()
-        else:
-            device = self.device
-            device_name = device.name if device else f"ID {self._device_id}"
-            LOGGER.debug("Skipping device tracker update for %s - no data changes detected by coordinator", device_name)

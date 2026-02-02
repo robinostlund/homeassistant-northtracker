@@ -10,10 +10,11 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 from .api import NorthTrackerGpsDevice
@@ -33,7 +34,8 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...
     NorthTrackerBinarySensorEntityDescription(
         key="bluetooth_enabled",
         translation_key="bluetooth_enabled",
-        # device_class=BinarySensorDeviceClass.CONNECTIVITY,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
         value_fn=lambda device: device.bluetooth_enabled,
         exists_fn=lambda device: hasattr(device, 'bluetooth_enabled') and device.bluetooth_enabled is not None,
     ),
@@ -85,23 +87,16 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         """Return the state of the binary sensor."""
         if not self.available:
-            LOGGER.debug("Binary sensor %s not available", self.entity_description.key)
             return None
             
         device = self.device
         if device is None:
-            LOGGER.debug("Binary sensor %s device is None", self.entity_description.key)
             return None
             
         # Use value_fn from entity description
         if hasattr(self.entity_description, 'value_fn') and self.entity_description.value_fn:
-            state = self.entity_description.value_fn(device)
-        else:
-            # Fallback to getattr for backwards compatibility
-            state = getattr(device, self.entity_description.key, None)
-            
-        LOGGER.debug("Binary sensor %s for device %s has state: %s", self.entity_description.key, device.name, state)
-        return state
+            return self.entity_description.value_fn(device)
+        return getattr(device, self.entity_description.key, None)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:

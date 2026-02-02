@@ -125,6 +125,11 @@ class NorthTracker:
         self._username: str | None = None
         self._password: str | None = None
 
+    @property
+    def is_authenticated(self) -> bool:
+        """Return True if the client has a valid authentication token."""
+        return self._token is not None
+
     async def _update_rate_limits(self, response: aiohttp.ClientResponse) -> None:
         """Update rate limit information from response headers."""
         old_remaining = self.rate_limit_remaining

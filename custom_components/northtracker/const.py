@@ -3,12 +3,19 @@ from __future__ import annotations
 
 from logging import getLogger
 
+from homeassistant.const import Platform
+
 DOMAIN = "northtracker"
 LOGGER = getLogger(__package__)
 
-# Configuration Constants
-CONF_USERNAME = "username"
-CONF_PASSWORD = "password"
+# Platforms
+PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
+    Platform.DEVICE_TRACKER,
+    Platform.NUMBER,
+    Platform.SENSOR,
+    Platform.SWITCH,
+]
 
 # Defaults
 DEFAULT_UPDATE_INTERVAL = 15  # minutes
@@ -16,9 +23,6 @@ DEFAULT_UPDATE_INTERVAL = 15  # minutes
 # Validation Constants
 MIN_UPDATE_INTERVAL = 0.17  # 10 seconds in minutes (10/60 ≈ 0.17)
 MAX_UPDATE_INTERVAL = 1440  # minutes
-
-# Platforms
-PLATFORMS = ["sensor", "switch", "binary_sensor", "device_tracker", "number"]
 
 # API Constants
 API_BASE_URL = "https://apiv2.northtracker.com/api/v1"

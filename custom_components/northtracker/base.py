@@ -44,36 +44,23 @@ class BasePlatformSetup(Generic[T]):
     ) -> None:
         """Set up platform entities with common discovery pattern."""
         coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-        added_devices = set()
+        added_devices: set[int] = set()
 
         def discover_entities() -> None:
             """Discover and add new entities."""
-            LOGGER.debug("Starting %s discovery, current devices: %d", 
-                        self.platform_name, len(coordinator.data))
             new_entities = []
             
             for device_id, device in coordinator.data.items():
                 if device_id not in added_devices:
-                    LOGGER.debug("Discovering %s for new device: %s (ID: %s)", 
-                               self.platform_name, device.name, device_id)
-                    LOGGER.debug("Device type: %s, Name: %s", device.device_type, device.name)
-                    
-                    # Use entity descriptions for discovery
                     for description in self.entity_descriptions:
                         if hasattr(description, 'exists_fn') and description.exists_fn and description.exists_fn(device):
-                            # Create entity - exists_fn already determined capability
                             entity = self.create_entity_callback(coordinator, device_id, description)
                             new_entities.append(entity)
-                            LOGGER.debug("Created %s: %s for device %s", 
-                                       self.platform_name, description.key, device.name)
                     
                     added_devices.add(device_id)
             
             if new_entities:
-                LOGGER.debug("Adding %d new %s entities", len(new_entities), self.platform_name)
                 async_add_entities(new_entities)
-            else:
-                LOGGER.debug("No new %s entities to add", self.platform_name)
 
         entry.async_on_unload(coordinator.async_add_listener(discover_entities))
         discover_entities()
@@ -187,19 +174,14 @@ class AdvancedPlatformSetup(BasePlatformSetup[T]):
     ) -> None:
         """Set up platform entities with advanced discovery pattern."""
         coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-        added_devices = set()
+        added_devices: set[int] = set()
 
         def discover_entities() -> None:
             """Discover and add new entities."""
-            LOGGER.debug("Starting %s discovery, current devices: %d", 
-                        self.platform_name, len(coordinator.data))
             new_entities = []
             
             for device_id, device in coordinator.data.items():
                 if device_id not in added_devices:
-                    LOGGER.debug("Discovering %s for new device: %s (ID: %s)", 
-                               self.platform_name, device.name, device_id)
-                    
                     # Create custom entities (e.g., dynamic switches)
                     if self.custom_entity_creator:
                         self.custom_entity_creator(device, device_id, coordinator, new_entities)
@@ -209,16 +191,11 @@ class AdvancedPlatformSetup(BasePlatformSetup[T]):
                         if hasattr(description, 'exists_fn') and description.exists_fn and description.exists_fn(device):
                             entity = self.create_entity_callback(coordinator, device_id, description)
                             new_entities.append(entity)
-                            LOGGER.debug("Created %s: %s for device %s", 
-                                       self.platform_name, description.key, device.name)
                     
                     added_devices.add(device_id)
             
             if new_entities:
-                LOGGER.debug("Adding %d new %s entities", len(new_entities), self.platform_name)
                 async_add_entities(new_entities)
-            else:
-                LOGGER.debug("No new %s entities to add", self.platform_name)
         
         entry.async_on_unload(coordinator.async_add_listener(discover_entities))
         discover_entities()
