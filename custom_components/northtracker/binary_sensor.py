@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Callable
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -90,13 +90,7 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
             return None
             
         # Use value_fn from entity description
-        if hasattr(self.entity_description, 'value_fn') and self.entity_description.value_fn:
+        if self.entity_description.value_fn:
             return self.entity_description.value_fn(device)
         return getattr(device, self.entity_description.key, None)
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return additional state attributes."""
-        # Use base class attributes only
-        return super().extra_state_attributes
 

@@ -182,7 +182,7 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
             return None
             
         # Use value_fn from entity description
-        if hasattr(self.entity_description, 'value_fn') and self.entity_description.value_fn:
+        if self.entity_description.value_fn:
             value = self.entity_description.value_fn(device)
         else:
             value = getattr(device, self.entity_description.key, None)
@@ -190,15 +190,17 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
         if value is None:
             return None
             
-        # Additional validation for specific sensor types
-        if self.entity_description.key == "battery_voltage" and isinstance(value, (int, float)):
+        # Validate specific sensor types
+        key = self.entity_description.key
+        if key == "battery_voltage" and isinstance(value, (int, float)):
             if not (0 <= value <= MAX_BATTERY_VOLTAGE_READING):
                 return None
-        elif self.entity_description.key in ["gps_signal", "network_signal"] and isinstance(value, (int, float)):
+        elif key in ("gps_signal", "network_signal") and isinstance(value, (int, float)):
             if not (MIN_SIGNAL_STRENGTH <= value <= MAX_SIGNAL_STRENGTH):
                 return None
-        elif self.entity_description.key == "network_signal" and hasattr(device, 'has_position') and not device.has_position:
-            return None
+            # Network signal requires valid GPS position
+            if key == "network_signal" and not getattr(device, 'has_position', False):
+                return None
         
         return value
 
@@ -208,10 +210,9 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
         attributes = super().extra_state_attributes or {}
         
         # Add signal quality text for signal sensors
-        if hasattr(self, 'entity_description'):
-            if self.entity_description.key in ["gps_signal", "network_signal"]:
-                current_value = self.native_value
-                if isinstance(current_value, (int, float)):
-                    attributes["signal_quality"] = get_signal_quality_text(int(current_value))
+        if self.entity_description.key in ("gps_signal", "network_signal"):
+            current_value = self.native_value
+            if isinstance(current_value, (int, float)):
+                attributes["signal_quality"] = get_signal_quality_text(int(current_value))
         
         return attributes if attributes else None

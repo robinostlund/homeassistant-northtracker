@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from .const import (
@@ -72,3 +73,39 @@ def round_gps_coordinate(coordinate: float | None) -> float | None:
         return None
     
     return round(coordinate, GPS_COORDINATE_PRECISION)
+
+
+def safe_int(value: Any, default: int | None = None) -> int | None:
+    """Safely convert a value to int.
+    
+    Args:
+        value: Value to convert
+        default: Default value if conversion fails (default: None)
+        
+    Returns:
+        Integer value or default if conversion fails
+    """
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def safe_float(value: Any, default: float | None = None) -> float | None:
+    """Safely convert a value to float.
+    
+    Args:
+        value: Value to convert
+        default: Default value if conversion fails (default: None)
+        
+    Returns:
+        Float value or default if conversion fails
+    """
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default

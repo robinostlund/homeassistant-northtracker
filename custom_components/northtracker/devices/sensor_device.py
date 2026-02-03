@@ -6,7 +6,7 @@ from typing import Any, TYPE_CHECKING
 
 from .base import NorthTrackerBaseDevice, DeviceCapabilities
 from ..const import LOGGER, DEVICE_ID_MULTIPLIER
-from ..helpers import parse_northtracker_timestamp
+from ..helpers import parse_northtracker_timestamp, safe_int, safe_float
 
 if TYPE_CHECKING:
     from .gps_device import NorthTrackerGpsDevice
@@ -134,14 +134,7 @@ class NorthTrackerSensorDevice(NorthTrackerBaseDevice):
         sensor_data = self._get_sensor_data()
         if sensor_data is None:
             return None
-        temp_str = sensor_data.get("Temperature")
-        if temp_str is None:
-            return None
-        try:
-            return float(temp_str)
-        except (ValueError, TypeError):
-            LOGGER.warning("Invalid temperature value for sensor %s: %s", self._serial_number, temp_str)
-            return None
+        return safe_float(sensor_data.get("Temperature"))
 
     @property
     def humidity(self) -> int | None:
@@ -149,14 +142,7 @@ class NorthTrackerSensorDevice(NorthTrackerBaseDevice):
         sensor_data = self._get_sensor_data()
         if sensor_data is None:
             return None
-        humidity_str = sensor_data.get("Humidity")
-        if humidity_str is None:
-            return None
-        try:
-            return int(humidity_str)
-        except (ValueError, TypeError):
-            LOGGER.warning("Invalid humidity value for sensor %s: %s", self._serial_number, humidity_str)
-            return None
+        return safe_int(sensor_data.get("Humidity"))
 
     @property
     def battery_percentage(self) -> int | None:
@@ -164,14 +150,7 @@ class NorthTrackerSensorDevice(NorthTrackerBaseDevice):
         sensor_data = self._get_sensor_data()
         if sensor_data is None:
             return None
-        battery_str = sensor_data.get("BatteryPercentage")
-        if battery_str is None:
-            return None
-        try:
-            return int(battery_str)
-        except (ValueError, TypeError):
-            LOGGER.warning("Invalid battery percentage for sensor %s: %s", self._serial_number, battery_str)
-            return None
+        return safe_int(sensor_data.get("BatteryPercentage"))
 
     @property
     def battery_voltage(self) -> float | None:
@@ -179,15 +158,9 @@ class NorthTrackerSensorDevice(NorthTrackerBaseDevice):
         sensor_data = self._get_sensor_data()
         if sensor_data is None:
             return None
-        voltage_str = sensor_data.get("BatteryVoltage")
-        if voltage_str is None:
-            return None
-        try:
-            # Convert from millivolts to volts
-            return float(voltage_str) / 1000.0
-        except (ValueError, TypeError):
-            LOGGER.warning("Invalid battery voltage for sensor %s: %s", self._serial_number, voltage_str)
-            return None
+        voltage = safe_float(sensor_data.get("BatteryVoltage"))
+        # Convert from millivolts to volts
+        return voltage / 1000.0 if voltage is not None else None
 
     @property
     def magnetic_contact(self) -> bool | None:

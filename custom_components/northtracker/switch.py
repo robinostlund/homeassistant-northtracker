@@ -54,7 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     def create_dynamic_switches(device, device_id: int, coordinator, new_entities: list) -> None:
         """Create dynamic switches for device inputs/outputs."""
         # Create switches for each available digital output
-        if hasattr(device, 'available_outputs') and device.available_outputs:
+        if device.capabilities.has_digital_outputs and hasattr(device, 'available_outputs') and device.available_outputs:
             for output_num in device.available_outputs:
                 description = NorthTrackerSwitchEntityDescription(
                     key=f"output_status_{output_num}",
@@ -65,11 +65,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 switch_entity = NorthTrackerSwitch(coordinator, device_id, description, output_number=output_num)
                 new_entities.append(switch_entity)
                 LOGGER.debug("Created switch for output %d on device %s", output_num, device.name)
-        else:
-            LOGGER.debug("No available outputs found for device %s", device.name)
         
         # Create switches for each available digital input (alert control)
-        if hasattr(device, 'available_inputs') and device.available_inputs:
+        if device.capabilities.has_digital_inputs and hasattr(device, 'available_inputs') and device.available_inputs:
             for input_num in device.available_inputs:
                 description = NorthTrackerSwitchEntityDescription(
                     key=f"input_status_{input_num}",
@@ -80,8 +78,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 switch_entity = NorthTrackerSwitch(coordinator, device_id, description, input_number=input_num)
                 new_entities.append(switch_entity)
                 LOGGER.debug("Created switch for input %d on device %s", input_num, device.name)
-        else:
-            LOGGER.debug("No available inputs found for device %s", device.name)
     
     # Use the advanced platform setup helper
     platform_setup = AdvancedPlatformSetup(
@@ -155,136 +151,75 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
             return False
             
         if self._output_number is not None:
-            if hasattr(device, 'get_output_status'):
-                return device.get_output_status(self._output_number)
-            return False
+            return device.get_output_status(self._output_number)
         elif self._input_number is not None:
-            if hasattr(device, 'get_input_status'):
-                return device.get_input_status(self._input_number)
-            return False
+            return device.get_input_status(self._input_number)
         elif self.entity_description.key == "geofence":
             # Geofence alarm state - track via _geofence_state attribute
-            # If not initialized yet, default to None (unknown) then show False
-            return getattr(self, '_geofence_state', None) or False
+            return self._geofence_state or False
+        elif self.entity_description.value_fn:
+            # Use value_fn from entity description
+            return bool(self.entity_description.value_fn(device))
         else:
-            # Static switch using value_fn if available
-            if hasattr(self.entity_description, 'value_fn') and self.entity_description.value_fn:
-                return bool(self.entity_description.value_fn(device))
-            else:
-                return bool(getattr(device, self.entity_description.key, False))
+            # Fallback to attribute on device
+            return bool(getattr(device, self.entity_description.key, False))
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the switch."""
-        device = self.device
-        if device is None:
-            return
-        
-        if self._output_number is not None:
-            try:
-                self._pending_state = True
-                self.async_write_ha_state()
-                
-                resp = await device.tracker.output_turn_on(device.id, self._output_number)
-                if not resp.success:
-                    LOGGER.error("Failed to turn on output %d for device '%s'", self._output_number, device.name)
-                    self._pending_state = None
-                    self.async_write_ha_state()
-                await self.coordinator.async_request_refresh()
-            except Exception as err:
-                LOGGER.error("Error turning on output %d for device '%s': %s", self._output_number, device.name, err)
-                self._pending_state = None
-                self.async_write_ha_state()
-        elif self._input_number is not None:
-            # Dynamic input switch (enable alert)
-            try:
-                LOGGER.info("Enabling alert for input %d on device '%s'", self._input_number, device.name)
-                # Set pending state for immediate UI feedback
-                self._pending_state = True
-                self.async_write_ha_state()
-                
-                resp = await device.tracker.input_turn_on(device.id, self._input_number)
-                if not resp.success:
-                    LOGGER.error("Failed to enable alert for input %d on device '%s'", self._input_number, device.name)
-                    self._pending_state = None
-                    self.async_write_ha_state()
-                await self.coordinator.async_request_refresh()
-            except Exception as err:
-                LOGGER.error("Error enabling alert for input %d on device '%s': %s", self._input_number, device.name, err)
-                self._pending_state = None
-                self.async_write_ha_state()
-        elif self.entity_description.key == "low_battery_alert_enabled":
-            try:
-                self._pending_state = True
-                self.async_write_ha_state()
-                
-                current_threshold = getattr(device, 'low_battery_threshold', None) or DEFAULT_BATTERY_LOW_THRESHOLD
-                resp = await device.tracker.set_low_battery_alert(getattr(device, 'imei', ''), True, current_threshold)
-                if not resp.success:
-                    LOGGER.error("Failed to enable low battery alert for device '%s'", device.name)
-                    self._pending_state = None
-                    self.async_write_ha_state()
-                await self.coordinator.async_request_refresh()
-            except Exception as err:
-                LOGGER.error("Error enabling low battery alert for device '%s': %s", device.name, err)
-                self._pending_state = None
-                self.async_write_ha_state()
-        elif self.entity_description.key == "geofence":
-            await self._async_set_geofence(device, True)
+        await self._async_set_state(True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the switch."""
+        await self._async_set_state(False)
+
+    async def _async_set_state(self, enabled: bool) -> None:
+        """Set the switch state with pending state handling."""
         device = self.device
         if device is None:
             return
         
+        action = "on" if enabled else "off"
+        
         if self._output_number is not None:
-            try:
-                self._pending_state = False
-                self.async_write_ha_state()
-                
-                resp = await device.tracker.output_turn_off(device.id, self._output_number)
-                if not resp.success:
-                    LOGGER.error("Failed to turn off output %d for device '%s'", self._output_number, device.name)
-                    self._pending_state = None
-                    self.async_write_ha_state()
-                await self.coordinator.async_request_refresh()
-            except Exception as err:
-                LOGGER.error("Error turning off output %d for device '%s': %s", self._output_number, device.name, err)
-                self._pending_state = None
-                self.async_write_ha_state()
+            await self._async_execute_api_call(
+                enabled,
+                device.tracker.output_turn_on(device.id, self._output_number) if enabled 
+                    else device.tracker.output_turn_off(device.id, self._output_number),
+                f"Failed to turn {action} output {self._output_number} for device '{device.name}'"
+            )
         elif self._input_number is not None:
-            try:
-                self._pending_state = False
-                self.async_write_ha_state()
-                
-                resp = await device.tracker.input_turn_off(device.id, self._input_number)
-                if not resp.success:
-                    LOGGER.error("Failed to disable alert for input %d on device '%s'", self._input_number, device.name)
-                    self._pending_state = None
-                    self.async_write_ha_state()
-                await self.coordinator.async_request_refresh()
-            except Exception as err:
-                LOGGER.error("Error disabling alert for input %d on device '%s': %s", self._input_number, device.name, err)
-                self._pending_state = None
-                self.async_write_ha_state()
+            await self._async_execute_api_call(
+                enabled,
+                device.tracker.input_turn_on(device.id, self._input_number) if enabled 
+                    else device.tracker.input_turn_off(device.id, self._input_number),
+                f"Failed to set input {self._input_number} alert {action} for device '{device.name}'"
+            )
         elif self.entity_description.key == "low_battery_alert_enabled":
-            try:
-                self._pending_state = False
-                self.async_write_ha_state()
-                
-                current_threshold = getattr(device, 'low_battery_threshold', None) or DEFAULT_BATTERY_LOW_THRESHOLD
-                resp = await device.tracker.set_low_battery_alert(getattr(device, 'imei', ''), False, current_threshold)
-                if not resp.success:
-                    LOGGER.error("Failed to disable low battery alert for device '%s'", device.name)
-                    self._pending_state = None
-                    self.async_write_ha_state()
-                await self.coordinator.async_request_refresh()
-            except Exception as err:
-                LOGGER.error("Error disabling low battery alert for device '%s': %s", device.name, err)
+            current_threshold = getattr(device, 'low_battery_threshold', None) or DEFAULT_BATTERY_LOW_THRESHOLD
+            await self._async_execute_api_call(
+                enabled,
+                device.tracker.set_low_battery_alert(getattr(device, 'imei', ''), enabled, current_threshold),
+                f"Failed to set low battery alert {action} for device '{device.name}'"
+            )
+        elif self.entity_description.key == "geofence":
+            await self._async_set_geofence(device, enabled)
+
+    async def _async_execute_api_call(self, target_state: bool, api_call, error_msg: str) -> None:
+        """Execute an API call with pending state handling."""
+        try:
+            self._pending_state = target_state
+            self.async_write_ha_state()
+            
+            resp = await api_call
+            if not resp.success:
+                LOGGER.error(error_msg)
                 self._pending_state = None
                 self.async_write_ha_state()
-        elif self.entity_description.key == "geofence":
-            await self._async_set_geofence(device, False)
+            await self.coordinator.async_request_refresh()
+        except Exception as err:
+            LOGGER.error("%s: %s", error_msg, err)
+            self._pending_state = None
+            self.async_write_ha_state()
 
     async def _async_set_geofence(self, device: NorthTrackerGpsDevice, enabled: bool) -> None:
         """Enable or disable all geofences for this GPS device."""

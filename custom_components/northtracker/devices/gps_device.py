@@ -12,7 +12,7 @@ from ..const import (
     SIGNAL_SCALE_MAX,
     MAX_SIGNAL_STRENGTH,
 )
-from ..helpers import parse_northtracker_timestamp, round_gps_coordinate
+from ..helpers import parse_northtracker_timestamp, round_gps_coordinate, safe_int, safe_float
 
 if TYPE_CHECKING:
     from ..api import NorthTracker
@@ -296,27 +296,25 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     # GPS/Location properties
     # -------------------------------------------------------------------------
 
-    @property
-    def latitude(self) -> float | None:
-        """Return current latitude with configured precision."""
-        lat = self._device_gps_data.get("Latitude")
-        if lat is None:
+    def _get_coordinate(self, key: str) -> float | None:
+        """Get a GPS coordinate value with precision handling."""
+        value = self._device_gps_data.get(key)
+        if value is None:
             return None
         try:
-            return round_gps_coordinate(float(lat))
+            return round_gps_coordinate(float(value))
         except (ValueError, TypeError):
             return None
 
     @property
+    def latitude(self) -> float | None:
+        """Return current latitude with configured precision."""
+        return self._get_coordinate("Latitude")
+
+    @property
     def longitude(self) -> float | None:
         """Return current longitude with configured precision."""
-        lon = self._device_gps_data.get("Longitude")
-        if lon is None:
-            return None
-        try:
-            return round_gps_coordinate(float(lon))
-        except (ValueError, TypeError):
-            return None
+        return self._get_coordinate("Longitude")
 
     @property
     def has_position(self) -> bool:
@@ -326,70 +324,47 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     @property
     def gps_accuracy(self) -> int:
         """Return GPS accuracy level (0-5)."""
-        accuracy = self._device_gps_data.get("GPSAccuracy", 0)
-        try:
-            return int(accuracy)
-        except (ValueError, TypeError):
-            return 0
+        return safe_int(self._device_gps_data.get("GPSAccuracy"), 0)
 
     @property
     def speed(self) -> int:
         """Return current speed in km/h."""
-        speed = self._device_gps_data.get("Speed", 0)
-        try:
-            return int(speed)
-        except (ValueError, TypeError):
-            return 0
+        return safe_int(self._device_gps_data.get("Speed"), 0)
     
     @property
     def course(self) -> int:
         """Return course/heading of the device in degrees."""
-        course = self._device_gps_data.get("Azimuth", 0)
-        try:
-            course_int = int(float(course))
-            if 0 <= course_int <= 359:
-                return course_int
-            return 0
-        except (ValueError, TypeError):
-            return 0
+        course = safe_int(self._device_gps_data.get("Azimuth"), 0)
+        return course if 0 <= course <= 359 else 0
 
     # -------------------------------------------------------------------------
     # Sensor properties
     # -------------------------------------------------------------------------
 
-    @property
-    def gps_signal(self) -> int | None:
-        """Return GPS signal strength as percentage (0-100%)."""
-        accuracy = self._device_gps_data.get("GPSAccuracy")
-        if accuracy is None:
+    def _calculate_signal_percentage(self, value: Any) -> int | None:
+        """Calculate signal strength as percentage (0-100%) from raw value."""
+        if value is None:
             return None
         try:
-            accuracy_int = int(accuracy)
-            if accuracy_int < SIGNAL_SCALE_MIN:
+            value_int = int(value)
+            if value_int < SIGNAL_SCALE_MIN:
                 return 0
-            elif accuracy_int > SIGNAL_SCALE_MAX:
+            elif value_int > SIGNAL_SCALE_MAX:
                 return MAX_SIGNAL_STRENGTH
             else:
-                return int((accuracy_int / SIGNAL_SCALE_MAX) * MAX_SIGNAL_STRENGTH)
+                return int((value_int / SIGNAL_SCALE_MAX) * MAX_SIGNAL_STRENGTH)
         except (ValueError, TypeError):
             return None
 
     @property
+    def gps_signal(self) -> int | None:
+        """Return GPS signal strength as percentage (0-100%)."""
+        return self._calculate_signal_percentage(self._device_gps_data.get("GPSAccuracy"))
+
+    @property
     def network_signal(self) -> int | None:
         """Return network signal strength as percentage (0-100%)."""
-        signal = self._device_gps_data.get("NetworkQuality")
-        if signal is None:
-            return None
-        try:
-            signal_int = int(signal)
-            if signal_int < SIGNAL_SCALE_MIN:
-                return 0
-            elif signal_int > SIGNAL_SCALE_MAX:
-                return MAX_SIGNAL_STRENGTH
-            else:
-                return int((signal_int / SIGNAL_SCALE_MAX) * MAX_SIGNAL_STRENGTH)
-        except (ValueError, TypeError):
-            return None
+        return self._calculate_signal_percentage(self._device_gps_data.get("NetworkQuality"))
 
     @property
     def last_seen(self) -> datetime | None:
@@ -417,24 +392,12 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     @property
     def odometer(self) -> float | None:
         """Return odometer reading in kilometers."""
-        odometer = self._device_data.get("Odometer")
-        if odometer is None:
-            return None
-        try:
-            return float(odometer)
-        except (ValueError, TypeError):
-            return None
+        return safe_float(self._device_data.get("Odometer"))
 
     @property
     def report_frequency(self) -> int | None:
         """Return report frequency in seconds."""
-        frequency = self._device_gps_data.get("ReportFrequency")
-        if frequency is None:
-            return None
-        try:
-            return int(frequency)
-        except (ValueError, TypeError):
-            return None
+        return safe_int(self._device_gps_data.get("ReportFrequency"))
 
     @property
     def bluetooth_enabled(self) -> bool:
@@ -459,13 +422,7 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     @property
     def low_battery_threshold(self) -> float | None:
         """Return low battery alert threshold in volts."""
-        threshold = self._device_features_data.get("LowBatteryThreshold")
-        if threshold is None:
-            return None
-        try:
-            return float(threshold)
-        except (ValueError, TypeError):
-            return None
+        return safe_float(self._device_features_data.get("LowBatteryThreshold"))
 
     @property
     def lock_status(self) -> bool:
