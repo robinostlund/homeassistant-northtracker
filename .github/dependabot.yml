@@ -12,7 +12,6 @@ updates:
       prefix: "ci"
     labels:
       - "dependencies"
-      - "github-actions"
 
   # Python dependencies
   - package-ecosystem: "pip"
@@ -23,4 +22,3 @@ updates:
       prefix: "deps"
     labels:
       - "dependencies"
-      - "python"
