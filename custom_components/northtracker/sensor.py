@@ -215,11 +215,8 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
         """Return additional state attributes."""
         attributes = super().extra_state_attributes or {}
         
-        # Add sensor-specific attributes
+        # Add signal quality text for signal sensors
         if hasattr(self, 'entity_description'):
-            attributes["sensor_type"] = self.entity_description.key
-            
-            # Add signal quality text for signal sensors
             if self.entity_description.key in ["gps_signal", "network_signal"]:
                 current_value = self.native_value
                 if isinstance(current_value, (int, float)):

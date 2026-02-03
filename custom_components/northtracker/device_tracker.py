@@ -169,9 +169,7 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         # Start with common attributes from base class
         attributes = super().extra_state_attributes or {}
         
-        # Add device tracker specific attributes
-        if hasattr(device, 'speed') and device.speed is not None:
-            attributes["speed"] = device.speed
+        # Course/heading is useful for tracking direction
         if hasattr(device, 'course') and device.course is not None:
             attributes["course"] = device.course
             

@@ -101,11 +101,6 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return additional state attributes."""
-        attributes = super().extra_state_attributes or {}
-        
-        # Add binary sensor-specific attributes
-        if hasattr(self, 'entity_description'):
-            attributes["sensor_type"] = self.entity_description.key
-        
-        return attributes if attributes else None
+        # Use base class attributes only
+        return super().extra_state_attributes
 

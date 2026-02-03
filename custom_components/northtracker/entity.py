@@ -67,27 +67,8 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
         
         attributes = {}
         
-        # Common device attributes that all entities can benefit from
+        # Device type is useful context for all entities
         if hasattr(device, 'device_type') and device.device_type:
             attributes["device_type"] = device.device_type
-            
-        if hasattr(device, 'serial_number') and device.serial_number:
-            attributes["serial_number"] = device.serial_number
-            
-        # Include last seen for all entities that have it
-        if hasattr(device, 'last_seen') and device.last_seen:
-            attributes["last_seen"] = device.last_seen
-        
-        # For GPS devices, include basic location info
-        if hasattr(device, 'has_position'):
-            attributes["has_position"] = device.has_position
-            
-        # For Bluetooth devices, include connection info  
-        if hasattr(device, 'device_type') and device.device_type == "bluetooth_sensor":
-            # Bluetooth sensors are connected through their parent GPS device
-            if hasattr(device, 'parent_device'):
-                parent = device.parent_device
-                if hasattr(parent, 'has_position'):
-                    attributes["parent_has_position"] = parent.has_position
         
         return attributes if attributes else None
