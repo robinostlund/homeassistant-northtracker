@@ -10,17 +10,20 @@ A custom Home Assistant integration for North-Tracker GPS tracking devices, prov
 
 - **Device Tracking**: Real-time GPS location tracking with device tracker entities
 - **Dynamic I/O Discovery**: Automatic detection and creation of entities for available digital inputs and outputs
+- **Bluetooth Sensor Support**: External Bluetooth sensors (temperature, door/magnetic contact)
 - **Sensor Monitoring**: 
   - Battery voltage and percentage
   - Signal strength (RSSI)
   - Speed and altitude tracking
   - Engine hours and mileage
-  - Temperature monitoring
+  - Temperature monitoring (GPS device and Bluetooth sensors)
 - **Switch Control**: Digital output control for connected devices
-- **Binary Sensors**: Digital input monitoring with configurable names
+- **Binary Sensors**: Digital input monitoring and Bluetooth door sensors
+- **Button Controls**: Manual refresh triggers and device commands
 - **Comprehensive Logging**: Detailed debug logging for troubleshooting
 - **Authentication Management**: Secure token-based authentication with automatic refresh
 - **Reconfiguration Support**: Easy credential and settings updates through the UI
+- **Automatic Migration**: Seamless entity migration when upgrading between versions
 
 ## Installation
 
@@ -88,15 +91,39 @@ The integration creates various entities based on your device capabilities:
 - **Altitude**: Current altitude
 - **Engine Hours**: Total engine runtime
 - **Mileage**: Total distance traveled
-- **Temperature**: Device temperature (if available)
+- **Temperature**: Device temperature (GPS and Bluetooth sensors)
 
 ### Switches (Digital Outputs)
 - **Output 1-8**: Control digital outputs (created dynamically based on device capabilities)
 
-### Binary Sensors (Digital Inputs)
-- **Input 1-8**: Monitor digital inputs (created dynamically based on device capabilities)
+### Binary Sensors
+- **Digital Inputs 1-8**: Monitor digital inputs (created dynamically)
+- **Door Sensor**: Bluetooth magnetic contact sensor (open/closed state)
+
+### Buttons
+- **Refresh**: Manually trigger data update for the device
+
+### Bluetooth Sensors
+External Bluetooth sensors paired with your GPS device are automatically discovered:
+- **Temperature Sensor**: Ambient temperature reading
+- **Door/Magnetic Sensor**: Open/closed state for doors, gates, etc.
 
 ## Device Support
+
+The integration supports two types of devices:
+
+### GPS Tracker Devices
+Main tracking units with full feature support:
+- Real-time location tracking
+- Digital I/O control and monitoring
+- Battery and signal monitoring
+- Speed, altitude, and mileage tracking
+
+### Bluetooth Sensors
+External sensors paired with GPS devices:
+- **Temperature sensors**: Ambient temperature monitoring
+- **Door sensors**: Open/closed state detection
+- Automatic discovery via GPS device pairing
 
 The integration automatically discovers available I/O ports for each device:
 
@@ -171,6 +198,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Home Assistant Community**: [Community Forum](https://community.home-assistant.io/)
 
 ## Changelog
+
+### Version 2.0.0
+- **Breaking Change**: Entity unique IDs now use IMEI instead of device ID
+  - Automatic migration handles existing entities
+- New device architecture with separate GPS and Bluetooth sensor classes
+- Added Bluetooth sensor support (temperature, door contact)
+- Added button entities for manual refresh
+- Improved code structure with capability-based entity creation
+- Enhanced stability with stable device identifiers
 
 ### Version 1.0.0
 - Initial release
