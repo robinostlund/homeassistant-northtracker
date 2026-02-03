@@ -122,9 +122,6 @@
             },
             "geofence": {
                 "name": "Geofence Alarm"
-            },
-            "magnet_alarm": {
-                "name": "Magnet Alarm"
             }
         },
         "number": {
