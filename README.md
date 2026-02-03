@@ -53,7 +53,6 @@ A custom Home Assistant integration for North-Tracker GPS tracking devices, prov
 2. Click **"+ Add Integration"**
 3. Search for **"North-Tracker"**
 4. Enter your North-Tracker credentials:
-   - **Host**: Your North-Tracker server URL (e.g., `https://yourserver.com`)
    - **Username**: Your North-Tracker username
    - **Password**: Your North-Tracker password
    - **Update Interval**: How often to fetch data (20-300 seconds, default: 30)
