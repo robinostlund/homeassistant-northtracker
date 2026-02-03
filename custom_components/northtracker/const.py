@@ -15,6 +15,7 @@ CONFIGURATION_URL = "https://app.northtracker.com"
 # Platforms
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
+    Platform.BUTTON,
     Platform.DEVICE_TRACKER,
     Platform.NUMBER,
     Platform.SENSOR,

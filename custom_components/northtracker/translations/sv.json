@@ -44,6 +44,39 @@
             "reconfigure_successful": "Omkonfigurering lyckades."
         }
     },
+    "options": {
+        "step": {
+            "init": {
+                "title": "North-Tracker Inställningar",
+                "description": "Justera inställningarna för din North-Tracker integration.",
+                "data": {
+                    "scan_interval": "Uppdateringsintervall (minuter)"
+                }
+            }
+        },
+        "error": {
+            "scan_interval_too_low": "Uppdateringsintervall måste vara minst 1 minut.",
+            "scan_interval_too_high": "Uppdateringsintervall kan inte överstiga 24 timmar (1440 minuter)."
+        }
+    },
+    "issues": {
+        "api_error": {
+            "title": "North-Tracker API-fel",
+            "description": "North-Tracker integrationen stötte på ett API-fel: {error}. Integrationen kommer att fortsätta försöka automatiskt."
+        },
+        "rate_limit": {
+            "title": "North-Tracker Hastighetsgräns Överskriden",
+            "description": "North-Tracker API:ets hastighetsgräns har överskridits. Överväg att öka uppdateringsintervallet i integrationsinställningarna."
+        },
+        "authentication_failed": {
+            "title": "North-Tracker Autentisering Misslyckades",
+            "description": "North-Tracker integrationen kunde inte autentisera. Vänligen konfigurera om integrationen med giltiga inloggningsuppgifter."
+        },
+        "devices_removed": {
+            "title": "North-Tracker Enheter Borttagna",
+            "description": "Följande enheter har tagits bort från ditt North-Tracker konto och har rensats bort: {devices}"
+        }
+    },
     "entity": {
         "sensor": {
             "last_seen": {
@@ -140,6 +173,11 @@
         "number": {
             "low_battery_threshold": {
                 "name": "Låg Batterispänning Tröskel"
+            }
+        },
+        "button": {
+            "refresh": {
+                "name": "Uppdatera"
             }
         }
     },

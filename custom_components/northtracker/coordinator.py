@@ -10,6 +10,7 @@ from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue, async_delete_issue
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .api import NorthTracker, NorthTrackerGpsDevice, NorthTrackerSensorDevice, APIError, AuthenticationError, RateLimitError
@@ -162,14 +163,46 @@ class NorthTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[int, NorthTra
             duration = (datetime.now() - start_time).total_seconds()
             LOGGER.debug("Updated %d devices in %.2fs", len(devices), duration)
             
+            # Clear any previous error issues since update was successful
+            async_delete_issue(self.hass, DOMAIN, f"{self.config_entry.entry_id}_api_error")
+            async_delete_issue(self.hass, DOMAIN, f"{self.config_entry.entry_id}_rate_limit")
+            
             return devices
 
         except AuthenticationError as err:
             self.config_entry.async_start_reauth(self.hass)
+            async_create_issue(
+                self.hass,
+                DOMAIN,
+                f"{self.config_entry.entry_id}_authentication_failed",
+                is_fixable=False,
+                is_persistent=False,
+                severity=IssueSeverity.ERROR,
+                translation_key="authentication_failed",
+            )
             raise ConfigEntryAuthFailed(f"Authentication failed: {err}") from err
         except RateLimitError as err:
+            async_create_issue(
+                self.hass,
+                DOMAIN,
+                f"{self.config_entry.entry_id}_rate_limit",
+                is_fixable=False,
+                is_persistent=False,
+                severity=IssueSeverity.WARNING,
+                translation_key="rate_limit",
+            )
             raise UpdateFailed(f"Rate limit exceeded: {err}") from err
         except APIError as err:
+            async_create_issue(
+                self.hass,
+                DOMAIN,
+                f"{self.config_entry.entry_id}_api_error",
+                is_fixable=False,
+                is_persistent=False,
+                severity=IssueSeverity.WARNING,
+                translation_key="api_error",
+                translation_placeholders={"error": str(err)},
+            )
             raise UpdateFailed(f"API error: {err}") from err
         except Exception as err:
             LOGGER.exception("Unexpected error communicating with API")

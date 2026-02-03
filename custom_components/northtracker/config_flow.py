@@ -4,8 +4,9 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_SCAN_INTERVAL
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import NorthTracker, AuthenticationError, APIError, RateLimitError
@@ -20,6 +21,12 @@ class NorthTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize the config flow."""
         self.reauth_entry: ConfigEntry | None = None
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Get the options flow for this handler."""
+        return NorthTrackerOptionsFlow(config_entry)
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -205,3 +212,58 @@ class NorthTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
                 default=entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL)
             ): vol.All(vol.Coerce(float), vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL)),
         })
+
+
+class NorthTrackerOptionsFlow(OptionsFlow):
+    """Handle North-Tracker options."""
+
+    def __init__(self, config_entry: ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage the options."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            # Validate scan interval
+            scan_interval = user_input.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+            
+            if scan_interval < MIN_UPDATE_INTERVAL:
+                errors[CONF_SCAN_INTERVAL] = "scan_interval_too_low"
+            elif scan_interval > MAX_UPDATE_INTERVAL:
+                errors[CONF_SCAN_INTERVAL] = "scan_interval_too_high"
+            
+            if not errors:
+                # Update the config entry data with new scan interval
+                new_data = {**self.config_entry.data, CONF_SCAN_INTERVAL: scan_interval}
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry,
+                    data=new_data,
+                )
+                
+                # Reload the integration to apply changes
+                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                
+                return self.async_create_entry(title="", data={})
+
+        # Get current scan interval
+        current_scan_interval = self.config_entry.data.get(
+            CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL
+        )
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema({
+                vol.Optional(
+                    CONF_SCAN_INTERVAL,
+                    default=current_scan_interval,
+                ): vol.All(
+                    vol.Coerce(float),
+                    vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL),
+                ),
+            }),
+            errors=errors,
+        )
