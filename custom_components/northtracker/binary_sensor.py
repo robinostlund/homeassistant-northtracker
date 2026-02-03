@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Callable
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -10,13 +10,12 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-
-from .const import DOMAIN, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerGpsDevice
+from .devices import NorthTrackerBaseDevice
 from .base import validate_entity_id
 
 
@@ -24,8 +23,8 @@ from .base import validate_entity_id
 class NorthTrackerBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes a North-Tracker binary sensor entity with custom attributes."""
     
-    value_fn: Callable[[NorthTrackerGpsDevice], Any] | None = None
-    exists_fn: Callable[[NorthTrackerGpsDevice], bool] | None = None
+    value_fn: Callable[[NorthTrackerBaseDevice], Any] | None = None
+
 
 # Unified binary sensor descriptions for both main GPS devices and Bluetooth sensors
 BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...] = (
@@ -33,17 +32,16 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...
     NorthTrackerBinarySensorEntityDescription(
         key="bluetooth_enabled",
         translation_key="bluetooth_enabled",
-        # device_class=BinarySensorDeviceClass.CONNECTIVITY,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
         value_fn=lambda device: device.bluetooth_enabled,
-        exists_fn=lambda device: hasattr(device, 'bluetooth_enabled') and device.bluetooth_enabled is not None,
     ),
     # Bluetooth sensor binary sensors
     NorthTrackerBinarySensorEntityDescription(
-        key="magnetic_contact",
-        translation_key="magnetic_contact",
+        key="door_sensor",
+        translation_key="door_sensor",
         device_class=BinarySensorDeviceClass.OPENING,
-        value_fn=lambda device: not device.magnetic_contact,  # Invert: True=closed->False (closed), False=open->True (open)
-        exists_fn=lambda device: hasattr(device, 'magnetic_contact') and device.magnetic_contact is not None,
+        value_fn=lambda device: not device.magnetic_contact,  # Invert: True=closed->False, False=open->True
     ),
 )
 
@@ -79,38 +77,23 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
         """Initialize the binary sensor."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = validate_entity_id(f"{device_id}_{description.key}")
+        # Use IMEI for stable unique_id
+        device = self.device
+        identifier = device.imei if device else str(device_id)
+        self._attr_unique_id = validate_entity_id(f"{identifier}_{description.key}")
 
     @property
     def is_on(self) -> bool | None:
         """Return the state of the binary sensor."""
         if not self.available:
-            LOGGER.debug("Binary sensor %s not available", self.entity_description.key)
             return None
             
         device = self.device
         if device is None:
-            LOGGER.debug("Binary sensor %s device is None", self.entity_description.key)
             return None
             
         # Use value_fn from entity description
-        if hasattr(self.entity_description, 'value_fn') and self.entity_description.value_fn:
-            state = self.entity_description.value_fn(device)
-        else:
-            # Fallback to getattr for backwards compatibility
-            state = getattr(device, self.entity_description.key, None)
-            
-        LOGGER.debug("Binary sensor %s for device %s has state: %s", self.entity_description.key, device.name, state)
-        return state
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return additional state attributes."""
-        attributes = super().extra_state_attributes or {}
-        
-        # Add binary sensor-specific attributes
-        if hasattr(self, 'entity_description'):
-            attributes["sensor_type"] = self.entity_description.key
-        
-        return attributes if attributes else None
+        if self.entity_description.value_fn:
+            return self.entity_description.value_fn(device)
+        return getattr(device, self.entity_description.key, None)
 

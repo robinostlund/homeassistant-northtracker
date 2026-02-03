@@ -24,10 +24,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .const import DOMAIN, LOGGER, MIN_SIGNAL_STRENGTH, MAX_SIGNAL_STRENGTH, SIGNAL_EXCELLENT_THRESHOLD, SIGNAL_GOOD_THRESHOLD, SIGNAL_POOR_THRESHOLD, MAX_BATTERY_VOLTAGE_READING
+from .const import MIN_SIGNAL_STRENGTH, MAX_SIGNAL_STRENGTH, MAX_BATTERY_VOLTAGE_READING
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerGpsDevice, get_signal_quality_text
+from .devices import NorthTrackerBaseDevice
+from .helpers import get_signal_quality_text
 from .base import validate_entity_id
 
 
@@ -35,8 +36,8 @@ from .base import validate_entity_id
 class NorthTrackerSensorEntityDescription(SensorEntityDescription):
     """Describes a North-Tracker sensor entity with custom attributes."""
     
-    value_fn: Callable[[NorthTrackerGpsDevice], Any] | None = None
-    exists_fn: Callable[[NorthTrackerGpsDevice], bool] | None = None
+    value_fn: Callable[[NorthTrackerBaseDevice], Any] | None = None
+
 
 # Unified sensor descriptions for both main GPS devices and Bluetooth sensors
 SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
@@ -46,8 +47,8 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         translation_key="last_seen",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
         value_fn=lambda device: device.last_seen,
-        exists_fn=lambda device: hasattr(device, 'last_seen') and device.last_seen is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="battery_voltage",
@@ -57,8 +58,8 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.VOLTAGE,
         suggested_display_precision=2,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
         value_fn=lambda device: device.battery_voltage,
-        exists_fn=lambda device: hasattr(device, 'battery_voltage') and device.battery_voltage is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="odometer",
@@ -67,7 +68,6 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
         value_fn=lambda device: device.odometer,
-        exists_fn=lambda device: hasattr(device, 'odometer') and device.odometer is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="gps_signal",
@@ -76,8 +76,8 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
         value_fn=lambda device: device.gps_signal,
-        exists_fn=lambda device: hasattr(device, 'gps_signal') and device.gps_signal is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="network_signal",
@@ -86,8 +86,8 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
         value_fn=lambda device: device.network_signal,
-        exists_fn=lambda device: hasattr(device, 'network_signal') and device.network_signal is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="speed",
@@ -97,8 +97,8 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.SPEED,
         suggested_display_precision=0,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
         value_fn=lambda device: device.speed,
-        exists_fn=lambda device: hasattr(device, 'speed') and device.speed is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="report_frequency",
@@ -108,9 +108,10 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         suggested_unit_of_measurement=UnitOfTime.MINUTES,
         device_class=SensorDeviceClass.DURATION,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
         value_fn=lambda device: device.report_frequency,
-        exists_fn=lambda device: hasattr(device, 'report_frequency') and device.report_frequency is not None,
     ),
+    # Bluetooth sensor sensors
     NorthTrackerSensorEntityDescription(
         key="temperature",
         translation_key="temperature",
@@ -119,7 +120,6 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         suggested_display_precision=1,
         value_fn=lambda device: device.temperature,
-        exists_fn=lambda device: hasattr(device, 'temperature') and device.temperature is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="humidity",
@@ -129,7 +129,6 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.HUMIDITY,
         suggested_display_precision=0,
         value_fn=lambda device: device.humidity,
-        exists_fn=lambda device: hasattr(device, 'humidity') and device.humidity is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="battery_percentage",
@@ -139,8 +138,8 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.BATTERY,
         suggested_display_precision=0,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
         value_fn=lambda device: device.battery_percentage,
-        exists_fn=lambda device: hasattr(device, 'battery_percentage') and device.battery_percentage is not None,
     ),
 )
 
@@ -170,51 +169,42 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = validate_entity_id(f"{device_id}_{description.key}")
+        # Use IMEI for stable unique_id
+        device = self.device
+        identifier = device.imei if device else str(device_id)
+        self._attr_unique_id = validate_entity_id(f"{identifier}_{description.key}")
 
     @property
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
         if not self.available:
-            LOGGER.debug("Sensor %s not available", self.entity_description.key)
             return None
             
         device = self.device
         if device is None:
-            LOGGER.debug("Sensor %s device is None", self.entity_description.key)
             return None
             
         # Use value_fn from entity description
-        if hasattr(self.entity_description, 'value_fn') and self.entity_description.value_fn:
+        if self.entity_description.value_fn:
             value = self.entity_description.value_fn(device)
         else:
-            # This should not happen with our current setup, but keeping as fallback
             value = getattr(device, self.entity_description.key, None)
         
-        LOGGER.debug("Sensor %s for device %s has raw value: %s", self.entity_description.key, device.name, value)
-        
-        # Validate the value based on the sensor type
         if value is None:
-            LOGGER.debug("Sensor %s for device %s has None value", self.entity_description.key, device.name)
             return None
             
-        # Additional validation for specific sensor types
-        if self.entity_description.key == "battery_voltage" and isinstance(value, (int, float)):
-            # Battery voltage should be reasonable (0-50V for most vehicles)
+        # Validate specific sensor types
+        key = self.entity_description.key
+        if key == "battery_voltage" and isinstance(value, (int, float)):
             if not (0 <= value <= MAX_BATTERY_VOLTAGE_READING):
-                LOGGER.warning("Battery voltage out of range for device %s: %s", device.name, value)
                 return None
-        elif self.entity_description.key in ["gps_signal", "network_signal"] and isinstance(value, (int, float)):
-            # Signal strength should be 0-100 percent
+        elif key in ("gps_signal", "network_signal") and isinstance(value, (int, float)):
             if not (MIN_SIGNAL_STRENGTH <= value <= MAX_SIGNAL_STRENGTH):
-                LOGGER.warning("Signal strength out of range for device %s (%s): %s", device.name, self.entity_description.key, value)
                 return None
-        elif self.entity_description.key == "network_signal" and hasattr(device, 'has_position') and not device.has_position:
-            # Network signal should only be available when device has GPS data
-            LOGGER.debug("Network signal unavailable for device %s - no GPS position data", device.name)
-            return None
+            # Network signal requires valid GPS position
+            if key == "network_signal" and not getattr(device, 'has_position', False):
+                return None
         
-        LOGGER.debug("Sensor %s for device %s returning validated value: %s", self.entity_description.key, device.name, value)
         return value
 
     @property
@@ -222,14 +212,10 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
         """Return additional state attributes."""
         attributes = super().extra_state_attributes or {}
         
-        # Add sensor-specific attributes
-        if hasattr(self, 'entity_description'):
-            attributes["sensor_type"] = self.entity_description.key
-            
-            # Add signal quality text for signal sensors
-            if self.entity_description.key in ["gps_signal", "network_signal"]:
-                current_value = self.native_value
-                if isinstance(current_value, (int, float)):
-                    attributes["signal_quality"] = get_signal_quality_text(int(current_value))
+        # Add signal quality text for signal sensors
+        if self.entity_description.key in ("gps_signal", "network_signal"):
+            current_value = self.native_value
+            if isinstance(current_value, (int, float)):
+                attributes["signal_quality"] = get_signal_quality_text(int(current_value))
         
         return attributes if attributes else None

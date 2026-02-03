@@ -68,7 +68,7 @@
             }
         },
         "binary_sensor": {
-            "magnetic_contact": {
+            "door_sensor": {
                 "default": "mdi:door",
                 "state": {
                     "on": "mdi:door-open",
@@ -152,11 +152,15 @@
                     "on": "mdi:toggle-switch-variant"
                 }
             },
-            "alarm": {
-                "default": "mdi:alarm-light"
-            },
             "low_battery_alert": {
                 "default": "mdi:battery-alert"
+            },
+            "geofence": {
+                "default": "mdi:map-marker-radius",
+                "state": {
+                    "on": "mdi:map-marker-radius",
+                    "off": "mdi:map-marker-radius-outline"
+                }
             }
         },
         "device_tracker": {

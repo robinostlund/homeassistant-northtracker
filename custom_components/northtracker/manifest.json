@@ -1,10 +1,12 @@
 {
     "domain": "northtracker",
     "name": "North-Tracker",
+    "integration_type": "hub",
     "config_flow": true,
     "documentation": "https://github.com/robinostlund/homeassistant-northtracker",
     "iot_class": "cloud_polling",
     "issue_tracker": "https://github.com/robinostlund/homeassistant-northtracker/issues",
+    "quality_scale": "silver",
     "version": "1.0.0",
     "codeowners": [
         "@robinostlund"

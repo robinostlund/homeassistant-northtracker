@@ -3,12 +3,24 @@ from __future__ import annotations
 
 from logging import getLogger
 
+from homeassistant.const import Platform
+
 DOMAIN = "northtracker"
 LOGGER = getLogger(__package__)
 
-# Configuration Constants
-CONF_USERNAME = "username"
-CONF_PASSWORD = "password"
+# Manufacturer and URLs
+MANUFACTURER = "North-Tracker"
+CONFIGURATION_URL = "https://gps.northtracker.com"
+
+# Platforms
+PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.DEVICE_TRACKER,
+    Platform.NUMBER,
+    Platform.SENSOR,
+    Platform.SWITCH,
+]
 
 # Defaults
 DEFAULT_UPDATE_INTERVAL = 15  # minutes
@@ -16,9 +28,6 @@ DEFAULT_UPDATE_INTERVAL = 15  # minutes
 # Validation Constants
 MIN_UPDATE_INTERVAL = 0.17  # 10 seconds in minutes (10/60 ≈ 0.17)
 MAX_UPDATE_INTERVAL = 1440  # minutes
-
-# Platforms
-PLATFORMS = ["sensor", "switch", "binary_sensor", "device_tracker", "number"]
 
 # API Constants
 API_BASE_URL = "https://apiv2.northtracker.com/api/v1"
@@ -30,7 +39,6 @@ API_TIMEZONE = "Europe/Stockholm"  # timezone used by North-Tracker API
 
 # Device Constants  
 MAX_BLUETOOTH_SENSORS_PER_DEVICE = 9  # slots 1-9
-DEVICE_ID_MULTIPLIER = 10  # for generating unique Bluetooth device IDs
 
 # Signal Quality Thresholds
 MIN_SIGNAL_STRENGTH = 0
@@ -42,7 +50,6 @@ SIGNAL_GOOD_THRESHOLD = 60
 SIGNAL_POOR_THRESHOLD = 40
 
 # Logging Constants
-MAX_DEBUG_STATEMENTS_PER_FILE = 10  # recommended maximum
 LOGGER_TOKEN_PREVIEW_LENGTH = 10  # characters to show in token preview
 
 # Utility Constants

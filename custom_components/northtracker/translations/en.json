@@ -44,6 +44,39 @@
             "reconfigure_successful": "Reconfiguration was successful."
         }
     },
+    "options": {
+        "step": {
+            "init": {
+                "title": "North-Tracker Options",
+                "description": "Adjust your North-Tracker integration settings.",
+                "data": {
+                    "scan_interval": "Update Interval (minutes)"
+                }
+            }
+        },
+        "error": {
+            "scan_interval_too_low": "Update interval must be at least 1 minute.",
+            "scan_interval_too_high": "Update interval cannot exceed 24 hours (1440 minutes)."
+        }
+    },
+    "issues": {
+        "api_error": {
+            "title": "North-Tracker API Error",
+            "description": "The North-Tracker integration encountered an API error: {error}. The integration will continue to retry automatically."
+        },
+        "rate_limit": {
+            "title": "North-Tracker Rate Limit Exceeded",
+            "description": "The North-Tracker API rate limit has been exceeded. Consider increasing the update interval in the integration options."
+        },
+        "authentication_failed": {
+            "title": "North-Tracker Authentication Failed",
+            "description": "The North-Tracker integration failed to authenticate. Please reconfigure the integration with valid credentials."
+        },
+        "devices_removed": {
+            "title": "North-Tracker Devices Removed",
+            "description": "The following devices were removed from your North-Tracker account and have been cleaned up: {devices}"
+        }
+    },
     "entity": {
         "sensor": {
             "last_seen": {
@@ -114,11 +147,11 @@
             "input_6": {
                 "name": "Alert Input 6"
             },
-            "alarm": {
-                "name": "Alarm"
-            },
             "low_battery_alert": {
                 "name": "Low Battery Alert"
+            },
+            "geofence": {
+                "name": "Geofence Alarm"
             }
         },
         "number": {
@@ -126,9 +159,14 @@
                 "name": "Low Battery Threshold"
             }
         },
+        "button": {
+            "refresh": {
+                "name": "Refresh"
+            }
+        },
         "binary_sensor": {
-            "magnetic_contact": {
-                "name": "Magnetic Contact"
+            "door_sensor": {
+                "name": "Door Sensor"
             },
             "bluetooth_enabled": {
                 "name": "Bluetooth Enabled"
