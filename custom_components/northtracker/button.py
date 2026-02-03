@@ -1,4 +1,5 @@
 """Button platform for North-Tracker."""
+
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
@@ -56,7 +57,7 @@ class NorthTrackerRefreshButton(NorthTrackerEntity, ButtonEntity):
     ) -> None:
         """Initialize the button."""
         super().__init__(coordinator, device_id)
-        
+
         device = self.device
         # Use IMEI for stable unique_id
         identifier = device.imei if device else str(device_id)

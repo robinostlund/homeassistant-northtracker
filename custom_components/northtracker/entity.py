@@ -1,4 +1,5 @@
 """Base entity for the North-Tracker integration."""
+
 from __future__ import annotations
 
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -15,11 +16,13 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int) -> None:
+    def __init__(
+        self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int
+    ) -> None:
         """Initialize the North-Tracker entity."""
         super().__init__(coordinator)
         self._device_id = device_id
-        
+
         device = self.device
         if device:
             # Build base device info - use IMEI as stable identifier
@@ -31,11 +34,13 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
                 serial_number=device.imei,
                 configuration_url=CONFIGURATION_URL,
             )
-            
+
             # Add via_device for Bluetooth sensors to link them to their parent GPS device
-            if isinstance(device, NorthTrackerSensorDevice) and hasattr(device, 'parent_device'):
+            if isinstance(device, NorthTrackerSensorDevice) and hasattr(
+                device, "parent_device"
+            ):
                 device_info["via_device"] = (DOMAIN, device.parent_device.imei)
-            
+
             self._attr_device_info = device_info
         else:
             self._attr_device_info = DeviceInfo(

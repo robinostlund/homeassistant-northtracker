@@ -1,4 +1,5 @@
 """Binary sensor platform for North-Tracker."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -22,7 +23,7 @@ from .base import validate_entity_id
 @dataclass(kw_only=True)
 class NorthTrackerBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes a North-Tracker binary sensor entity with custom attributes."""
-    
+
     value_fn: Callable[[NorthTrackerBaseDevice], Any] | None = None
 
 
@@ -41,27 +42,31 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...
         key="door_sensor",
         translation_key="door_sensor",
         device_class=BinarySensorDeviceClass.OPENING,
-        value_fn=lambda device: not device.magnetic_contact,  # Invert: True=closed->False, False=open->True
+        value_fn=lambda device: (
+            not device.magnetic_contact
+        ),  # Invert: True=closed->False, False=open->True
     ),
 )
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
     """Set up the binary sensor platform and discover new entities."""
     from .base import BasePlatformSetup
-    
+
     def create_binary_sensor_entity(coordinator, device_id, description):
         """Create a binary sensor entity instance."""
         return NorthTrackerBinarySensor(coordinator, device_id, description)
-    
+
     # Use the generic platform setup helper
     platform_setup = BasePlatformSetup(
         platform_name="binary_sensor",
         entity_class=NorthTrackerBinarySensor,
         entity_descriptions=BINARY_SENSOR_DESCRIPTIONS,
-        create_entity_callback=create_binary_sensor_entity
+        create_entity_callback=create_binary_sensor_entity,
     )
-    
+
     await platform_setup.async_setup_entry(hass, entry, async_add_entities)
 
 
@@ -69,9 +74,9 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
     """Defines a North-Tracker binary sensor for both GPS and Bluetooth devices."""
 
     def __init__(
-        self, 
-        coordinator: NorthTrackerDataUpdateCoordinator, 
-        device_id: int, 
+        self,
+        coordinator: NorthTrackerDataUpdateCoordinator,
+        device_id: int,
         description: NorthTrackerBinarySensorEntityDescription,
     ) -> None:
         """Initialize the binary sensor."""
@@ -87,13 +92,12 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
         """Return the state of the binary sensor."""
         if not self.available:
             return None
-            
+
         device = self.device
         if device is None:
             return None
-            
+
         # Use value_fn from entity description
         if self.entity_description.value_fn:
             return self.entity_description.value_fn(device)
         return getattr(device, self.entity_description.key, None)
-

@@ -1,4 +1,5 @@
 """Diagnostics support for North-Tracker."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -55,7 +56,9 @@ async def async_get_config_entry_diagnostics(
         if hasattr(device, "battery_voltage"):
             device_info["battery_voltage"] = getattr(device, "battery_voltage", None)
         if hasattr(device, "battery_percentage"):
-            device_info["battery_percentage"] = getattr(device, "battery_percentage", None)
+            device_info["battery_percentage"] = getattr(
+                device, "battery_percentage", None
+            )
 
         # Add sensor-specific info
         if hasattr(device, "temperature"):

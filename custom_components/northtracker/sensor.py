@@ -1,4 +1,5 @@
 """Sensor platform for North-Tracker."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,7 +9,7 @@ from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
-    SensorStateClass
+    SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -18,7 +19,7 @@ from homeassistant.const import (
     UnitOfLength,
     UnitOfSpeed,
     UnitOfTemperature,
-    UnitOfTime
+    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -35,7 +36,7 @@ from .base import validate_entity_id
 @dataclass(kw_only=True)
 class NorthTrackerSensorEntityDescription(SensorEntityDescription):
     """Describes a North-Tracker sensor entity with custom attributes."""
-    
+
     value_fn: Callable[[NorthTrackerBaseDevice], Any] | None = None
 
 
@@ -143,29 +144,37 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
     ),
 )
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
     """Set up the sensor platform and discover new entities."""
     from .base import BasePlatformSetup
-    
+
     def create_sensor_entity(coordinator, device_id, description):
-        """Create a sensor entity instance.""" 
+        """Create a sensor entity instance."""
         return NorthTrackerSensor(coordinator, device_id, description)
-    
+
     # Use the generic platform setup helper
     platform_setup = BasePlatformSetup(
         platform_name="sensor",
         entity_class=NorthTrackerSensor,
         entity_descriptions=SENSOR_DESCRIPTIONS,
-        create_entity_callback=create_sensor_entity
+        create_entity_callback=create_sensor_entity,
     )
-    
+
     await platform_setup.async_setup_entry(hass, entry, async_add_entities)
 
 
 class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
     """Defines a North-Tracker sensor for both GPS and Bluetooth devices."""
 
-    def __init__(self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int, description: NorthTrackerSensorEntityDescription) -> None:
+    def __init__(
+        self,
+        coordinator: NorthTrackerDataUpdateCoordinator,
+        device_id: int,
+        description: NorthTrackerSensorEntityDescription,
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
@@ -179,43 +188,47 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
         """Return the state of the sensor."""
         if not self.available:
             return None
-            
+
         device = self.device
         if device is None:
             return None
-            
+
         # Use value_fn from entity description
         if self.entity_description.value_fn:
             value = self.entity_description.value_fn(device)
         else:
             value = getattr(device, self.entity_description.key, None)
-        
+
         if value is None:
             return None
-            
+
         # Validate specific sensor types
         key = self.entity_description.key
         if key == "battery_voltage" and isinstance(value, (int, float)):
             if not (0 <= value <= MAX_BATTERY_VOLTAGE_READING):
                 return None
-        elif key in ("gps_signal", "network_signal") and isinstance(value, (int, float)):
+        elif key in ("gps_signal", "network_signal") and isinstance(
+            value, (int, float)
+        ):
             if not (MIN_SIGNAL_STRENGTH <= value <= MAX_SIGNAL_STRENGTH):
                 return None
             # Network signal requires valid GPS position
-            if key == "network_signal" and not getattr(device, 'has_position', False):
+            if key == "network_signal" and not getattr(device, "has_position", False):
                 return None
-        
+
         return value
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return additional state attributes."""
         attributes = super().extra_state_attributes or {}
-        
+
         # Add signal quality text for signal sensors
         if self.entity_description.key in ("gps_signal", "network_signal"):
             current_value = self.native_value
             if isinstance(current_value, (int, float)):
-                attributes["signal_quality"] = get_signal_quality_text(int(current_value))
-        
+                attributes["signal_quality"] = get_signal_quality_text(
+                    int(current_value)
+                )
+
         return attributes if attributes else None

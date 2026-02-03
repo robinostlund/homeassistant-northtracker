@@ -1,4 +1,5 @@
 """GPS Device class for North-Tracker GPS trackers."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,7 +13,12 @@ from ..const import (
     SIGNAL_SCALE_MAX,
     MAX_SIGNAL_STRENGTH,
 )
-from ..helpers import parse_northtracker_timestamp, round_gps_coordinate, safe_int, safe_float
+from ..helpers import (
+    parse_northtracker_timestamp,
+    round_gps_coordinate,
+    safe_int,
+    safe_float,
+)
 
 if TYPE_CHECKING:
     from ..api import NorthTracker
@@ -24,7 +30,6 @@ GPS_DEVICE_CAPABILITIES = DeviceCapabilities(
     has_location=True,
     has_speed=True,
     has_course=True,
-    
     # Sensor capabilities
     has_battery_voltage=True,
     has_gps_signal=True,
@@ -32,26 +37,21 @@ GPS_DEVICE_CAPABILITIES = DeviceCapabilities(
     has_odometer=True,
     has_report_frequency=True,
     has_last_seen=True,
-    
     # Binary sensor capabilities
     has_bluetooth_enabled=True,
-    
     # Switch capabilities
     has_low_battery_alert=True,
     has_geofence=True,
     has_digital_outputs=True,
     has_digital_inputs=True,
-    
     # Number capabilities
     has_low_battery_threshold=True,
-    
     # Button capabilities
     has_refresh=True,
-    
     # Supported entity keys
     supported_sensors=[
         "last_seen",
-        "battery_voltage", 
+        "battery_voltage",
         "odometer",
         "gps_signal",
         "network_signal",
@@ -73,7 +73,7 @@ GPS_DEVICE_CAPABILITIES = DeviceCapabilities(
 
 class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     """Represents a North-Tracker GPS device with all its data and capabilities."""
-    
+
     def __init__(self, tracker: "NorthTracker", device_data: dict[str, Any]) -> None:
         """Initialize a GPS device instance."""
         super().__init__(tracker)
@@ -82,20 +82,22 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
         self._device_lock_data: dict[str, Any] = {}
         self._device_gps_data: dict[str, Any] = {}
         self._device_features_data: dict[str, Any] = {}
-        
+
         LOGGER.debug("Initializing GPS device: %s (ID: %s)", self.name, self.id)
-        
+
         # Dynamically discover digital inputs and outputs
         self._available_inputs = self._discover_digital_inputs()
         self._available_outputs = self._discover_digital_outputs()
-        
+
         # Dynamically discover Bluetooth sensors
         self._available_bluetooth_sensors = self._discover_bluetooth_sensors()
-        
+
         LOGGER.debug(
-            "Device %s discovered capabilities: %d inputs, %d outputs, %d bluetooth sensors", 
-            self.name, len(self._available_inputs), len(self._available_outputs),
-            len(self._available_bluetooth_sensors)
+            "Device %s discovered capabilities: %d inputs, %d outputs, %d bluetooth sensors",
+            self.name,
+            len(self._available_inputs),
+            len(self._available_outputs),
+            len(self._available_bluetooth_sensors),
         )
 
     @property
@@ -105,15 +107,17 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
 
     async def async_update(self) -> bool:
         """Update device with latest information from the API.
-        
+
         Returns True if device data has actually changed, False otherwise.
         """
         LOGGER.debug("Updating device %s (ID: %s)", self.name, self.id)
         data_changed = False
-        
+
         try:
             # Get detailed device information
-            resp_details = await self.tracker.get_unit_details(self.id, self.device_type)
+            resp_details = await self.tracker.get_unit_details(
+                self.id, self.device_type
+            )
             if resp_details.success:
                 if self._device_data_extra != resp_details.data:
                     LOGGER.debug("Device details changed for %s", self.name)
@@ -137,39 +141,41 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
                         LOGGER.debug("Unit features changed for %s", self.name)
                         self._device_features_data = features_data[0]
                         data_changed = True
-                
+
             self._last_update = datetime.now()
             return data_changed
-            
+
         except Exception as err:
             LOGGER.error("Error updating device %s: %s", self.name, err)
             raise
 
     def update_gps_data(self, gps_data: dict[str, Any]) -> bool:
         """Update the device with real-time location data.
-        
+
         Returns True if the GPS data has actually changed, False otherwise.
         """
         if self._device_gps_data == gps_data:
             LOGGER.debug("GPS data unchanged for device %s", self.name)
             return False
-            
+
         LOGGER.debug(
-            "GPS data changed for device %s: has_position=%s, lat=%s, lon=%s", 
-            self.name, gps_data.get("HasPosition"), 
-            gps_data.get("Latitude"), gps_data.get("Longitude")
+            "GPS data changed for device %s: has_position=%s, lat=%s, lon=%s",
+            self.name,
+            gps_data.get("HasPosition"),
+            gps_data.get("Latitude"),
+            gps_data.get("Longitude"),
         )
         self._device_gps_data = gps_data
-        
+
         # Re-discover Bluetooth sensors when GPS data changes
         self._available_bluetooth_sensors = self._discover_bluetooth_sensors()
-        
+
         return True
 
     # -------------------------------------------------------------------------
     # Discovery methods
     # -------------------------------------------------------------------------
-    
+
     def _discover_digital_inputs(self) -> list[int]:
         """Discover available digital inputs based on device data."""
         inputs = []
@@ -178,11 +184,13 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
                 try:
                     input_num = int(key[3:-6])
                     inputs.append(input_num)
-                    LOGGER.debug("Found digital input %d for device %s", input_num, self.name)
+                    LOGGER.debug(
+                        "Found digital input %d for device %s", input_num, self.name
+                    )
                 except ValueError:
                     pass
         return sorted(inputs)
-    
+
     def _discover_digital_outputs(self) -> list[int]:
         """Discover available digital outputs based on device data."""
         outputs = []
@@ -191,7 +199,9 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
                 try:
                     output_num = int(key[4:-6])
                     outputs.append(output_num)
-                    LOGGER.debug("Found digital output %d for device %s", output_num, self.name)
+                    LOGGER.debug(
+                        "Found digital output %d for device %s", output_num, self.name
+                    )
                 except ValueError:
                     pass
         return sorted(outputs)
@@ -200,46 +210,60 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
         """Discover available Bluetooth sensors based on GPS data."""
         sensors = []
         paired_sensors = self._device_gps_data.get("PairedSensors", [])
-        
+
         for sensor in paired_sensors:
             if isinstance(sensor, dict):
                 serial_number = sensor.get("SerialNumber")
                 paired_slot = sensor.get("PairedSlot")
                 bluetooth_info = sensor.get("bluetooth_info", {})
                 latest_data = sensor.get("latest_sensor_data", {})
-                
+
                 if serial_number and paired_slot and bluetooth_info:
                     slot_number = int(paired_slot)
                     if slot_number > MAX_BLUETOOTH_SENSORS_PER_DEVICE:
                         LOGGER.warning(
-                            "Bluetooth sensor %s in slot %d exceeds max slots (%d) - skipping", 
-                            serial_number, slot_number, MAX_BLUETOOTH_SENSORS_PER_DEVICE
+                            "Bluetooth sensor %s in slot %d exceeds max slots (%d) - skipping",
+                            serial_number,
+                            slot_number,
+                            MAX_BLUETOOTH_SENSORS_PER_DEVICE,
                         )
                         continue
-                    
+
                     sensor_config = {
                         "serial_number": serial_number,
                         "paired_slot": slot_number,
-                        "name": bluetooth_info.get("Name", f"Bluetooth Sensor {serial_number}"),
-                        "enable_temperature": bool(bluetooth_info.get("EnableTemperature", 0)),
-                        "enable_humidity": bool(bluetooth_info.get("EnableHumidity", 0)),
-                        "enable_door_sensor": bool(bluetooth_info.get("EnableDoorSensor", 0)),
+                        "name": bluetooth_info.get(
+                            "Name", f"Bluetooth Sensor {serial_number}"
+                        ),
+                        "enable_temperature": bool(
+                            bluetooth_info.get("EnableTemperature", 0)
+                        ),
+                        "enable_humidity": bool(
+                            bluetooth_info.get("EnableHumidity", 0)
+                        ),
+                        "enable_door_sensor": bool(
+                            bluetooth_info.get("EnableDoorSensor", 0)
+                        ),
                         "has_data": bool(latest_data),
-                        "latest_sensor_data": latest_data
+                        "latest_sensor_data": latest_data,
                     }
                     sensors.append(sensor_config)
                     LOGGER.debug(
-                        "Found Bluetooth sensor %s (%s) for device %s", 
-                        serial_number, sensor_config["name"], self.name
+                        "Found Bluetooth sensor %s (%s) for device %s",
+                        serial_number,
+                        sensor_config["name"],
+                        self.name,
                     )
-        
+
         if len(sensors) > MAX_BLUETOOTH_SENSORS_PER_DEVICE:
             LOGGER.warning(
-                "Device %s has %d Bluetooth sensors, limiting to %d", 
-                self.name, len(sensors), MAX_BLUETOOTH_SENSORS_PER_DEVICE
+                "Device %s has %d Bluetooth sensors, limiting to %d",
+                self.name,
+                len(sensors),
+                MAX_BLUETOOTH_SENSORS_PER_DEVICE,
             )
             sensors = sensors[:MAX_BLUETOOTH_SENSORS_PER_DEVICE]
-        
+
         return sensors
 
     # -------------------------------------------------------------------------
@@ -271,7 +295,7 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
         """Return the device ID."""
         device_id = self._device_data.get("ID", 0)
         return int(device_id) if device_id is not None else 0
-    
+
     @property
     def name(self) -> str:
         """Return the device name."""
@@ -330,7 +354,7 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     def speed(self) -> int:
         """Return current speed in km/h."""
         return safe_int(self._device_gps_data.get("Speed"), 0)
-    
+
     @property
     def course(self) -> int:
         """Return course/heading of the device in degrees."""
@@ -359,12 +383,16 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     @property
     def gps_signal(self) -> int | None:
         """Return GPS signal strength as percentage (0-100%)."""
-        return self._calculate_signal_percentage(self._device_gps_data.get("GPSAccuracy"))
+        return self._calculate_signal_percentage(
+            self._device_gps_data.get("GPSAccuracy")
+        )
 
     @property
     def network_signal(self) -> int | None:
         """Return network signal strength as percentage (0-100%)."""
-        return self._calculate_signal_percentage(self._device_gps_data.get("NetworkQuality"))
+        return self._calculate_signal_percentage(
+            self._device_gps_data.get("NetworkQuality")
+        )
 
     @property
     def last_seen(self) -> datetime | None:
@@ -382,7 +410,7 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
             if isinstance(battery_str, (int, float)):
                 return float(battery_str) / 1000.0
             elif isinstance(battery_str, str):
-                clean_str = ''.join(c for c in battery_str if c.isdigit() or c == '.')
+                clean_str = "".join(c for c in battery_str if c.isdigit() or c == ".")
                 if clean_str:
                     return float(clean_str) / 1000.0
             return None
@@ -402,7 +430,9 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     @property
     def bluetooth_enabled(self) -> bool:
         """Return True if Bluetooth is enabled on the device."""
-        bluetooth_enabled = self._device_data_extra.get("terminal", {}).get("BluetoothStatus", False)
+        bluetooth_enabled = self._device_data_extra.get("terminal", {}).get(
+            "BluetoothStatus", False
+        )
         return bool(bluetooth_enabled)
 
     # -------------------------------------------------------------------------
@@ -418,7 +448,7 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     def low_battery_alert_enabled(self) -> bool:
         """Return whether low battery alert is enabled."""
         return self._device_features_data.get("LowBatteryAlertEnabled", False)
-    
+
     @property
     def low_battery_threshold(self) -> float | None:
         """Return low battery alert threshold in volts."""
@@ -447,7 +477,7 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
         return status.lower() == "on" if isinstance(status, str) else bool(status)
 
     def get_digital_output_state(self, output_number: int) -> bool | None:
-        """Get the state of a digital output.""" 
+        """Get the state of a digital output."""
         key = f"Dout{output_number}Status"
         status = self._device_data.get(key)
         if status is None:

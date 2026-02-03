@@ -187,6 +187,32 @@ The integration uses the North-Tracker REST API with the following key features:
 4. Add tests if applicable
 5. Submit a pull request
 
+## Creating a Release
+
+Releases are automated via GitHub Actions. When you push a tag, the workflow will automatically:
+- Update `manifest.json` with the tag version
+- Create a release zip file
+- Generate a changelog from merged PRs
+- Publish a GitHub Release
+
+### Steps to release a new version:
+
+```bash
+# Make sure you're on main with latest changes
+git checkout main
+git pull
+
+# Create and push a tag
+git tag v2.1.0
+git push origin v2.1.0
+```
+
+The release will be created automatically within a few minutes.
+
+### Version format
+- Use semantic versioning: `v1.2.3`
+- Pre-releases: `v1.2.3-beta1` or `v1.2.3-alpha1`
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
