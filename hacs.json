@@ -2,6 +2,6 @@
     "name": "North-Tracker",
     "content_in_root": false,
     "homeassistant": "2025.5.0",
-    "zip_release": false,
-    "issues": "https://github.com/robinostlund/homeassistant-northtracker/issues"
+    "zip_release": true,
+    "filename": "northtracker.zip"
 }

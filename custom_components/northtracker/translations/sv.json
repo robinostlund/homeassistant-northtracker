@@ -177,12 +177,5 @@
                 "name": "Uppdatera"
             }
         }
-    },
-    "state": {
-        "device_tracker": {
-            "unknown": "Okänd plats",
-            "offline": "Enhet offline",
-            "unavailable": "Otillgänglig"
-        }
     }
 }
