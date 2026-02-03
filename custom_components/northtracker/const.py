@@ -1,4 +1,5 @@
 """Constants for the North-Tracker integration."""
+
 from __future__ import annotations
 
 from logging import getLogger
@@ -37,7 +38,7 @@ API_RETRY_DELAY = 1  # seconds
 API_RATE_LIMIT_WARNING_THRESHOLD = 80  # percent
 API_TIMEZONE = "Europe/Stockholm"  # timezone used by North-Tracker API
 
-# Device Constants  
+# Device Constants
 MAX_BLUETOOTH_SENSORS_PER_DEVICE = 9  # slots 1-9
 
 # Signal Quality Thresholds
@@ -61,6 +62,10 @@ ENTITY_ID_MAX_LENGTH = 63  # Home Assistant entity ID limit
 DEFAULT_BATTERY_LOW_THRESHOLD = 20  # percent
 
 # Battery Voltage Thresholds (for number entities)
-MIN_BATTERY_VOLTAGE_THRESHOLD = 10.0  # volts - minimum allowed low battery voltage threshold
-MAX_BATTERY_VOLTAGE_THRESHOLD = 30.0  # volts - maximum allowed low battery voltage threshold
+MIN_BATTERY_VOLTAGE_THRESHOLD = (
+    10.0  # volts - minimum allowed low battery voltage threshold
+)
+MAX_BATTERY_VOLTAGE_THRESHOLD = (
+    30.0  # volts - maximum allowed low battery voltage threshold
+)
 MAX_BATTERY_VOLTAGE_READING = 50.0  # volts - maximum reasonable battery voltage reading

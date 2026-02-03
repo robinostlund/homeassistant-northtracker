@@ -1,4 +1,5 @@
 """Device classes for North-Tracker integration."""
+
 from .base import NorthTrackerBaseDevice, DeviceCapabilities
 from .gps_device import NorthTrackerGpsDevice
 from .sensor_device import NorthTrackerSensorDevice

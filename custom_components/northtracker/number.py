@@ -1,4 +1,5 @@
 """Number platform for North-Tracker."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -43,22 +44,24 @@ NUMBER_DESCRIPTIONS: tuple[NorthTrackerNumberEntityDescription, ...] = (
 )
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
     """Set up the number platform and discover new entities."""
     from .base import BasePlatformSetup
-    
+
     def create_number_entity(coordinator, device_id, description):
         """Create a number entity instance."""
         return NorthTrackerNumber(coordinator, device_id, description)
-    
+
     # Use the generic platform setup helper
     platform_setup = BasePlatformSetup(
         platform_name="number",
         entity_class=NorthTrackerNumber,
         entity_descriptions=NUMBER_DESCRIPTIONS,
-        create_entity_callback=create_number_entity
+        create_entity_callback=create_number_entity,
     )
-    
+
     await platform_setup.async_setup_entry(hass, entry, async_add_entities)
 
 
@@ -66,9 +69,9 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
     """Defines a North-Tracker number entity."""
 
     def __init__(
-        self, 
-        coordinator: NorthTrackerDataUpdateCoordinator, 
-        device_id: int, 
+        self,
+        coordinator: NorthTrackerDataUpdateCoordinator,
+        device_id: int,
         description: NorthTrackerNumberEntityDescription,
     ) -> None:
         """Initialize the number entity."""
@@ -84,13 +87,16 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
         """Return the current value."""
         if not self.available:
             return None
-            
+
         device = self.device
         if device is None:
             return None
-            
+
         # Use value_fn from entity description
-        if hasattr(self.entity_description, 'value_fn') and self.entity_description.value_fn:
+        if (
+            hasattr(self.entity_description, "value_fn")
+            and self.entity_description.value_fn
+        ):
             return self.entity_description.value_fn(device)
         return getattr(device, self.entity_description.key, None)
 
@@ -99,14 +105,23 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
         device = self.device
         if device is None:
             return
-        
+
         if self.entity_description.key == "low_battery_threshold":
             try:
-                current_enabled = getattr(device, 'low_battery_alert_enabled', False)
-                resp = await device.tracker.set_low_battery_alert(device.imei, current_enabled, value)
+                current_enabled = getattr(device, "low_battery_alert_enabled", False)
+                resp = await device.tracker.set_low_battery_alert(
+                    device.imei, current_enabled, value
+                )
                 if not resp.success:
-                    LOGGER.error("Failed to set low battery threshold for device '%s'", device.name)
+                    LOGGER.error(
+                        "Failed to set low battery threshold for device '%s'",
+                        device.name,
+                    )
                 else:
                     await self.coordinator.async_request_refresh()
             except Exception as err:
-                LOGGER.error("Error setting low battery threshold for device '%s': %s", device.name, err)
+                LOGGER.error(
+                    "Error setting low battery threshold for device '%s': %s",
+                    device.name,
+                    err,
+                )
