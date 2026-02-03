@@ -4,7 +4,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..api import NorthTracker
@@ -38,7 +38,6 @@ class DeviceCapabilities:
     has_door_sensor: bool = False
     
     # Switch capabilities
-    has_alarm: bool = False
     has_low_battery_alert: bool = False
     has_geofence: bool = False
     has_digital_outputs: bool = False

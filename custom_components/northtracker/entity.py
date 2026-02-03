@@ -6,7 +6,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, CONFIGURATION_URL
 from .coordinator import NorthTrackerDataUpdateCoordinator
-from .devices import NorthTrackerBaseDevice, NorthTrackerGpsDevice, NorthTrackerSensorDevice
+from .devices import NorthTrackerBaseDevice, NorthTrackerSensorDevice
 from .base import validate_device_name
 
 

@@ -1,7 +1,7 @@
 """GPS Device class for North-Tracker GPS trackers."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
 from .base import NorthTrackerBaseDevice, DeviceCapabilities
@@ -11,7 +11,6 @@ from ..const import (
     SIGNAL_SCALE_MIN,
     SIGNAL_SCALE_MAX,
     MAX_SIGNAL_STRENGTH,
-    GPS_COORDINATE_PRECISION,
 )
 from ..helpers import parse_northtracker_timestamp, round_gps_coordinate
 
@@ -38,7 +37,6 @@ GPS_DEVICE_CAPABILITIES = DeviceCapabilities(
     has_bluetooth_enabled=True,
     
     # Switch capabilities
-    has_alarm=True,
     has_low_battery_alert=True,
     has_geofence=True,
     has_digital_outputs=True,
@@ -64,7 +62,6 @@ GPS_DEVICE_CAPABILITIES = DeviceCapabilities(
         "bluetooth_enabled",
     ],
     supported_switches=[
-        "alarm_status",
         "low_battery_alert_enabled",
         "geofence",
     ],

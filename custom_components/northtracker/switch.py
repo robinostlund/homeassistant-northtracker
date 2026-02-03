@@ -13,7 +13,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER, DEFAULT_BATTERY_LOW_THRESHOLD
+from .const import LOGGER, DEFAULT_BATTERY_LOW_THRESHOLD
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 from .devices import NorthTrackerBaseDevice, NorthTrackerGpsDevice
@@ -29,12 +29,6 @@ class NorthTrackerSwitchEntityDescription(SwitchEntityDescription):
 
 # Switch descriptions for GPS devices
 GPS_SWITCH_DESCRIPTIONS: tuple[NorthTrackerSwitchEntityDescription, ...] = (
-    NorthTrackerSwitchEntityDescription(
-        key="alarm_status",
-        translation_key="alarm",
-        device_class=SwitchDeviceClass.SWITCH,
-        value_fn=lambda device: getattr(device, 'alarm_status', False),
-    ),
     NorthTrackerSwitchEntityDescription(
         key="low_battery_alert_enabled",
         translation_key="low_battery_alert",

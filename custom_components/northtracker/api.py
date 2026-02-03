@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import aiohttp
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
 from .const import (
