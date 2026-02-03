@@ -4,7 +4,7 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue, async_delete_issue
 
 from .const import DOMAIN, PLATFORMS, LOGGER
