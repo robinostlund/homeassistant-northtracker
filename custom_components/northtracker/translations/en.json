@@ -119,6 +119,12 @@
             },
             "low_battery_alert": {
                 "name": "Low Battery Alert"
+            },
+            "geofence": {
+                "name": "Geofence Alarm"
+            },
+            "magnet_alarm": {
+                "name": "Magnet Alarm"
             }
         },
         "number": {

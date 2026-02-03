@@ -102,6 +102,12 @@
             "low_battery_alert": {
                 "name": "Låg Batterispänning Larm"
             },
+            "geofence": {
+                "name": "Geofence Larm"
+            },
+            "magnet_alarm": {
+                "name": "Magnetlarm"
+            },
             "input_1": {
                 "name": "Larma Ingång 1"
             },

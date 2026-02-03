@@ -66,29 +66,29 @@ class BasePlatformSetup(Generic[T]):
         discover_entities()
 
 
-def create_unique_id(device_id: int, description_key: str) -> str:
-    """Create a consistent unique ID for entities.
+def create_unique_id(imei: str, description_key: str) -> str:
+    """Create a consistent unique ID for entities using IMEI.
     
     Args:
-        device_id: The device ID
+        imei: The device IMEI or serial number
         description_key: The entity description key
         
     Returns:
         Formatted unique ID string
     """
-    return f"{device_id}_{description_key}"
+    return f"{imei}_{description_key}"
 
 
-def create_unique_id_tracker(device_id: int) -> str:
-    """Create a unique ID for device tracker entities.
+def create_unique_id_tracker(imei: str) -> str:
+    """Create a unique ID for device tracker entities using IMEI.
     
     Args:
-        device_id: The device ID
+        imei: The device IMEI
         
     Returns:
         Formatted unique ID string for tracker
     """
-    return f"{device_id}_tracker"
+    return f"{imei}_tracker"
 
 
 # Logging helpers to standardize format and reduce code duplication

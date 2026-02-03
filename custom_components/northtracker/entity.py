@@ -8,7 +8,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import NorthTrackerDataUpdateCoordinator
-from .api import NorthTrackerGpsDevice
+from .api import NorthTrackerGpsDevice, NorthTrackerSensorDevice
 from .base import validate_device_name
 
 
@@ -24,13 +24,20 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
         
         device = self.device
         if device:
-            self._attr_device_info = DeviceInfo(
+            # Build base device info
+            device_info = DeviceInfo(
                 identifiers={(DOMAIN, str(device.id))},
                 name=validate_device_name(device.name),
                 manufacturer="North-Tracker",
                 model=device.model,
                 serial_number=device.imei,
             )
+            
+            # Add via_device for Bluetooth sensors to link them to their parent GPS device
+            if isinstance(device, NorthTrackerSensorDevice) and hasattr(device, 'parent_device'):
+                device_info["via_device"] = (DOMAIN, str(device.parent_device.id))
+            
+            self._attr_device_info = device_info
         else:
             self._attr_device_info = DeviceInfo(
                 identifiers={(DOMAIN, str(device_id))},
@@ -39,7 +46,7 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
             )
 
     @property
-    def device(self) -> NorthTrackerGpsDevice | None:
+    def device(self) -> NorthTrackerGpsDevice | NorthTrackerSensorDevice | None:
         """Return the device object for this entity."""
         return self.coordinator.data.get(self._device_id)
 

@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, LOGGER, DEFAULT_BATTERY_LOW_THRESHOLD
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerGpsDevice
+from .api import NorthTrackerGpsDevice, NorthTrackerSensorDevice
 from .base import validate_entity_id
 
 
@@ -28,7 +28,8 @@ class NorthTrackerSwitchEntityDescription(SwitchEntityDescription):
     exists_fn: Callable[[NorthTrackerGpsDevice], bool] | None = None
 
 
-STATIC_SWITCH_DESCRIPTIONS: tuple[NorthTrackerSwitchEntityDescription, ...] = (
+# Switch descriptions for GPS devices
+GPS_SWITCH_DESCRIPTIONS: tuple[NorthTrackerSwitchEntityDescription, ...] = (
     NorthTrackerSwitchEntityDescription(
         key="alarm_status",
         translation_key="alarm",
@@ -43,7 +44,18 @@ STATIC_SWITCH_DESCRIPTIONS: tuple[NorthTrackerSwitchEntityDescription, ...] = (
         value_fn=lambda device: device.low_battery_alert_enabled,
         exists_fn=lambda device: hasattr(device, 'low_battery_alert_enabled') and device.low_battery_alert_enabled is not None,
     ),
+    NorthTrackerSwitchEntityDescription(
+        key="geofence",
+        translation_key="geofence",
+        device_class=SwitchDeviceClass.SWITCH,
+        icon="mdi:map-marker-radius",
+        # Geofence switch always exists for GPS devices
+        exists_fn=lambda device: isinstance(device, NorthTrackerGpsDevice),
+    ),
 )
+
+# BLE switch descriptions removed - API for magnet alarm not working correctly
+# TODO: Re-add when API is fixed
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -90,7 +102,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     platform_setup = AdvancedPlatformSetup(
         platform_name="switch",
         entity_class=NorthTrackerSwitch,
-        entity_descriptions=STATIC_SWITCH_DESCRIPTIONS,
+        entity_descriptions=GPS_SWITCH_DESCRIPTIONS,
         create_entity_callback=create_switch_entity,
         custom_entity_creator=create_dynamic_switches
     )
@@ -114,7 +126,10 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         self.entity_description = description
         self._output_number = output_number
         self._input_number = input_number
-        self._attr_unique_id = validate_entity_id(f"{device_id}_{description.key}")
+        # Use IMEI for stable unique_id (falls back to device_id if IMEI not available)
+        device = self.device
+        imei = device.imei if device and hasattr(device, 'imei') else str(device_id)
+        self._attr_unique_id = validate_entity_id(f"{imei}_{description.key}")
         # Track pending state changes to provide immediate feedback
         self._pending_state: bool | None = None
 
@@ -137,6 +152,9 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
             if hasattr(device, 'get_input_status'):
                 return device.get_input_status(self._input_number)
             return False
+        elif self.entity_description.key == "geofence":
+            # Geofence alarm state - track via _geofence_state attribute
+            return getattr(self, '_geofence_state', False)
         else:
             # Static switch using value_fn if available
             if hasattr(self.entity_description, 'value_fn') and self.entity_description.value_fn:
@@ -199,6 +217,8 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
                 LOGGER.error("Error enabling low battery alert for device '%s': %s", device.name, err)
                 self._pending_state = None
                 self.async_write_ha_state()
+        elif self.entity_description.key == "geofence":
+            await self._async_set_geofence(device, True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the switch."""
@@ -252,6 +272,44 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
                 LOGGER.error("Error disabling low battery alert for device '%s': %s", device.name, err)
                 self._pending_state = None
                 self.async_write_ha_state()
+        elif self.entity_description.key == "geofence":
+            await self._async_set_geofence(device, False)
+
+    async def _async_set_geofence(self, device: NorthTrackerGpsDevice, enabled: bool) -> None:
+        """Enable or disable all geofences for this GPS device."""
+        action = "Enabling" if enabled else "Disabling"
+        LOGGER.info("%s geofences for device '%s'", action, device.name)
+        
+        try:
+            self._pending_state = enabled
+            self._geofence_state = enabled
+            self.async_write_ha_state()
+            
+            # Set all geofences for this device
+            geofence_responses = await device.tracker.set_all_geofences_status(
+                terminal_id=device.id,
+                enabled=enabled,
+            )
+            
+            success = True
+            for resp in geofence_responses:
+                if not resp.success:
+                    LOGGER.warning("Failed to set geofence status for device '%s'", device.name)
+                    success = False
+            
+            if success:
+                LOGGER.info("Successfully %s geofences for device '%s'", 
+                          "enabled" if enabled else "disabled", device.name)
+            else:
+                LOGGER.warning("Some geofence settings failed for device '%s'", device.name)
+            
+            await self.coordinator.async_request_refresh()
+            
+        except Exception as err:
+            LOGGER.error("Error setting geofences for device '%s': %s", device.name, err)
+            self._pending_state = None
+            self._geofence_state = not enabled  # Revert state on error
+            self.async_write_ha_state()
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""

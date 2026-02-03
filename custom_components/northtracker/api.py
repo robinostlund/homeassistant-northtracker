@@ -574,6 +574,108 @@ class NorthTracker:
             LOGGER.warning("Failed to check acknowledgment for ID %d", ack_id)
         return response
 
+    # -------------------------------------------------------------------------
+    # Geofence Methods
+    # -------------------------------------------------------------------------
+
+    async def get_geofences(self) -> NorthTrackerResponse:
+        """Get all geofences for the user.
+        
+        Returns:
+            Response containing list of geofences with their status.
+        """
+        LOGGER.debug("Fetching geofences from API")
+        url = f"{self.base_url}/user/geofence/get/list"
+        response = await self._get_data(url)
+        if response.success:
+            geofences = response.data.get("geofences", [])
+            LOGGER.debug("Successfully fetched %d geofences", len(geofences))
+        else:
+            LOGGER.warning("Failed to fetch geofences")
+        return response
+
+    async def set_geofence_status(
+        self, geofence_id: int, group_identifier: str, enabled: bool
+    ) -> NorthTrackerResponse:
+        """Enable or disable a geofence.
+        
+        Args:
+            geofence_id: The geofence ID
+            group_identifier: The group identifier for the geofence
+            enabled: True to enable, False to disable
+            
+        Returns:
+            Response indicating success/failure
+        """
+        status = "1" if enabled else "0"
+        LOGGER.debug(
+            "Setting geofence %d status to %s (enabled=%s)", 
+            geofence_id, status, enabled
+        )
+        url = f"{self.base_url}/user/geofence/state/group-update"
+        payload = {
+            "status": status,
+            "geofence_id": geofence_id,
+            "group_identifier": group_identifier,
+        }
+        response = await self._post_data(url, payload)
+        if response.success:
+            LOGGER.debug("Successfully set geofence %d status to %s", geofence_id, status)
+        else:
+            LOGGER.warning("Failed to set geofence %d status", geofence_id)
+        return response
+
+    async def set_all_geofences_status(
+        self, terminal_id: int, enabled: bool
+    ) -> list[NorthTrackerResponse]:
+        """Enable or disable all geofences for a specific terminal.
+        
+        Args:
+            terminal_id: The terminal/device ID
+            enabled: True to enable all, False to disable all
+            
+        Returns:
+            List of responses for each geofence update
+        """
+        LOGGER.debug(
+            "Setting all geofences for terminal %d to enabled=%s", 
+            terminal_id, enabled
+        )
+        
+        # First get all geofences
+        geofences_response = await self.get_geofences()
+        if not geofences_response.success:
+            LOGGER.error("Failed to fetch geofences for bulk update")
+            return [geofences_response]
+        
+        geofences = geofences_response.data.get("geofences", [])
+        
+        # Filter geofences for this terminal
+        terminal_geofences = [
+            gf for gf in geofences if gf.get("TerminalID") == terminal_id
+        ]
+        
+        if not terminal_geofences:
+            LOGGER.debug("No geofences found for terminal %d", terminal_id)
+            return []
+        
+        LOGGER.debug(
+            "Found %d geofences for terminal %d, updating...", 
+            len(terminal_geofences), terminal_id
+        )
+        
+        # Update each geofence
+        responses = []
+        for gf in terminal_geofences:
+            response = await self.set_geofence_status(
+                geofence_id=gf.get("ID"),
+                group_identifier=gf.get("GroupIdentifier", ""),
+                enabled=enabled,
+            )
+            responses.append(response)
+        
+        return responses
+
 
 class NorthTrackerResponse:
     """Wrapper for API responses from North-Tracker."""
