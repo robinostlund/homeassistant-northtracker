@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, LOGGER, DEFAULT_BATTERY_LOW_THRESHOLD
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerGpsDevice, NorthTrackerSensorDevice
+from .api import NorthTrackerGpsDevice
 from .base import validate_entity_id
 
 
@@ -48,14 +48,10 @@ GPS_SWITCH_DESCRIPTIONS: tuple[NorthTrackerSwitchEntityDescription, ...] = (
         key="geofence",
         translation_key="geofence",
         device_class=SwitchDeviceClass.SWITCH,
-        icon="mdi:map-marker-radius",
         # Geofence switch always exists for GPS devices
         exists_fn=lambda device: isinstance(device, NorthTrackerGpsDevice),
     ),
 )
-
-# BLE switch descriptions removed - API for magnet alarm not working correctly
-# TODO: Re-add when API is fixed
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -132,6 +128,8 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         self._attr_unique_id = validate_entity_id(f"{imei}_{description.key}")
         # Track pending state changes to provide immediate feedback
         self._pending_state: bool | None = None
+        # Initialize geofence state (will be updated in async_added_to_hass)
+        self._geofence_state: bool | None = None
 
     async def async_added_to_hass(self) -> None:
         """Run when entity is added to Home Assistant."""

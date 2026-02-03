@@ -46,7 +46,6 @@ SIGNAL_GOOD_THRESHOLD = 60
 SIGNAL_POOR_THRESHOLD = 40
 
 # Logging Constants
-MAX_DEBUG_STATEMENTS_PER_FILE = 10  # recommended maximum
 LOGGER_TOKEN_PREVIEW_LENGTH = 10  # characters to show in token preview
 
 # Utility Constants

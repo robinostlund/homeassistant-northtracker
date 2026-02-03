@@ -128,8 +128,8 @@
             }
         },
         "binary_sensor": {
-            "magnetic_contact": {
-                "name": "Magnetkontakt"
+            "door_sensor": {
+                "name": "Dörrsensor"
             },
             "bluetooth_enabled": {
                 "name": "Bluetooth Aktiverad"

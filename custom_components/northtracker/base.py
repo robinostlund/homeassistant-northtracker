@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from typing import Callable, TypeVar, Generic, Any
-from collections.abc import Awaitable
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
@@ -64,79 +63,6 @@ class BasePlatformSetup(Generic[T]):
 
         entry.async_on_unload(coordinator.async_add_listener(discover_entities))
         discover_entities()
-
-
-def create_unique_id(imei: str, description_key: str) -> str:
-    """Create a consistent unique ID for entities using IMEI.
-    
-    Args:
-        imei: The device IMEI or serial number
-        description_key: The entity description key
-        
-    Returns:
-        Formatted unique ID string
-    """
-    return f"{imei}_{description_key}"
-
-
-def create_unique_id_tracker(imei: str) -> str:
-    """Create a unique ID for device tracker entities using IMEI.
-    
-    Args:
-        imei: The device IMEI
-        
-    Returns:
-        Formatted unique ID string for tracker
-    """
-    return f"{imei}_tracker"
-
-
-# Logging helpers to standardize format and reduce code duplication
-
-def log_entity_creation(platform: str, description_key: str, device_name: str) -> None:
-    """Log entity creation in standardized format."""
-    LOGGER.debug("Created %s entity: %s for device %s", platform, description_key, device_name)
-
-
-def log_platform_discovery_start(platform: str, device_count: int) -> None:
-    """Log platform discovery start in standardized format."""
-    LOGGER.debug("Starting %s discovery, current devices: %d", platform, device_count)
-
-
-def log_device_discovery(platform: str, device_name: str, device_id: int, device_type: str) -> None:
-    """Log device discovery in standardized format."""
-    LOGGER.debug("Discovering %s for device: %s (ID: %s, Type: %s)", 
-                platform, device_name, device_id, device_type)
-
-
-def log_entities_added(platform: str, count: int) -> None:
-    """Log entities added in standardized format."""
-    if count > 0:
-        LOGGER.debug("Added %d new %s entities", count, platform)
-    else:
-        LOGGER.debug("No new %s entities to add", platform)
-
-
-def log_platform_summary(platform: str, total_entities: int, device_count: int) -> None:
-    """Log platform setup summary in standardized format."""
-    if total_entities > 0:
-        LOGGER.info("Setup %s platform: %d entities across %d devices", platform, total_entities, device_count)
-    else:
-        LOGGER.debug("Setup %s platform: no entities created", platform)
-
-
-def log_debug_reduced(message: str, *args, condition: bool = True) -> None:
-    """Log debug message only when condition is met to reduce spam."""
-    if condition:
-        LOGGER.debug(message, *args)
-
-def log_api_summary(method: str, url: str, status_code: int, duration: float) -> None:
-    """Log API request summary in standardized format."""
-    LOGGER.debug("API %s %s: %d (%.2fs)", method, url.split('/')[-1], status_code, duration)
-
-def log_device_update_summary(updated_count: int, total_count: int, duration: float) -> None:
-    """Log device update summary in standardized format."""
-    LOGGER.info("Updated %d/%d devices in %.2fs", updated_count, total_count, duration)
 
 
 class AdvancedPlatformSetup(BasePlatformSetup[T]):

@@ -41,8 +41,8 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...
     ),
     # Bluetooth sensor binary sensors
     NorthTrackerBinarySensorEntityDescription(
-        key="magnetic_contact",
-        translation_key="magnetic_contact",
+        key="door_sensor",
+        translation_key="door_sensor",
         device_class=BinarySensorDeviceClass.OPENING,
         value_fn=lambda device: not device.magnetic_contact,  # Invert: True=closed->False (closed), False=open->True (open)
         exists_fn=lambda device: hasattr(device, 'magnetic_contact') and device.magnetic_contact is not None,

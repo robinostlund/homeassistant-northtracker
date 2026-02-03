@@ -712,23 +712,6 @@ class NorthTracker:
             terminal_id, all_enabled, len(terminal_geofences)
         )
         return all_enabled
-        
-        LOGGER.debug(
-            "Found %d geofences for terminal %d, updating...", 
-            len(terminal_geofences), terminal_id
-        )
-        
-        # Update each geofence
-        responses = []
-        for gf in terminal_geofences:
-            response = await self.set_geofence_status(
-                geofence_id=gf.get("ID"),
-                group_identifier=gf.get("GroupIdentifier", ""),
-                enabled=enabled,
-            )
-            responses.append(response)
-        
-        return responses
 
 
 class NorthTrackerResponse:

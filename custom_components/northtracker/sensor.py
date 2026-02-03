@@ -24,7 +24,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .const import DOMAIN, MIN_SIGNAL_STRENGTH, MAX_SIGNAL_STRENGTH, SIGNAL_EXCELLENT_THRESHOLD, SIGNAL_GOOD_THRESHOLD, SIGNAL_POOR_THRESHOLD, MAX_BATTERY_VOLTAGE_READING
+from .const import DOMAIN, MIN_SIGNAL_STRENGTH, MAX_SIGNAL_STRENGTH, MAX_BATTERY_VOLTAGE_READING
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 from .api import NorthTrackerGpsDevice, get_signal_quality_text
