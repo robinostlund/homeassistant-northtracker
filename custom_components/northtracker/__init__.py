@@ -74,7 +74,6 @@ async def async_cleanup_stale_devices(
 ) -> None:
     """Remove devices and entities that no longer exist in the API."""
     device_registry = dr.async_get(hass)
-    entity_registry = er.async_get(hass)
     
     # Get current device IMEIs from the API (identifiers are now IMEI-based)
     current_imeis = {device.imei for device in coordinator.data.values() if hasattr(device, 'imei') and device.imei}

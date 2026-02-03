@@ -17,21 +17,6 @@ from .const import (
     DEFAULT_BATTERY_LOW_THRESHOLD
 )
 
-# Re-export helpers for backwards compatibility
-from .helpers import (
-    parse_northtracker_timestamp,
-    get_signal_quality_text,
-    round_gps_coordinate,
-)
-
-# Re-export device classes for backwards compatibility
-from .devices import (
-    NorthTrackerBaseDevice,
-    DeviceCapabilities,
-    NorthTrackerGpsDevice,
-    NorthTrackerSensorDevice,
-)
-
 
 class NorthTrackerException(Exception):
     """Base exception for North-Tracker API errors."""
