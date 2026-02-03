@@ -1,12 +1,10 @@
 """Base entity for the North-Tracker integration."""
 from __future__ import annotations
 
-from typing import Any
-
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, MANUFACTURER, CONFIGURATION_URL
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .api import NorthTrackerGpsDevice, NorthTrackerSensorDevice
 from .base import validate_device_name
@@ -28,9 +26,10 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
             device_info = DeviceInfo(
                 identifiers={(DOMAIN, str(device.id))},
                 name=validate_device_name(device.name),
-                manufacturer="North-Tracker",
+                manufacturer=MANUFACTURER,
                 model=device.model,
                 serial_number=device.imei,
+                configuration_url=CONFIGURATION_URL,
             )
             
             # Add via_device for Bluetooth sensors to link them to their parent GPS device
@@ -42,7 +41,7 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
             self._attr_device_info = DeviceInfo(
                 identifiers={(DOMAIN, str(device_id))},
                 name=f"North-Tracker Device {device_id}",
-                manufacturer="North-Tracker",
+                manufacturer=MANUFACTURER,
             )
 
     @property
@@ -57,18 +56,3 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
         if device is None:
             return False
         return self.coordinator.last_update_success and device.available
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return additional state attributes common to all North-Tracker entities."""
-        device = self.device
-        if device is None:
-            return None
-        
-        attributes = {}
-        
-        # Device type is useful context for all entities
-        if hasattr(device, 'device_type') and device.device_type:
-            attributes["device_type"] = device.device_type
-        
-        return attributes if attributes else None

@@ -8,6 +8,10 @@ from homeassistant.const import Platform
 DOMAIN = "northtracker"
 LOGGER = getLogger(__package__)
 
+# Manufacturer and URLs
+MANUFACTURER = "North-Tracker"
+CONFIGURATION_URL = "https://app.northtracker.com"
+
 # Platforms
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
