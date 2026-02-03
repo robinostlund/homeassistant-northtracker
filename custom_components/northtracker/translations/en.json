@@ -147,9 +147,6 @@
             "input_6": {
                 "name": "Alert Input 6"
             },
-            "alarm": {
-                "name": "Alarm"
-            },
             "low_battery_alert": {
                 "name": "Low Battery Alert"
             },

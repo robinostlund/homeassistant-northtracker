@@ -10,7 +10,7 @@ LOGGER = getLogger(__package__)
 
 # Manufacturer and URLs
 MANUFACTURER = "North-Tracker"
-CONFIGURATION_URL = "https://app.northtracker.com"
+CONFIGURATION_URL = "https://gps.northtracker.com"
 
 # Platforms
 PLATFORMS: list[Platform] = [
@@ -39,7 +39,6 @@ API_TIMEZONE = "Europe/Stockholm"  # timezone used by North-Tracker API
 
 # Device Constants  
 MAX_BLUETOOTH_SENSORS_PER_DEVICE = 9  # slots 1-9
-DEVICE_ID_MULTIPLIER = 10  # for generating unique Bluetooth device IDs
 
 # Signal Quality Thresholds
 MIN_SIGNAL_STRENGTH = 0

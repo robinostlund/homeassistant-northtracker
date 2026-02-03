@@ -63,7 +63,10 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         """Initialize the device tracker."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = validate_entity_id(f"{device_id}_tracker")
+        # Use IMEI for stable unique_id
+        device = self.device
+        identifier = device.imei if device else str(device_id)
+        self._attr_unique_id = validate_entity_id(f"{identifier}_tracker")
 
     @property
     def _has_valid_position(self) -> bool:

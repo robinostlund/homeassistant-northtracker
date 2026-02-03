@@ -152,9 +152,6 @@
                     "on": "mdi:toggle-switch-variant"
                 }
             },
-            "alarm": {
-                "default": "mdi:alarm-light"
-            },
             "low_battery_alert": {
                 "default": "mdi:battery-alert"
             },

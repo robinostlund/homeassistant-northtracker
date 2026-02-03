@@ -40,7 +40,6 @@ async def async_get_config_entry_diagnostics(
             "device_type": getattr(device, "device_type", None),
             "available": getattr(device, "available", None),
             "imei": getattr(device, "imei", None),
-            "serial_number": getattr(device, "serial_number", None),
         }
 
         # Add GPS-specific info if available

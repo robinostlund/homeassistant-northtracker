@@ -5,8 +5,8 @@ from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
 from .base import NorthTrackerBaseDevice, DeviceCapabilities
-from ..const import LOGGER, DEVICE_ID_MULTIPLIER
-from ..helpers import parse_northtracker_timestamp, safe_int, safe_float
+from ..const import LOGGER
+from ..helpers import parse_northtracker_timestamp, safe_int, safe_float, generate_stable_id
 
 if TYPE_CHECKING:
     from .gps_device import NorthTrackerGpsDevice
@@ -68,11 +68,12 @@ class NorthTrackerSensorDevice(NorthTrackerBaseDevice):
 
     @property
     def id(self) -> int:
-        """Return a unique device ID combining parent device ID and PairedSlot.
+        """Return a unique device ID based on serial number.
         
-        Example: GPS device 100 with PairedSlot 1 -> 1001
+        Uses a hash of the serial number to generate a stable, unique ID
+        that won't collide with GPS device IDs.
         """
-        return self.parent_device.id * DEVICE_ID_MULTIPLIER + self._paired_slot
+        return generate_stable_id(self._serial_number)
     
     @property
     def name(self) -> str:
@@ -91,18 +92,13 @@ class NorthTrackerSensorDevice(NorthTrackerBaseDevice):
     
     @property
     def imei(self) -> str:
-        """Return the serial number as IMEI equivalent."""
+        """Return the device IMEI (same as serial number for Bluetooth sensors)."""
         return self._serial_number
     
     @property
     def available(self) -> bool:
         """Return True if Bluetooth sensor has data."""
         return self._bt_sensor_data.get("has_data", False)
-    
-    @property
-    def serial_number(self) -> str:
-        """Return the Bluetooth sensor serial number."""
-        return self._serial_number
     
     @property
     def sensor_data(self) -> dict[str, Any]:

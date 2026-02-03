@@ -107,10 +107,10 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         self.entity_description = description
         self._output_number = output_number
         self._input_number = input_number
-        # Use IMEI for stable unique_id (falls back to device_id if IMEI not available)
+        # Use IMEI for stable unique_id
         device = self.device
-        imei = device.imei if device and hasattr(device, 'imei') else str(device_id)
-        self._attr_unique_id = validate_entity_id(f"{imei}_{description.key}")
+        identifier = device.imei if device else str(device_id)
+        self._attr_unique_id = validate_entity_id(f"{identifier}_{description.key}")
         # Track pending state changes to provide immediate feedback
         self._pending_state: bool | None = None
         # Initialize geofence state (will be updated in async_added_to_hass)
@@ -198,7 +198,7 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
             current_threshold = getattr(device, 'low_battery_threshold', None) or DEFAULT_BATTERY_LOW_THRESHOLD
             await self._async_execute_api_call(
                 enabled,
-                device.tracker.set_low_battery_alert(getattr(device, 'imei', ''), enabled, current_threshold),
+                device.tracker.set_low_battery_alert(device.imei, enabled, current_threshold),
                 f"Failed to set low battery alert {action} for device '{device.name}'"
             )
         elif self.entity_description.key == "geofence":

@@ -9,6 +9,7 @@ from homeassistant.helpers.issue_registry import IssueSeverity, async_create_iss
 
 from .const import DOMAIN, PLATFORMS, LOGGER
 from .coordinator import NorthTrackerDataUpdateCoordinator
+from .migrations import async_migrate_entry_if_needed
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -29,6 +30,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryNotReady from err
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    
+    # Migrate entity unique_ids from old format (device_id) to new format (IMEI)
+    await async_migrate_entry_if_needed(hass, coordinator)
     
     # Clean up stale devices and entities
     await async_cleanup_stale_devices(hass, entry, coordinator)
@@ -72,8 +76,8 @@ async def async_cleanup_stale_devices(
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
     
-    # Get current device IDs from the API
-    current_device_ids = {str(device_id) for device_id in coordinator.data.keys()}
+    # Get current device IMEIs from the API (identifiers are now IMEI-based)
+    current_imeis = {device.imei for device in coordinator.data.values() if hasattr(device, 'imei') and device.imei}
     
     # Find all devices registered for this config entry
     devices_to_remove: list[str] = []
@@ -82,13 +86,13 @@ async def async_cleanup_stale_devices(
         # Check if any of the device identifiers match our domain
         for identifier in device_entry.identifiers:
             if identifier[0] == DOMAIN:
-                device_id = identifier[1]
-                if device_id not in current_device_ids:
-                    devices_to_remove.append(device_entry.name or device_id)
+                device_identifier = identifier[1]
+                if device_identifier not in current_imeis:
+                    devices_to_remove.append(device_entry.name or device_identifier)
                     
                     # Remove the device (this also removes all associated entities)
                     device_registry.async_remove_device(device_entry.id)
-                    LOGGER.info("Removed stale device: %s (ID: %s)", device_entry.name, device_id)
+                    LOGGER.info("Removed stale device: %s (ID: %s)", device_entry.name, device_identifier)
                 break
     
     # Create an issue if devices were removed

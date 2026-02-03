@@ -77,7 +77,10 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
         """Initialize the binary sensor."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = validate_entity_id(f"{device_id}_{description.key}")
+        # Use IMEI for stable unique_id
+        device = self.device
+        identifier = device.imei if device else str(device_id)
+        self._attr_unique_id = validate_entity_id(f"{identifier}_{description.key}")
 
     @property
     def is_on(self) -> bool | None:

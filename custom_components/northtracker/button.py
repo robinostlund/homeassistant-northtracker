@@ -58,9 +58,9 @@ class NorthTrackerRefreshButton(NorthTrackerEntity, ButtonEntity):
         super().__init__(coordinator, device_id)
         
         device = self.device
-        device_name = device.name if device else f"Device {device_id}"
-        
-        self._attr_unique_id = validate_entity_id(f"{device_id}_refresh")
+        # Use IMEI for stable unique_id
+        identifier = device.imei if device else str(device_id)
+        self._attr_unique_id = validate_entity_id(f"{identifier}_refresh")
 
     async def async_press(self) -> None:
         """Handle the button press - trigger a data refresh."""

@@ -129,9 +129,6 @@
             "output_6": {
                 "name": "Utgång 6"
             },
-            "alarm": {
-                "name": "Larm"
-            },
             "low_battery_alert": {
                 "name": "Låg Batterispänning Larm"
             },

@@ -74,7 +74,10 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
         """Initialize the number entity."""
         super().__init__(coordinator, device_id)
         self.entity_description = description
-        self._attr_unique_id = validate_entity_id(f"{device_id}_{description.key}")
+        # Use IMEI for stable unique_id
+        device = self.device
+        identifier = device.imei if device else str(device_id)
+        self._attr_unique_id = validate_entity_id(f"{identifier}_{description.key}")
 
     @property
     def native_value(self) -> float | None:
@@ -100,7 +103,7 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
         if self.entity_description.key == "low_battery_threshold":
             try:
                 current_enabled = getattr(device, 'low_battery_alert_enabled', False)
-                resp = await device.tracker.set_low_battery_alert(getattr(device, 'imei', ''), current_enabled, value)
+                resp = await device.tracker.set_low_battery_alert(device.imei, current_enabled, value)
                 if not resp.success:
                     LOGGER.error("Failed to set low battery threshold for device '%s'", device.name)
                 else:

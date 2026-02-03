@@ -22,9 +22,9 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
         
         device = self.device
         if device:
-            # Build base device info
+            # Build base device info - use IMEI as stable identifier
             device_info = DeviceInfo(
-                identifiers={(DOMAIN, str(device.id))},
+                identifiers={(DOMAIN, device.imei)},
                 name=validate_device_name(device.name),
                 manufacturer=MANUFACTURER,
                 model=device.model,
@@ -34,7 +34,7 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
             
             # Add via_device for Bluetooth sensors to link them to their parent GPS device
             if isinstance(device, NorthTrackerSensorDevice) and hasattr(device, 'parent_device'):
-                device_info["via_device"] = (DOMAIN, str(device.parent_device.id))
+                device_info["via_device"] = (DOMAIN, device.parent_device.imei)
             
             self._attr_device_info = device_info
         else:

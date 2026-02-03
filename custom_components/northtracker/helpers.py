@@ -1,6 +1,7 @@
 """Helper functions for North-Tracker integration."""
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -13,6 +14,28 @@ from .const import (
     SIGNAL_GOOD_THRESHOLD,
     SIGNAL_POOR_THRESHOLD,
 )
+
+
+def generate_stable_id(serial_number: str) -> int:
+    """Generate a stable unique integer ID from a serial number string.
+    
+    Uses a hash to create a deterministic ID that:
+    - Is always the same for the same serial number
+    - Won't collide with GPS device IDs (uses high number range)
+    - Fits within Python's int range
+    
+    Args:
+        serial_number: The Bluetooth sensor's serial number from the API
+        
+    Returns:
+        A stable unique integer ID
+    """
+    # Use MD5 hash (fast, deterministic) and take first 8 bytes as int
+    # This gives us a large unique number that won't collide with GPS device IDs
+    hash_bytes = hashlib.md5(serial_number.encode()).digest()[:8]
+    # Use a high base to ensure we're in a different range than GPS device IDs
+    # GPS device IDs are typically small (< 100000), so we use 10^9 as offset
+    return int.from_bytes(hash_bytes, 'big') % (10**9) + 10**9
 
 
 def parse_northtracker_timestamp(timestamp_str: str | None) -> datetime | None:

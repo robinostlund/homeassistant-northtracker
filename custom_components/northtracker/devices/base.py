@@ -94,7 +94,7 @@ class NorthTrackerBaseDevice(ABC):
     @property
     @abstractmethod
     def imei(self) -> str:
-        """Return the device IMEI or serial number."""
+        """Return the device IMEI (unique identifier for all device types)."""
         ...
     
     @property
