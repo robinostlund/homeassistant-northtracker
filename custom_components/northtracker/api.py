@@ -676,6 +676,60 @@ class NorthTracker:
         
         return responses
 
+    async def get_geofence_status_for_terminal(
+        self, terminal_id: int
+    ) -> bool | None:
+        """Check if all geofences for a terminal are enabled.
+        
+        Args:
+            terminal_id: The terminal/device ID
+            
+        Returns:
+            True if all geofences are enabled,
+            False if any geofence is disabled,
+            None if no geofences exist for this terminal
+        """
+        geofences_response = await self.get_geofences()
+        if not geofences_response.success:
+            LOGGER.warning("Failed to fetch geofences for status check")
+            return None
+        
+        geofences = geofences_response.data.get("geofences", [])
+        terminal_geofences = [
+            gf for gf in geofences if gf.get("TerminalID") == terminal_id
+        ]
+        
+        if not terminal_geofences:
+            LOGGER.debug("No geofences found for terminal %d", terminal_id)
+            return None
+        
+        # Check if all geofences are enabled (Status == "1")
+        all_enabled = all(
+            gf.get("Status") == "1" for gf in terminal_geofences
+        )
+        LOGGER.debug(
+            "Geofence status for terminal %d: all_enabled=%s (checked %d geofences)",
+            terminal_id, all_enabled, len(terminal_geofences)
+        )
+        return all_enabled
+        
+        LOGGER.debug(
+            "Found %d geofences for terminal %d, updating...", 
+            len(terminal_geofences), terminal_id
+        )
+        
+        # Update each geofence
+        responses = []
+        for gf in terminal_geofences:
+            response = await self.set_geofence_status(
+                geofence_id=gf.get("ID"),
+                group_identifier=gf.get("GroupIdentifier", ""),
+                enabled=enabled,
+            )
+            responses.append(response)
+        
+        return responses
+
 
 class NorthTrackerResponse:
     """Wrapper for API responses from North-Tracker."""

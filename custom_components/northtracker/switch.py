@@ -133,6 +133,29 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         # Track pending state changes to provide immediate feedback
         self._pending_state: bool | None = None
 
+    async def async_added_to_hass(self) -> None:
+        """Run when entity is added to Home Assistant."""
+        await super().async_added_to_hass()
+        
+        # For geofence switch, fetch the current status from API
+        if self.entity_description.key == "geofence":
+            device = self.device
+            if device is not None:
+                try:
+                    status = await device.tracker.get_geofence_status_for_terminal(device.id)
+                    if status is not None:
+                        self._geofence_state = status
+                        LOGGER.debug(
+                            "Initialized geofence state for '%s': %s",
+                            device.name, status
+                        )
+                        self.async_write_ha_state()
+                except Exception as err:
+                    LOGGER.warning(
+                        "Failed to fetch initial geofence status for '%s': %s",
+                        device.name, err
+                    )
+
     @property
     def is_on(self) -> bool:
         """Return the state of the switch."""
@@ -154,7 +177,8 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
             return False
         elif self.entity_description.key == "geofence":
             # Geofence alarm state - track via _geofence_state attribute
-            return getattr(self, '_geofence_state', False)
+            # If not initialized yet, default to None (unknown) then show False
+            return getattr(self, '_geofence_state', None) or False
         else:
             # Static switch using value_fn if available
             if hasattr(self.entity_description, 'value_fn') and self.entity_description.value_fn:
