@@ -6,7 +6,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, CONFIGURATION_URL
 from .coordinator import NorthTrackerDataUpdateCoordinator
-from .api import NorthTrackerGpsDevice, NorthTrackerSensorDevice
+from .devices import NorthTrackerBaseDevice, NorthTrackerGpsDevice, NorthTrackerSensorDevice
 from .base import validate_device_name
 
 
@@ -45,7 +45,7 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
             )
 
     @property
-    def device(self) -> NorthTrackerGpsDevice | NorthTrackerSensorDevice | None:
+    def device(self) -> NorthTrackerBaseDevice | None:
         """Return the device object for this entity."""
         return self.coordinator.data.get(self._device_id)
 

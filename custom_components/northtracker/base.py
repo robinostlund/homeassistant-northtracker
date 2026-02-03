@@ -12,6 +12,51 @@ from .coordinator import NorthTrackerDataUpdateCoordinator
 
 T = TypeVar('T')
 
+
+def get_supported_descriptions_for_device(device: Any, descriptions: list[Any], platform_type: str) -> list[Any]:
+    """Get the entity descriptions that are supported by a specific device.
+    
+    Uses the device's capabilities to determine which entities to create,
+    eliminating the need for complex exists_fn lambdas.
+    
+    Args:
+        device: The device to check capabilities for
+        descriptions: List of entity descriptions to filter
+        platform_type: Type of platform ("sensor", "binary_sensor", "switch", "number")
+        
+    Returns:
+        List of descriptions supported by the device
+    """
+    supported = []
+    
+    for description in descriptions:
+        key = description.key
+        
+        # Use device capabilities to check support
+        if platform_type == "sensor":
+            if device.supports_sensor(key):
+                supported.append(description)
+        elif platform_type == "binary_sensor":
+            if device.supports_binary_sensor(key):
+                supported.append(description)
+        elif platform_type == "switch":
+            if device.supports_switch(key):
+                supported.append(description)
+        elif platform_type == "number":
+            if device.supports_number(key):
+                supported.append(description)
+        elif platform_type == "device_tracker":
+            # Device tracker is only for GPS devices with location
+            if hasattr(device, 'capabilities') and device.capabilities.has_location:
+                supported.append(description)
+        else:
+            # Fallback: include if device has the attribute
+            if hasattr(device, key):
+                supported.append(description)
+    
+    return supported
+
+
 class BasePlatformSetup(Generic[T]):
     """Base class for setting up North-Tracker platforms with common patterns."""
     
@@ -51,10 +96,14 @@ class BasePlatformSetup(Generic[T]):
             
             for device_id, device in coordinator.data.items():
                 if device_id not in added_devices:
-                    for description in self.entity_descriptions:
-                        if hasattr(description, 'exists_fn') and description.exists_fn and description.exists_fn(device):
-                            entity = self.create_entity_callback(coordinator, device_id, description)
-                            new_entities.append(entity)
+                    # Use device capabilities to filter supported descriptions
+                    supported_descriptions = get_supported_descriptions_for_device(
+                        device, self.entity_descriptions, self.platform_name
+                    )
+                    
+                    for description in supported_descriptions:
+                        entity = self.create_entity_callback(coordinator, device_id, description)
+                        new_entities.append(entity)
                     
                     added_devices.add(device_id)
             
@@ -112,11 +161,14 @@ class AdvancedPlatformSetup(BasePlatformSetup[T]):
                     if self.custom_entity_creator:
                         self.custom_entity_creator(device, device_id, coordinator, new_entities)
                     
-                    # Create standard entities from descriptions
-                    for description in self.entity_descriptions:
-                        if hasattr(description, 'exists_fn') and description.exists_fn and description.exists_fn(device):
-                            entity = self.create_entity_callback(coordinator, device_id, description)
-                            new_entities.append(entity)
+                    # Create standard entities using device capabilities
+                    supported_descriptions = get_supported_descriptions_for_device(
+                        device, self.entity_descriptions, self.platform_name
+                    )
+                    
+                    for description in supported_descriptions:
+                        entity = self.create_entity_callback(coordinator, device_id, description)
+                        new_entities.append(entity)
                     
                     added_devices.add(device_id)
             

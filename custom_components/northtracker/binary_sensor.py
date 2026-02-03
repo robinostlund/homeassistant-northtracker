@@ -17,7 +17,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerGpsDevice
+from .devices import NorthTrackerBaseDevice
 from .base import validate_entity_id
 
 
@@ -25,8 +25,8 @@ from .base import validate_entity_id
 class NorthTrackerBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes a North-Tracker binary sensor entity with custom attributes."""
     
-    value_fn: Callable[[NorthTrackerGpsDevice], Any] | None = None
-    exists_fn: Callable[[NorthTrackerGpsDevice], bool] | None = None
+    value_fn: Callable[[NorthTrackerBaseDevice], Any] | None = None
+
 
 # Unified binary sensor descriptions for both main GPS devices and Bluetooth sensors
 BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...] = (
@@ -37,15 +37,13 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=lambda device: device.bluetooth_enabled,
-        exists_fn=lambda device: hasattr(device, 'bluetooth_enabled') and device.bluetooth_enabled is not None,
     ),
     # Bluetooth sensor binary sensors
     NorthTrackerBinarySensorEntityDescription(
         key="door_sensor",
         translation_key="door_sensor",
         device_class=BinarySensorDeviceClass.OPENING,
-        value_fn=lambda device: not device.magnetic_contact,  # Invert: True=closed->False (closed), False=open->True (open)
-        exists_fn=lambda device: hasattr(device, 'magnetic_contact') and device.magnetic_contact is not None,
+        value_fn=lambda device: not device.magnetic_contact,  # Invert: True=closed->False, False=open->True
     ),
 )
 

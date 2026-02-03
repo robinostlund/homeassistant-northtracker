@@ -13,7 +13,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue, async_delete_issue
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
-from .api import NorthTracker, NorthTrackerGpsDevice, NorthTrackerSensorDevice, APIError, AuthenticationError, RateLimitError
+from .api import NorthTracker, APIError, AuthenticationError, RateLimitError
+from .devices import NorthTrackerGpsDevice, NorthTrackerSensorDevice
 from .const import DOMAIN, LOGGER, DEFAULT_UPDATE_INTERVAL, MIN_UPDATE_INTERVAL, MAX_UPDATE_INTERVAL
 
 

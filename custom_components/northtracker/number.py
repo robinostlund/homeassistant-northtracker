@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, LOGGER, MIN_BATTERY_VOLTAGE_THRESHOLD, MAX_BATTERY_VOLTAGE_THRESHOLD
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerGpsDevice
+from .devices import NorthTrackerBaseDevice
 from .base import validate_entity_id
 
 
@@ -24,8 +24,7 @@ from .base import validate_entity_id
 class NorthTrackerNumberEntityDescription(NumberEntityDescription):
     """Describes a North-Tracker number entity with custom attributes."""
 
-    value_fn: Callable[[NorthTrackerGpsDevice], Any] | None = None
-    exists_fn: Callable[[NorthTrackerGpsDevice], bool] | None = None
+    value_fn: Callable[[NorthTrackerBaseDevice], Any] | None = None
 
 
 # Number entity descriptions
@@ -40,7 +39,6 @@ NUMBER_DESCRIPTIONS: tuple[NorthTrackerNumberEntityDescription, ...] = (
         native_unit_of_measurement="V",
         entity_registry_enabled_default=False,
         value_fn=lambda device: device.low_battery_threshold,
-        exists_fn=lambda device: hasattr(device, 'low_battery_threshold') and device.low_battery_threshold is not None,
     ),
 )
 

@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, LOGGER, DEFAULT_BATTERY_LOW_THRESHOLD
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerGpsDevice
+from .devices import NorthTrackerBaseDevice, NorthTrackerGpsDevice
 from .base import validate_entity_id
 
 
@@ -24,8 +24,7 @@ from .base import validate_entity_id
 class NorthTrackerSwitchEntityDescription(SwitchEntityDescription):
     """Describes a North-Tracker switch entity with custom attributes."""
     
-    value_fn: Callable[[NorthTrackerGpsDevice], Any] | None = None
-    exists_fn: Callable[[NorthTrackerGpsDevice], bool] | None = None
+    value_fn: Callable[[NorthTrackerBaseDevice], Any] | None = None
 
 
 # Switch descriptions for GPS devices
@@ -35,21 +34,17 @@ GPS_SWITCH_DESCRIPTIONS: tuple[NorthTrackerSwitchEntityDescription, ...] = (
         translation_key="alarm",
         device_class=SwitchDeviceClass.SWITCH,
         value_fn=lambda device: getattr(device, 'alarm_status', False),
-        exists_fn=lambda device: hasattr(device, 'alarm_status') and getattr(device, 'alarm_status', None) is not None,
     ),
     NorthTrackerSwitchEntityDescription(
         key="low_battery_alert_enabled",
         translation_key="low_battery_alert",
         device_class=SwitchDeviceClass.SWITCH,
         value_fn=lambda device: device.low_battery_alert_enabled,
-        exists_fn=lambda device: hasattr(device, 'low_battery_alert_enabled') and device.low_battery_alert_enabled is not None,
     ),
     NorthTrackerSwitchEntityDescription(
         key="geofence",
         translation_key="geofence",
         device_class=SwitchDeviceClass.SWITCH,
-        # Geofence switch always exists for GPS devices
-        exists_fn=lambda device: isinstance(device, NorthTrackerGpsDevice),
     ),
 )
 

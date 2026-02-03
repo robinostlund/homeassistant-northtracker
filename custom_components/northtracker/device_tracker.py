@@ -16,22 +16,20 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerGpsDevice
+from .devices import NorthTrackerBaseDevice, NorthTrackerGpsDevice
 from .base import validate_entity_id
 
 
 @dataclass(kw_only=True)
 class NorthTrackerTrackerEntityDescription(TrackerEntityDescription):
-    """Describes a North-Tracker device tracker entity with custom attributes."""
-    
-    exists_fn: Callable[[NorthTrackerGpsDevice], bool] | None = None
+    """Describes a North-Tracker device tracker entity."""
+    pass
+
 
 # Device tracker entity description
 DEVICE_TRACKER_DESCRIPTION = NorthTrackerTrackerEntityDescription(
     key="location",
     translation_key="location",
-    # Use exists_fn to determine if device should have a tracker (GPS devices only)
-    exists_fn=lambda device: hasattr(device, 'device_type') and device.device_type in ["gps", "tracker"] and device.device_type is not None,
 )
 
 # Value functions for device tracker properties

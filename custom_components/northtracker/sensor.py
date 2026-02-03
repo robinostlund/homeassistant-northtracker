@@ -27,7 +27,8 @@ from homeassistant.helpers.typing import StateType
 from .const import DOMAIN, MIN_SIGNAL_STRENGTH, MAX_SIGNAL_STRENGTH, MAX_BATTERY_VOLTAGE_READING
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .api import NorthTrackerGpsDevice, get_signal_quality_text
+from .devices import NorthTrackerBaseDevice
+from .helpers import get_signal_quality_text
 from .base import validate_entity_id
 
 
@@ -35,8 +36,8 @@ from .base import validate_entity_id
 class NorthTrackerSensorEntityDescription(SensorEntityDescription):
     """Describes a North-Tracker sensor entity with custom attributes."""
     
-    value_fn: Callable[[NorthTrackerGpsDevice], Any] | None = None
-    exists_fn: Callable[[NorthTrackerGpsDevice], bool] | None = None
+    value_fn: Callable[[NorthTrackerBaseDevice], Any] | None = None
+
 
 # Unified sensor descriptions for both main GPS devices and Bluetooth sensors
 SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
@@ -48,7 +49,6 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=lambda device: device.last_seen,
-        exists_fn=lambda device: hasattr(device, 'last_seen') and device.last_seen is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="battery_voltage",
@@ -60,7 +60,6 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=lambda device: device.battery_voltage,
-        exists_fn=lambda device: hasattr(device, 'battery_voltage') and device.battery_voltage is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="odometer",
@@ -69,7 +68,6 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
         value_fn=lambda device: device.odometer,
-        exists_fn=lambda device: hasattr(device, 'odometer') and device.odometer is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="gps_signal",
@@ -80,7 +78,6 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=lambda device: device.gps_signal,
-        exists_fn=lambda device: hasattr(device, 'gps_signal') and device.gps_signal is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="network_signal",
@@ -91,7 +88,6 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=lambda device: device.network_signal,
-        exists_fn=lambda device: hasattr(device, 'network_signal') and device.network_signal is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="speed",
@@ -103,7 +99,6 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=lambda device: device.speed,
-        exists_fn=lambda device: hasattr(device, 'speed') and device.speed is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="report_frequency",
@@ -115,8 +110,8 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=lambda device: device.report_frequency,
-        exists_fn=lambda device: hasattr(device, 'report_frequency') and device.report_frequency is not None,
     ),
+    # Bluetooth sensor sensors
     NorthTrackerSensorEntityDescription(
         key="temperature",
         translation_key="temperature",
@@ -125,7 +120,6 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         suggested_display_precision=1,
         value_fn=lambda device: device.temperature,
-        exists_fn=lambda device: hasattr(device, 'temperature') and device.temperature is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="humidity",
@@ -135,7 +129,6 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.HUMIDITY,
         suggested_display_precision=0,
         value_fn=lambda device: device.humidity,
-        exists_fn=lambda device: hasattr(device, 'humidity') and device.humidity is not None,
     ),
     NorthTrackerSensorEntityDescription(
         key="battery_percentage",
@@ -147,7 +140,6 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         value_fn=lambda device: device.battery_percentage,
-        exists_fn=lambda device: hasattr(device, 'battery_percentage') and device.battery_percentage is not None,
     ),
 )
 
