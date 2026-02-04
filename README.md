@@ -160,57 +160,9 @@ logger:
 - Verify the update interval is not too aggressive
 - Review logs for specific error messages
 
-### Log Analysis
-
-The integration provides detailed logging:
-
-- **API Requests/Responses**: Masked sensitive data
-- **Authentication Flow**: Token management and refresh
-- **Entity Discovery**: Dynamic I/O detection
-- **Performance Metrics**: Update timing and success rates
-
-## API Documentation
-
-The integration uses the North-Tracker REST API with the following key features:
-
-- **Token-based Authentication**: Secure JWT token management
-- **Rate Limiting**: Respects API rate limits with exponential backoff
-- **Error Handling**: Comprehensive error categorization and recovery
-- **Parallel Processing**: Efficient device data fetching
-
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## Creating a Release
-
-Releases are automated via GitHub Actions. When you push a tag, the workflow will automatically:
-- Update `manifest.json` with the tag version
-- Create a release zip file
-- Generate a changelog from merged PRs
-- Publish a GitHub Release
-
-### Steps to release a new version:
-
-```bash
-# Make sure you're on main with latest changes
-git checkout main
-git pull
-
-# Create and push a tag
-git tag v2.1.0
-git push origin v2.1.0
-```
-
-The release will be created automatically within a few minutes.
-
-### Version format
-- Use semantic versioning: `v1.2.3`
-- Pre-releases: `v1.2.3-beta1` or `v1.2.3-alpha1`
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding guidelines, and release procedures.
 
 ## License
 
@@ -221,25 +173,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Issues**: [GitHub Issues](https://github.com/robinostlund/homeassistant-northtracker/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/robinostlund/homeassistant-northtracker/discussions)
 - **Home Assistant Community**: [Community Forum](https://community.home-assistant.io/)
-
-## Changelog
-
-### Version 2.0.0
-- **Breaking Change**: Entity unique IDs now use IMEI instead of device ID
-  - Automatic migration handles existing entities
-- New device architecture with separate GPS and Bluetooth sensor classes
-- Added Bluetooth sensor support (temperature, door contact)
-- Added button entities for manual refresh
-- Improved code structure with capability-based entity creation
-- Enhanced stability with stable device identifiers
-
-### Version 1.0.0
-- Initial release
-- Dynamic I/O discovery
-- Comprehensive logging
-- Authentication management
-- Reconfiguration support
-- Bug fixes for AttributeError and KeyError issues
 
 ---
 
