@@ -54,17 +54,11 @@ jobs:
           # Build release notes
           NOTES="## North-Tracker ${VERSION}
 
-          ### Installation
+          ### What's Changed
+          See the auto-generated changelog below for a list of changes in this release.
 
-          #### HACS (Recommended)
-          1. Open HACS in Home Assistant
-          2. Search for \"North-Tracker\"
-          3. Click Install
-
-          #### Manual
-          1. Download \`northtracker.zip\` from the assets below
-          2. Extract to \`custom_components/northtracker/\` in your Home Assistant config directory
-          3. Restart Home Assistant"
+          ---
+          For installation instructions, see the [README](https://github.com/robinostlund/homeassistant-northtracker#installation)."
           
           # Create release with auto-generated notes
           if [ "$IS_PRERELEASE" = "true" ]; then

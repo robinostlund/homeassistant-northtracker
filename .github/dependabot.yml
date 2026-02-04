@@ -11,7 +11,7 @@ updates:
     commit-message:
       prefix: "ci"
     labels:
-      - "dependencies"
+      - "enhancement"
 
   # Python dependencies
   - package-ecosystem: "pip"
@@ -21,4 +21,4 @@ updates:
     commit-message:
       prefix: "deps"
     labels:
-      - "dependencies"
+      - "enhancement"
