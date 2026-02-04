@@ -44,13 +44,6 @@ jobs:
             echo "IS_PRERELEASE=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Generate Release Notes with Copilot
-        id: release_notes
-        uses: github/copilot-release-notes-action@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          version: ${{ steps.get_version.outputs.VERSION }}
-
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -58,22 +51,14 @@ jobs:
           VERSION="${{ steps.get_version.outputs.VERSION }}"
           IS_PRERELEASE="${{ steps.prerelease.outputs.IS_PRERELEASE }}"
           
-          # Build release notes with Copilot-generated content
-          NOTES="## North-Tracker ${VERSION}
-
-          ${{ steps.release_notes.outputs.notes }}
-
-          ---
-          For installation instructions, see the [README](https://github.com/robinostlund/homeassistant-northtracker#installation)."
-          
-          # Create release
+          # Create release with auto-generated notes
           if [ "$IS_PRERELEASE" = "true" ]; then
             gh release create "$VERSION" northtracker.zip \
               --title "$VERSION" \
-              --notes "$NOTES" \
+              --generate-notes \
               --prerelease
           else
             gh release create "$VERSION" northtracker.zip \
               --title "$VERSION" \
-              --notes "$NOTES"
+              --generate-notes
           fi
