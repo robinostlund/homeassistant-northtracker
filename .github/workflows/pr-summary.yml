@@ -1,0 +1,22 @@
+name: PR Summary
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  summarize:
+    name: Generate PR Summary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate PR Summary with Copilot
+        uses: copilot-extensions/pr-summary-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
