@@ -9,3 +9,6 @@ __pycache__/
 
 # OS files
 .DS_Store
+
+# Ruff files
+.ruff_cache
