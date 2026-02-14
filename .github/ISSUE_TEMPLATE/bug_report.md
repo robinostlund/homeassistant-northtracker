@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug with the North-Tracker integration
+about: Report a bug with the NorthTracker integration
 title: "[Bug]: "
 labels: bug
 assignees: ''
@@ -19,7 +19,7 @@ What you expected to happen.
 
 ## Environment
 - Home Assistant version: 
-- North-Tracker integration version: 
+- NorthTracker integration version: 
 - Installation method: [HACS / Manual]
 
 ## Logs

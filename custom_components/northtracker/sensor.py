@@ -1,4 +1,4 @@
-"""Sensor platform for North-Tracker."""
+"""Sensor platform for NorthTracker."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ from .base import validate_entity_id
 
 @dataclass(kw_only=True)
 class NorthTrackerSensorEntityDescription(SensorEntityDescription):
-    """Describes a North-Tracker sensor entity with custom attributes."""
+    """Describes a NorthTracker sensor entity with custom attributes."""
 
     value_fn: Callable[[NorthTrackerBaseDevice], Any] | None = None
 
@@ -167,7 +167,7 @@ async def async_setup_entry(
 
 
 class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
-    """Defines a North-Tracker sensor for both GPS and Bluetooth devices."""
+    """Defines a NorthTracker sensor for both GPS and Bluetooth devices."""
 
     def __init__(
         self,

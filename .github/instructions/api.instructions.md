@@ -6,7 +6,7 @@ applyTo: "custom_components/northtracker/api.py"
 
 ## API Structure
 
-The North-Tracker API client handles:
+The NorthTracker API client handles:
 
 - Authentication (login, token refresh)
 - Device data fetching
@@ -48,7 +48,7 @@ Use specific exception types:
 
 ```python
 class NorthTrackerError(Exception):
-    """Base exception for North-Tracker."""
+    """Base exception for NorthTracker."""
 
 class NorthTrackerAuthError(NorthTrackerError):
     """Authentication error."""

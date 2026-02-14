@@ -1,4 +1,4 @@
-"""Base entity for the North-Tracker integration."""
+"""Base entity for the NorthTracker integration."""
 
 from __future__ import annotations
 
@@ -12,14 +12,14 @@ from .base import validate_device_name
 
 
 class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
-    """Defines a base North-Tracker entity."""
+    """Defines a base NorthTracker entity."""
 
     _attr_has_entity_name = True
 
     def __init__(
         self, coordinator: NorthTrackerDataUpdateCoordinator, device_id: int
     ) -> None:
-        """Initialize the North-Tracker entity."""
+        """Initialize the NorthTracker entity."""
         super().__init__(coordinator)
         self._device_id = device_id
 
@@ -45,7 +45,7 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
         else:
             self._attr_device_info = DeviceInfo(
                 identifiers={(DOMAIN, str(device_id))},
-                name=f"North-Tracker Device {device_id}",
+                name=f"NorthTracker Device {device_id}",
                 manufacturer=MANUFACTURER,
             )
 

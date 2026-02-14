@@ -2,7 +2,7 @@
 applyTo: "custom_components/northtracker/*.py"
 ---
 
-# Python Code Instructions for North-Tracker
+# Python Code Instructions for NorthTracker
 
 ## File Structure
 
@@ -60,7 +60,7 @@ When creating new entities:
 
 ```python
 class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
-    """North-Tracker sensor entity."""
+    """NorthTracker sensor entity."""
 
     _attr_has_entity_name = True
 

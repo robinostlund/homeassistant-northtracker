@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a new feature for the North-Tracker integration
+about: Suggest a new feature for the NorthTracker integration
 title: "[Feature]: "
 labels: enhancement
 assignees: ''

@@ -1,4 +1,4 @@
-"""Config flow for North-Tracker."""
+"""Config flow for NorthTracker."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from .const import (
 
 
 class NorthTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for North-Tracker."""
+    """Handle a config flow for NorthTracker."""
 
     VERSION = 1
 
@@ -76,7 +76,7 @@ class NorthTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
                 except APIError:
                     errors["base"] = "cannot_connect"
                 except Exception:
-                    LOGGER.exception("Unexpected error connecting to North-Tracker API")
+                    LOGGER.exception("Unexpected error connecting to NorthTracker API")
                     errors["base"] = "unknown"
 
         return self.async_show_form(
@@ -254,7 +254,7 @@ class NorthTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class NorthTrackerOptionsFlow(OptionsFlow):
-    """Handle North-Tracker options."""
+    """Handle NorthTracker options."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

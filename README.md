@@ -1,10 +1,10 @@
-# Home Assistant North-Tracker Integration
+# Home Assistant NorthTracker Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/robinostlund/homeassistant-northtracker)](https://github.com/robinostlund/homeassistant-northtracker/releases)
 [![GitHub](https://img.shields.io/github/license/robinostlund/homeassistant-northtracker)](LICENSE)
 
-A custom Home Assistant integration for North-Tracker GPS tracking devices, providing comprehensive device monitoring, I/O control, and location tracking capabilities.
+A custom Home Assistant integration for NorthTracker GPS tracking devices, providing comprehensive device monitoring, I/O control, and location tracking capabilities.
 
 ## Features
 
@@ -35,7 +35,7 @@ A custom Home Assistant integration for North-Tracker GPS tracking devices, prov
 4. Add this repository URL: `https://github.com/robinostlund/homeassistant-northtracker`
 5. Select "Integration" as the category
 6. Click "Add"
-7. Search for "North-Tracker" and install
+7. Search for "NorthTracker" and install
 8. Restart Home Assistant
 
 ### Manual Installation
@@ -51,10 +51,10 @@ A custom Home Assistant integration for North-Tracker GPS tracking devices, prov
 
 1. Go to **Settings** → **Devices & Services**
 2. Click **"+ Add Integration"**
-3. Search for **"North-Tracker"**
-4. Enter your North-Tracker credentials:
-   - **Username**: Your North-Tracker username
-   - **Password**: Your North-Tracker password
+3. Search for **"NorthTracker"**
+4. Enter your NorthTracker credentials:
+  - **Username**: Your NorthTracker username
+  - **Password**: Your NorthTracker password
    - **Update Interval**: How often to fetch data (20-300 seconds, default: 30)
 
 ### Reconfiguration
@@ -62,7 +62,7 @@ A custom Home Assistant integration for North-Tracker GPS tracking devices, prov
 To update your credentials or settings:
 
 1. Go to **Settings** → **Devices & Services**
-2. Find your North-Tracker integration
+2. Find your NorthTracker integration
 3. Click the three dots and select **"Reconfigure"**
 4. Update your settings as needed
 
@@ -147,7 +147,7 @@ logger:
 
 #### Authentication Errors
 - Verify your credentials are correct
-- Check that your North-Tracker server is accessible
+- Check that your NorthTracker server is accessible
 - Ensure your account has API access
 
 #### Missing Entities
@@ -176,4 +176,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Note**: This integration is not officially affiliated with North-Tracker. It is a community-developed integration for Home Assistant users.
+**Note**: This integration is not officially affiliated with NorthTracker. It is a community-developed integration for Home Assistant users.

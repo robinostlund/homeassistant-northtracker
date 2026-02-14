@@ -2,8 +2,8 @@
     "config": {
         "step": {
             "user": {
-                "title": "North-Tracker Autentisering",
-                "description": "Vänligen ange dina inloggningsuppgifter för North-Tracker.",
+                "title": "NorthTracker Autentisering",
+                "description": "Vänligen ange dina inloggningsuppgifter för NorthTracker.",
                 "data": {
                     "username": "Användarnamn",
                     "password": "Lösenord",
@@ -11,8 +11,8 @@
                 }
             },
             "reauth_confirm": {
-                "title": "Återautentisera North-Tracker",
-                "description": "Inloggningsuppgifterna för North-Tracker ({username}) behöver uppdateras. Vänligen ange dina nya inloggningsuppgifter.",
+                "title": "Återautentisera NorthTracker",
+                "description": "Inloggningsuppgifterna för NorthTracker ({username}) behöver uppdateras. Vänligen ange dina nya inloggningsuppgifter.",
                 "data": {
                     "username": "Användarnamn",
                     "password": "Lösenord",
@@ -20,8 +20,8 @@
                 }
             },
             "reconfigure": {
-                "title": "Konfigurera om North-Tracker",
-                "description": "Uppdatera dina North-Tracker konfigurationsinställningar. Lämna lösenord tomt för att behålla nuvarande lösenord.",
+                "title": "Konfigurera om NorthTracker",
+                "description": "Uppdatera dina NorthTracker konfigurationsinställningar. Lämna lösenord tomt för att behålla nuvarande lösenord.",
                 "data": {
                     "username": "Användarnamn",
                     "password": "Lösenord (valfritt - lämna tomt för att behålla nuvarande)",
@@ -30,7 +30,7 @@
             }
         },
         "error": {
-            "cannot_connect": "Kunde inte ansluta till North-Tracker API. Kontrollera din nätverksanslutning.",
+            "cannot_connect": "Kunde inte ansluta till NorthTracker API. Kontrollera din nätverksanslutning.",
             "invalid_auth": "Ogiltigt användarnamn eller lösenord. Vänligen försök igen.",
             "rate_limit": "Hastighetsgräns överskriden. Vänligen vänta några minuter och försök igen.",
             "scan_interval_too_low": "Uppdateringsintervall måste vara minst 1 minut.",
@@ -39,7 +39,7 @@
             "unknown": "Oväntat fel uppstod. Vänligen försök igen."
         },
         "abort": {
-            "already_configured": "Detta North-Tracker-konto är redan konfigurerat.",
+            "already_configured": "Detta NorthTracker-konto är redan konfigurerat.",
             "reauth_successful": "Återautentisering lyckades.",
             "reconfigure_successful": "Omkonfigurering lyckades."
         }
@@ -47,8 +47,8 @@
     "options": {
         "step": {
             "init": {
-                "title": "North-Tracker Inställningar",
-                "description": "Justera inställningarna för din North-Tracker integration.",
+                "title": "NorthTracker Inställningar",
+                "description": "Justera inställningarna för din NorthTracker integration.",
                 "data": {
                     "scan_interval": "Uppdateringsintervall (minuter)"
                 }
@@ -61,20 +61,20 @@
     },
     "issues": {
         "api_error": {
-            "title": "North-Tracker API-fel",
-            "description": "North-Tracker integrationen stötte på ett API-fel: {error}. Integrationen kommer att fortsätta försöka automatiskt."
+            "title": "NorthTracker API-fel",
+            "description": "NorthTracker integrationen stötte på ett API-fel: {error}. Integrationen kommer att fortsätta försöka automatiskt."
         },
         "rate_limit": {
-            "title": "North-Tracker Hastighetsgräns Överskriden",
-            "description": "North-Tracker API:ets hastighetsgräns har överskridits. Överväg att öka uppdateringsintervallet i integrationsinställningarna."
+            "title": "NorthTracker Hastighetsgräns Överskriden",
+            "description": "NorthTracker API:ets hastighetsgräns har överskridits. Överväg att öka uppdateringsintervallet i integrationsinställningarna."
         },
         "authentication_failed": {
-            "title": "North-Tracker Autentisering Misslyckades",
-            "description": "North-Tracker integrationen kunde inte autentisera. Vänligen konfigurera om integrationen med giltiga inloggningsuppgifter."
+            "title": "NorthTracker Autentisering Misslyckades",
+            "description": "NorthTracker integrationen kunde inte autentisera. Vänligen konfigurera om integrationen med giltiga inloggningsuppgifter."
         },
         "devices_removed": {
-            "title": "North-Tracker Enheter Borttagna",
-            "description": "Följande enheter har tagits bort från ditt North-Tracker konto och har rensats bort: {devices}"
+            "title": "NorthTracker Enheter Borttagna",
+            "description": "Följande enheter har tagits bort från ditt NorthTracker konto och har rensats bort: {devices}"
         }
     },
     "entity": {

@@ -13,7 +13,7 @@ Translation files follow Home Assistant's standard format:
   "config": {
     "step": {
       "user": {
-        "title": "Connect to North-Tracker",
+        "title": "Connect to NorthTracker",
         "data": {
           "username": "Username",
           "password": "Password"

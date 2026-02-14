@@ -1,4 +1,4 @@
-"""Bluetooth Sensor Device class for North-Tracker Bluetooth sensors."""
+"""Bluetooth Sensor Device class for NorthTracker Bluetooth sensors."""
 
 from __future__ import annotations
 

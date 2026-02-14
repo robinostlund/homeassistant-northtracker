@@ -1,4 +1,4 @@
-"""North-Tracker API Client."""
+"""NorthTracker API Client."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from .const import (
 
 
 class NorthTrackerException(Exception):
-    """Base exception for North-Tracker API errors."""
+    """Base exception for NorthTracker API errors."""
 
 
 class AuthenticationError(NorthTrackerException):
@@ -36,10 +36,10 @@ class APIError(NorthTrackerException):
 
 
 class NorthTracker:
-    """North-Tracker API client with improved error handling and token management."""
+    """NorthTracker API client with improved error handling and token management."""
 
     def __init__(self, session: aiohttp.ClientSession) -> None:
-        """Initialize the North-Tracker API client."""
+        """Initialize the NorthTracker API client."""
         self.session = session
         self.base_url = API_BASE_URL
         self.http_headers = {
@@ -386,14 +386,14 @@ class NorthTracker:
             raise AuthenticationError(f"Login failed: {err}") from err
 
     async def login(self, username: str, password: str) -> bool:
-        """Authenticate with the North-Tracker API and store credentials for future use."""
+        """Authenticate with the NorthTracker API and store credentials for future use."""
         self._username = username
         self._password = password
         await self._login(username, password)
         return True
 
     async def logout(self) -> None:
-        """Logout from the North-Tracker API."""
+        """Logout from the NorthTracker API."""
         url = f"{self.base_url}/user/logout"
         try:
             await self._post_data(url)
@@ -840,7 +840,7 @@ class NorthTracker:
 
 
 class NorthTrackerResponse:
-    """Wrapper for API responses from North-Tracker."""
+    """Wrapper for API responses from NorthTracker."""
 
     def __init__(self, data: dict[str, Any]) -> None:
         """Initialize the response wrapper."""

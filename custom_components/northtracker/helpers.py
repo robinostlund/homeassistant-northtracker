@@ -1,4 +1,4 @@
-"""Helper functions for North-Tracker integration."""
+"""Helper functions for NorthTracker integration."""
 
 from __future__ import annotations
 
@@ -40,9 +40,9 @@ def generate_stable_id(serial_number: str) -> int:
 
 
 def parse_northtracker_timestamp(timestamp_str: str | None) -> datetime | None:
-    """Parse a North-Tracker timestamp string to datetime with correct timezone.
+    """Parse a NorthTracker timestamp string to datetime with correct timezone.
 
-    North-Tracker API returns timestamps in local timezone (Europe/Stockholm)
+    NorthTracker API returns timestamps in local timezone (Europe/Stockholm)
     even though they appear to be naive timestamps.
 
     Args:

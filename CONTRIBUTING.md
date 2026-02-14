@@ -1,6 +1,6 @@
-# Contributing to North-Tracker Integration
+# Contributing to NorthTracker Integration
 
-Thank you for your interest in contributing to the Home Assistant North-Tracker Integration!
+Thank you for your interest in contributing to the Home Assistant NorthTracker Integration!
 
 ## Getting Started
 
@@ -17,7 +17,7 @@ Thank you for your interest in contributing to the Home Assistant North-Tracker 
 
 - Python 3.11+
 - Home Assistant development environment
-- Access to a North-Tracker device or API documentation
+- Access to a NorthTracker device or API documentation
 
 ### Installing Dependencies
 
@@ -30,7 +30,7 @@ pip install -r requirements.txt
 ```
 custom_components/northtracker/
 ├── __init__.py          # Integration setup and entry points
-├── api.py               # North-Tracker API client
+├── api.py               # NorthTracker API client
 ├── base.py              # Base classes
 ├── coordinator.py       # Data update coordinator
 ├── config_flow.py       # Configuration UI flow

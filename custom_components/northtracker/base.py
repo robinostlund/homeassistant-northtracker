@@ -1,4 +1,4 @@
-"""Base helpers for North-Tracker platform setup."""
+"""Base helpers for NorthTracker platform setup."""
 
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ def get_supported_descriptions_for_device(
 
 
 class BasePlatformSetup(Generic[T]):
-    """Base class for setting up North-Tracker platforms with common patterns."""
+    """Base class for setting up NorthTracker platforms with common patterns."""
 
     def __init__(
         self,

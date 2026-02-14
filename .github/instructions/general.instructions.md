@@ -2,9 +2,9 @@
 applyTo: "**"
 ---
 
-# North-Tracker Integration - Copilot Instructions
+# NorthTracker Integration - Copilot Instructions
 
-This is a custom Home Assistant integration for North-Tracker GPS tracking devices.
+This is a custom Home Assistant integration for NorthTracker GPS tracking devices.
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ This is a custom Home Assistant integration for North-Tracker GPS tracking devic
 ### Core Components
 
 - `__init__.py` - Integration setup, entry points, and device cleanup
-- `api.py` - North-Tracker REST API client with token authentication
+- `api.py` - NorthTracker REST API client with token authentication
 - `coordinator.py` - Data update coordinator for polling device data
 - `config_flow.py` - Configuration UI flow for setup and reconfiguration
 - `const.py` - Constants, defaults, and configuration values
