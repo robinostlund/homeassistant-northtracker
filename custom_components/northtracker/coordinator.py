@@ -1,4 +1,4 @@
-"""DataUpdateCoordinator for the North-Tracker integration."""
+"""DataUpdateCoordinator for the NorthTracker integration."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ from .const import (
 class NorthTrackerDataUpdateCoordinator(
     DataUpdateCoordinator[dict[int, NorthTrackerGpsDevice]]
 ):
-    """Class to manage fetching North-Tracker data."""
+    """Class to manage fetching NorthTracker data."""
 
     config_entry: ConfigEntry
 
@@ -83,7 +83,7 @@ class NorthTrackerDataUpdateCoordinator(
         update_interval = timedelta(minutes=update_interval_minutes)
 
         LOGGER.info(
-            "North-Tracker coordinator initialized with a %.2f minute update interval.",
+            "NorthTracker coordinator initialized with a %.2f minute update interval.",
             update_interval_minutes,
         )
 

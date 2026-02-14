@@ -1,4 +1,4 @@
-"""Constants for the North-Tracker integration."""
+"""Constants for the NorthTracker integration."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ DOMAIN = "northtracker"
 LOGGER = getLogger(__package__)
 
 # Manufacturer and URLs
-MANUFACTURER = "North-Tracker"
+MANUFACTURER = "NorthTracker"
 CONFIGURATION_URL = "https://gps.northtracker.com"
 
 # Platforms
@@ -36,7 +36,7 @@ API_TIMEOUT = 30  # seconds
 API_MAX_RETRIES = 3
 API_RETRY_DELAY = 1  # seconds
 API_RATE_LIMIT_WARNING_THRESHOLD = 80  # percent
-API_TIMEZONE = "Europe/Stockholm"  # timezone used by North-Tracker API
+API_TIMEZONE = "Europe/Stockholm"  # timezone used by NorthTracker API
 
 # Device Constants
 MAX_BLUETOOTH_SENSORS_PER_DEVICE = 9  # slots 1-9
@@ -44,8 +44,8 @@ MAX_BLUETOOTH_SENSORS_PER_DEVICE = 9  # slots 1-9
 # Signal Quality Thresholds
 MIN_SIGNAL_STRENGTH = 0
 MAX_SIGNAL_STRENGTH = 100
-SIGNAL_SCALE_MIN = 0  # Minimum value on North-Tracker's 0-5 signal scale
-SIGNAL_SCALE_MAX = 5  # Maximum value on North-Tracker's 0-5 signal scale
+SIGNAL_SCALE_MIN = 0  # Minimum value on NorthTracker's 0-5 signal scale
+SIGNAL_SCALE_MAX = 5  # Maximum value on NorthTracker's 0-5 signal scale
 SIGNAL_EXCELLENT_THRESHOLD = 80
 SIGNAL_GOOD_THRESHOLD = 60
 SIGNAL_POOR_THRESHOLD = 40

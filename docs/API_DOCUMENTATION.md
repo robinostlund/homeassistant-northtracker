@@ -1,6 +1,6 @@
-# North-Tracker API Documentation
+# NorthTracker API Documentation
 
-This document describes the North-Tracker cloud API used by this Home Assistant integration.
+This document describes the NorthTracker cloud API used by this Home Assistant integration.
 It is intended to help AI assistants (like Claude) understand the backend API structure for future development.
 
 ## Base URL

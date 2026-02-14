@@ -1,4 +1,4 @@
-"""Switch platform for North-Tracker."""
+"""Switch platform for NorthTracker."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from .base import validate_entity_id
 
 @dataclass(kw_only=True)
 class NorthTrackerSwitchEntityDescription(SwitchEntityDescription):
-    """Describes a North-Tracker switch entity with custom attributes."""
+    """Describes a NorthTracker switch entity with custom attributes."""
 
     value_fn: Callable[[NorthTrackerBaseDevice], Any] | None = None
 
@@ -113,7 +113,7 @@ async def async_setup_entry(
 
 
 class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
-    """Defines a North-Tracker switch."""
+    """Defines a NorthTracker switch."""
 
     def __init__(
         self,

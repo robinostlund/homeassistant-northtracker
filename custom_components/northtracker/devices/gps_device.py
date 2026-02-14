@@ -1,4 +1,4 @@
-"""GPS Device class for North-Tracker GPS trackers."""
+"""GPS Device class for NorthTracker GPS trackers."""
 
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ GPS_DEVICE_CAPABILITIES = DeviceCapabilities(
 
 
 class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
-    """Represents a North-Tracker GPS device with all its data and capabilities."""
+    """Represents a NorthTracker GPS device with all its data and capabilities."""
 
     def __init__(self, tracker: "NorthTracker", device_data: dict[str, Any]) -> None:
         """Initialize a GPS device instance."""

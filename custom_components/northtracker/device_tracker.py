@@ -1,4 +1,4 @@
-"""Device tracker platform for North-Tracker."""
+"""Device tracker platform for NorthTracker."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from .base import validate_entity_id
 
 @dataclass(kw_only=True)
 class NorthTrackerTrackerEntityDescription(TrackerEntityDescription):
-    """Describes a North-Tracker device tracker entity."""
+    """Describes a NorthTracker device tracker entity."""
 
     pass
 
@@ -54,7 +54,7 @@ async def async_setup_entry(
 
 
 class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
-    """Defines a North-Tracker device tracker."""
+    """Defines a NorthTracker device tracker."""
 
     def __init__(
         self,

@@ -1,4 +1,4 @@
-"""The North-Tracker integration."""
+"""The NorthTracker integration."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from .migrations import async_migrate_entry_if_needed
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up North-Tracker from a config entry."""
+    """Set up NorthTracker from a config entry."""
     # Check for empty/corrupted config entries
     if not entry.data:
         LOGGER.error("Config entry %s has no data - likely corrupted", entry.entry_id)
@@ -31,7 +31,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except ConfigEntryNotReady:
         raise
     except Exception as err:
-        LOGGER.error("Failed to setup North-Tracker integration: %s", err)
+        LOGGER.error("Failed to setup NorthTracker integration: %s", err)
         raise ConfigEntryNotReady from err
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
@@ -48,7 +48,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async_delete_issue(hass, DOMAIN, f"{entry.entry_id}_api_error")
     async_delete_issue(hass, DOMAIN, f"{entry.entry_id}_rate_limit")
 
-    LOGGER.info("North-Tracker integration setup completed for %s", entry.title)
+    LOGGER.info("NorthTracker integration setup completed for %s", entry.title)
 
     return True
 
@@ -67,9 +67,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             LOGGER.warning("Error during logout: %s", err)
 
         hass.data[DOMAIN].pop(entry.entry_id)
-        LOGGER.info("North-Tracker integration unloaded for %s", entry.title)
+        LOGGER.info("NorthTracker integration unloaded for %s", entry.title)
     else:
-        LOGGER.error("Failed to unload platforms for North-Tracker integration")
+        LOGGER.error("Failed to unload platforms for NorthTracker integration")
 
     return unload_ok
 

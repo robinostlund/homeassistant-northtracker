@@ -1,4 +1,4 @@
-"""Button platform for North-Tracker."""
+"""Button platform for NorthTracker."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up North-Tracker button entities."""
+    """Set up NorthTracker button entities."""
     coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     entities: list[NorthTrackerRefreshButton] = []
@@ -46,7 +46,7 @@ async def async_setup_entry(
 
 
 class NorthTrackerRefreshButton(NorthTrackerEntity, ButtonEntity):
-    """Representation of a North-Tracker refresh button."""
+    """Representation of a NorthTracker refresh button."""
 
     entity_description = BUTTON_DESCRIPTION
 

@@ -1,4 +1,4 @@
-"""Migration utilities for North-Tracker integration."""
+"""Migration utilities for NorthTracker integration."""
 
 from __future__ import annotations
 

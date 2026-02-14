@@ -2,8 +2,8 @@
     "config": {
         "step": {
             "user": {
-                "title": "North-Tracker Authentication",
-                "description": "Please enter your North-Tracker credentials.",
+                "title": "NorthTracker Authentication",
+                "description": "Please enter your NorthTracker credentials.",
                 "data": {
                     "username": "Username",
                     "password": "Password",
@@ -11,8 +11,8 @@
                 }
             },
             "reauth_confirm": {
-                "title": "Re-authenticate North-Tracker",
-                "description": "The credentials for North-Tracker ({username}) need to be updated. Please enter your new credentials.",
+                "title": "Re-authenticate NorthTracker",
+                "description": "The credentials for NorthTracker ({username}) need to be updated. Please enter your new credentials.",
                 "data": {
                     "username": "Username",
                     "password": "Password",
@@ -20,8 +20,8 @@
                 }
             },
             "reconfigure": {
-                "title": "Reconfigure North-Tracker",
-                "description": "Update your North-Tracker configuration settings. Leave password empty to keep current password.",
+                "title": "Reconfigure NorthTracker",
+                "description": "Update your NorthTracker configuration settings. Leave password empty to keep current password.",
                 "data": {
                     "username": "Username",
                     "password": "Password (optional - leave empty to keep current)",
@@ -30,7 +30,7 @@
             }
         },
         "error": {
-            "cannot_connect": "Failed to connect to the North-Tracker API. Please check your network connection.",
+            "cannot_connect": "Failed to connect to the NorthTracker API. Please check your network connection.",
             "invalid_auth": "Invalid username or password. Please try again.",
             "rate_limit": "Rate limit exceeded. Please wait a few minutes and try again.",
             "scan_interval_too_low": "Update interval must be at least 1 minute.",
@@ -39,7 +39,7 @@
             "unknown": "Unexpected error occurred. Please try again."
         },
         "abort": {
-            "already_configured": "This North-Tracker account is already configured.",
+            "already_configured": "This NorthTracker account is already configured.",
             "reauth_successful": "Re-authentication was successful.",
             "reconfigure_successful": "Reconfiguration was successful."
         }
@@ -47,8 +47,8 @@
     "options": {
         "step": {
             "init": {
-                "title": "North-Tracker Options",
-                "description": "Adjust your North-Tracker integration settings.",
+                "title": "NorthTracker Options",
+                "description": "Adjust your NorthTracker integration settings.",
                 "data": {
                     "scan_interval": "Update Interval (minutes)"
                 }
@@ -61,20 +61,20 @@
     },
     "issues": {
         "api_error": {
-            "title": "North-Tracker API Error",
-            "description": "The North-Tracker integration encountered an API error: {error}. The integration will continue to retry automatically."
+            "title": "NorthTracker API Error",
+            "description": "The NorthTracker integration encountered an API error: {error}. The integration will continue to retry automatically."
         },
         "rate_limit": {
-            "title": "North-Tracker Rate Limit Exceeded",
-            "description": "The North-Tracker API rate limit has been exceeded. Consider increasing the update interval in the integration options."
+            "title": "NorthTracker Rate Limit Exceeded",
+            "description": "The NorthTracker API rate limit has been exceeded. Consider increasing the update interval in the integration options."
         },
         "authentication_failed": {
-            "title": "North-Tracker Authentication Failed",
-            "description": "The North-Tracker integration failed to authenticate. Please reconfigure the integration with valid credentials."
+            "title": "NorthTracker Authentication Failed",
+            "description": "The NorthTracker integration failed to authenticate. Please reconfigure the integration with valid credentials."
         },
         "devices_removed": {
-            "title": "North-Tracker Devices Removed",
-            "description": "The following devices were removed from your North-Tracker account and have been cleaned up: {devices}"
+            "title": "NorthTracker Devices Removed",
+            "description": "The following devices were removed from your NorthTracker account and have been cleaned up: {devices}"
         }
     },
     "entity": {

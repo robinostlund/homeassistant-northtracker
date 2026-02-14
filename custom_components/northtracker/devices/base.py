@@ -1,4 +1,4 @@
-"""Base device class for North-Tracker devices."""
+"""Base device class for NorthTracker devices."""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ class DeviceCapabilities:
 
 
 class NorthTrackerBaseDevice(ABC):
-    """Abstract base class for all North-Tracker devices.
+    """Abstract base class for all NorthTracker devices.
 
     Provides common interface and properties that all device types must implement.
     """
