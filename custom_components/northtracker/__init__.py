@@ -11,7 +11,9 @@ from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordina
 from .migrations import async_migrate_entry_if_needed
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: NorthTrackerConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: NorthTrackerConfigEntry
+) -> bool:
     """Set up NorthTracker from a config entry."""
     coordinator = NorthTrackerDataUpdateCoordinator(hass, entry)
 

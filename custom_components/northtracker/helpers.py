@@ -45,9 +45,7 @@ def generate_stable_id(serial_number: str) -> int:
     """
     # Use MD5 hash (fast, deterministic) and take first 8 bytes as int
     # This gives us a large unique number that won't collide with GPS device IDs
-    hash_bytes = hashlib.md5(
-        serial_number.encode(), usedforsecurity=False
-    ).digest()[:8]
+    hash_bytes = hashlib.md5(serial_number.encode(), usedforsecurity=False).digest()[:8]
     # Use a high base to ensure we're in a different range than GPS device IDs
     # GPS device IDs are typically small (< 100000), so we use 10^9 as offset
     return int.from_bytes(hash_bytes, "big") % (10**9) + 10**9

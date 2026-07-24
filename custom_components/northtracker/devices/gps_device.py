@@ -467,9 +467,7 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
         filter to this device (TerminalID) and collapse it to a single state.
         Returns True if the state changed.
         """
-        terminal_geofences = [
-            gf for gf in geofences if gf.get("TerminalID") == self.id
-        ]
+        terminal_geofences = [gf for gf in geofences if gf.get("TerminalID") == self.id]
         if not terminal_geofences:
             new_state: bool | None = None
         else:

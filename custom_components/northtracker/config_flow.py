@@ -83,9 +83,7 @@ class NorthTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=STEP_USER_SCHEMA, errors=errors
         )
 
-    async def async_step_reauth(
-        self, entry_data: dict[str, Any]
-    ) -> ConfigFlowResult:
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
         """Handle reauth flow."""
         return await self.async_step_reauth_confirm()
 
@@ -113,9 +111,7 @@ class NorthTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="reauth_confirm",
             data_schema=vol.Schema({vol.Required(CONF_PASSWORD): str}),
             errors=errors,
-            description_placeholders={
-                "username": reauth_entry.data[CONF_USERNAME]
-            },
+            description_placeholders={"username": reauth_entry.data[CONF_USERNAME]},
         )
 
     async def async_step_reconfigure(
@@ -129,8 +125,7 @@ class NorthTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
             username = user_input[CONF_USERNAME]
             # An empty password means "keep the existing one".
             password = (
-                user_input.get(CONF_PASSWORD)
-                or reconfigure_entry.data[CONF_PASSWORD]
+                user_input.get(CONF_PASSWORD) or reconfigure_entry.data[CONF_PASSWORD]
             )
 
             await self.async_set_unique_id(username)
