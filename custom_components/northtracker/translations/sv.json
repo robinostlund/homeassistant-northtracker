@@ -6,17 +6,14 @@
                 "description": "Vänligen ange dina inloggningsuppgifter för NorthTracker.",
                 "data": {
                     "username": "Användarnamn",
-                    "password": "Lösenord",
-                    "scan_interval": "Uppdateringsintervall (minuter)"
+                    "password": "Lösenord"
                 }
             },
             "reauth_confirm": {
                 "title": "Återautentisera NorthTracker",
-                "description": "Inloggningsuppgifterna för NorthTracker ({username}) behöver uppdateras. Vänligen ange dina nya inloggningsuppgifter.",
+                "description": "Inloggningsuppgifterna för NorthTracker ({username}) behöver uppdateras. Vänligen ange ditt nya lösenord.",
                 "data": {
-                    "username": "Användarnamn",
-                    "password": "Lösenord",
-                    "scan_interval": "Uppdateringsintervall (minuter)"
+                    "password": "Lösenord"
                 }
             },
             "reconfigure": {
@@ -24,8 +21,7 @@
                 "description": "Uppdatera dina NorthTracker konfigurationsinställningar. Lämna lösenord tomt för att behålla nuvarande lösenord.",
                 "data": {
                     "username": "Användarnamn",
-                    "password": "Lösenord (valfritt - lämna tomt för att behålla nuvarande)",
-                    "scan_interval": "Uppdateringsintervall (minuter)"
+                    "password": "Lösenord (valfritt - lämna tomt för att behålla nuvarande)"
                 }
             }
         },
@@ -33,13 +29,11 @@
             "cannot_connect": "Kunde inte ansluta till NorthTracker API. Kontrollera din nätverksanslutning.",
             "invalid_auth": "Ogiltigt användarnamn eller lösenord. Vänligen försök igen.",
             "rate_limit": "Hastighetsgräns överskriden. Vänligen vänta några minuter och försök igen.",
-            "scan_interval_too_low": "Uppdateringsintervall måste vara minst 1 minut.",
-            "scan_interval_too_high": "Uppdateringsintervall kan inte överstiga 24 timmar (1440 minuter).",
-            "scan_interval_invalid": "Uppdateringsintervall måste vara mellan 1 och 1440 minuter.",
             "unknown": "Oväntat fel uppstod. Vänligen försök igen."
         },
         "abort": {
             "already_configured": "Detta NorthTracker-konto är redan konfigurerat.",
+            "account_mismatch": "Uppgifterna du angav tillhör ett annat NorthTracker-konto än det som konfigureras om.",
             "reauth_successful": "Återautentisering lyckades.",
             "reconfigure_successful": "Omkonfigurering lyckades."
         }
@@ -53,10 +47,6 @@
                     "scan_interval": "Uppdateringsintervall (minuter)"
                 }
             }
-        },
-        "error": {
-            "scan_interval_too_low": "Uppdateringsintervall måste vara minst 1 minut.",
-            "scan_interval_too_high": "Uppdateringsintervall kan inte överstiga 24 timmar (1440 minuter)."
         }
     },
     "issues": {
@@ -111,47 +101,17 @@
             }
         },
         "switch": {
-            "output_1": {
-                "name": "Utgång 1"
+            "output": {
+                "name": "Utgång {number}"
             },
-            "output_2": {
-                "name": "Utgång 2"
-            },
-            "output_3": {
-                "name": "Utgång 3"
-            },
-            "output_4": {
-                "name": "Utgång 4"
-            },
-            "output_5": {
-                "name": "Utgång 5"
-            },
-            "output_6": {
-                "name": "Utgång 6"
+            "input": {
+                "name": "Larma Ingång {number}"
             },
             "low_battery_alert": {
                 "name": "Låg Batterispänning Larm"
             },
             "geofence": {
                 "name": "Geofence Larm"
-            },
-            "input_1": {
-                "name": "Larma Ingång 1"
-            },
-            "input_2": {
-                "name": "Larma Ingång 2"
-            },
-            "input_3": {
-                "name": "Larma Ingång 3"
-            },
-            "input_4": {
-                "name": "Larma Ingång 4"
-            },
-            "input_5": {
-                "name": "Larma Ingång 5"
-            },
-            "input_6": {
-                "name": "Larma Ingång 6"
             }
         },
         "binary_sensor": {

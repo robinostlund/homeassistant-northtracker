@@ -3,22 +3,22 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from .base import NorthTrackerBaseDevice, DeviceCapabilities
 from ..const import (
     LOGGER,
     MAX_BLUETOOTH_SENSORS_PER_DEVICE,
-    SIGNAL_SCALE_MIN,
-    SIGNAL_SCALE_MAX,
     MAX_SIGNAL_STRENGTH,
+    SIGNAL_SCALE_MAX,
+    SIGNAL_SCALE_MIN,
 )
 from ..helpers import (
     parse_northtracker_timestamp,
     round_gps_coordinate,
-    safe_int,
     safe_float,
+    safe_int,
 )
+from .base import DeviceCapabilities, NorthTrackerBaseDevice
 
 if TYPE_CHECKING:
     from ..api import NorthTracker
@@ -74,7 +74,7 @@ GPS_DEVICE_CAPABILITIES = DeviceCapabilities(
 class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     """Represents a NorthTracker GPS device with all its data and capabilities."""
 
-    def __init__(self, tracker: "NorthTracker", device_data: dict[str, Any]) -> None:
+    def __init__(self, tracker: NorthTracker, device_data: dict[str, Any]) -> None:
         """Initialize a GPS device instance."""
         super().__init__(tracker)
         self._device_data = device_data
@@ -82,6 +82,9 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
         self._device_lock_data: dict[str, Any] = {}
         self._device_gps_data: dict[str, Any] = {}
         self._device_features_data: dict[str, Any] = {}
+        # Aggregated geofence state, refreshed by the coordinator each update.
+        # True = all geofences enabled, False = at least one disabled, None = none exist.
+        self._geofence_enabled: bool | None = None
 
         LOGGER.debug("Initializing GPS device: %s (ID: %s)", self.name, self.id)
 
@@ -118,31 +121,27 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
             resp_details = await self.tracker.get_unit_details(
                 self.id, self.device_type
             )
-            if resp_details.success:
-                if self._device_data_extra != resp_details.data:
-                    LOGGER.debug("Device details changed for %s", self.name)
-                    self._device_data_extra = resp_details.data
-                    data_changed = True
+            if resp_details.success and self._device_data_extra != resp_details.data:
+                LOGGER.debug("Device details changed for %s", self.name)
+                self._device_data_extra = resp_details.data
+                data_changed = True
 
             # Get lock status
             resp_lock = await self.tracker.get_unit_lock_status(self.id)
-            if resp_lock.success:
-                if self._device_lock_data != resp_lock.data:
-                    LOGGER.debug("Lock status changed for %s", self.name)
-                    self._device_lock_data = resp_lock.data
-                    data_changed = True
+            if resp_lock.success and self._device_lock_data != resp_lock.data:
+                LOGGER.debug("Lock status changed for %s", self.name)
+                self._device_lock_data = resp_lock.data
+                data_changed = True
 
             # Get unit features (for battery alert settings etc.)
             resp_features = await self.tracker.get_unit_features(self.imei)
             if resp_features.success:
                 features_data = resp_features.data
-                if features_data and len(features_data) > 0:
-                    if self._device_features_data != features_data[0]:
-                        LOGGER.debug("Unit features changed for %s", self.name)
-                        self._device_features_data = features_data[0]
-                        data_changed = True
+                if features_data and self._device_features_data != features_data[0]:
+                    LOGGER.debug("Unit features changed for %s", self.name)
+                    self._device_features_data = features_data[0]
+                    data_changed = True
 
-            self._last_update = datetime.now()
             return data_changed
 
         except Exception as err:
@@ -179,7 +178,7 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     def _discover_digital_inputs(self) -> list[int]:
         """Discover available digital inputs based on device data."""
         inputs = []
-        for key, value in self._device_data.items():
+        for key in self._device_data:
             if key.startswith("Din") and key.endswith("Status"):
                 try:
                     input_num = int(key[3:-6])
@@ -194,7 +193,7 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     def _discover_digital_outputs(self) -> list[int]:
         """Discover available digital outputs based on device data."""
         outputs = []
-        for key, value in self._device_data.items():
+        for key in self._device_data:
             if key.startswith("Dout") and key.endswith("Status"):
                 try:
                     output_num = int(key[4:-6])
@@ -373,10 +372,9 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
             value_int = int(value)
             if value_int < SIGNAL_SCALE_MIN:
                 return 0
-            elif value_int > SIGNAL_SCALE_MAX:
+            if value_int > SIGNAL_SCALE_MAX:
                 return MAX_SIGNAL_STRENGTH
-            else:
-                return int((value_int / SIGNAL_SCALE_MAX) * MAX_SIGNAL_STRENGTH)
+            return int((value_int / SIGNAL_SCALE_MAX) * MAX_SIGNAL_STRENGTH)
         except (ValueError, TypeError):
             return None
 
@@ -409,7 +407,7 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
         try:
             if isinstance(battery_str, (int, float)):
                 return float(battery_str) / 1000.0
-            elif isinstance(battery_str, str):
+            if isinstance(battery_str, str):
                 clean_str = "".join(c for c in battery_str if c.isdigit() or c == ".")
                 if clean_str:
                     return float(clean_str) / 1000.0
@@ -448,6 +446,33 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     def low_battery_alert_enabled(self) -> bool:
         """Return whether low battery alert is enabled."""
         return self._device_features_data.get("LowBatteryAlertEnabled", False)
+
+    @property
+    def geofence_enabled(self) -> bool | None:
+        """Return aggregated geofence state for this device.
+
+        True if all geofences are enabled, False if any is disabled, and None
+        if the device has no geofences (or the state is not yet known).
+        """
+        return self._geofence_enabled
+
+    def update_geofence_status(self, geofences: list[dict[str, Any]]) -> bool:
+        """Update the aggregated geofence state from the full geofence list.
+
+        The API returns every geofence for the account in one call; here we
+        filter to this device (TerminalID) and collapse it to a single state.
+        Returns True if the state changed.
+        """
+        terminal_geofences = [gf for gf in geofences if gf.get("TerminalID") == self.id]
+        if not terminal_geofences:
+            new_state: bool | None = None
+        else:
+            new_state = all(gf.get("Status") == "1" for gf in terminal_geofences)
+
+        if new_state != self._geofence_enabled:
+            self._geofence_enabled = new_state
+            return True
+        return False
 
     @property
     def low_battery_threshold(self) -> float | None:

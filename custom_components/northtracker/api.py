@@ -3,19 +3,20 @@
 from __future__ import annotations
 
 import asyncio
-import aiohttp
-from datetime import datetime, timedelta
+import time
 from typing import Any
 
+import aiohttp
+
 from .const import (
-    LOGGER,
     API_BASE_URL,
-    API_TIMEOUT,
     API_MAX_RETRIES,
     API_RATE_LIMIT_WARNING_THRESHOLD,
+    API_TIMEOUT,
     API_TIMEZONE,
-    LOGGER_TOKEN_PREVIEW_LENGTH,
     DEFAULT_BATTERY_LOW_THRESHOLD,
+    LOGGER,
+    LOGGER_TOKEN_PREVIEW_LENGTH,
 )
 
 
@@ -51,7 +52,8 @@ class NorthTracker:
         self.rate_limit = 0
         self.rate_limit_remaining = 0
         self._token: str | None = None
-        self._token_expires: datetime | None = None
+        # Monotonic deadline (time.monotonic) after which the token is considered expired
+        self._token_expires: float | None = None
         self._username: str | None = None
         self._password: str | None = None
 
@@ -95,12 +97,10 @@ class NorthTracker:
         LOGGER.debug("Checking authentication status...")
         if not self._token:
             LOGGER.debug("No token available, need to authenticate")
-        elif self._token_expires and datetime.now() >= self._token_expires:
-            LOGGER.debug(
-                "Token expired at %s, need to re-authenticate", self._token_expires
-            )
+        elif self._token_expires and time.monotonic() >= self._token_expires:
+            LOGGER.debug("Token expired, need to re-authenticate")
         else:
-            LOGGER.debug("Token is valid until %s", self._token_expires)
+            LOGGER.debug("Token is still valid")
             return
 
         if not self._username or not self._password:
@@ -215,6 +215,12 @@ class NorthTracker:
                             )
                         raise RateLimitError("Rate limit exceeded")
 
+                    # A 401 that survived the re-auth attempt above means the
+                    # credentials are no longer valid: surface it as an auth error
+                    # so the coordinator triggers reauth instead of a plain retry.
+                    if response.status == 401:
+                        raise AuthenticationError("Authentication failed (HTTP 401)")
+
                     response.raise_for_status()
                     response_data = await response.json()
                     LOGGER.debug(
@@ -223,7 +229,6 @@ class NorthTracker:
                         if isinstance(response_data, dict)
                         else "non-dict",
                     )
-                    LOGGER.debug("Full GET response data: %s", response_data)
                     return NorthTrackerResponse(response_data)
             else:
                 async with self.session.post(
@@ -281,6 +286,12 @@ class NorthTracker:
                             )
                         raise RateLimitError("Rate limit exceeded")
 
+                    # A 401 that survived the re-auth attempt above means the
+                    # credentials are no longer valid: surface it as an auth error
+                    # so the coordinator triggers reauth instead of a plain retry.
+                    if response.status == 401:
+                        raise AuthenticationError("Authentication failed (HTTP 401)")
+
                     response.raise_for_status()
                     response_data = await response.json()
                     LOGGER.debug(
@@ -289,10 +300,9 @@ class NorthTracker:
                         if isinstance(response_data, dict)
                         else "non-dict",
                     )
-                    LOGGER.debug("Full POST response data: %s", response_data)
                     return NorthTrackerResponse(response_data)
 
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             LOGGER.debug("Request timeout after 30 seconds")
             if retry_count < max_retries:
                 LOGGER.warning(
@@ -359,11 +369,8 @@ class NorthTracker:
                 if resp.success:
                     self._token = resp.data.get("user", {}).get("token", "")
                     # Set token expiration to 23 hours from now (assuming 24h validity)
-                    self._token_expires = datetime.now() + timedelta(hours=23)
-                    LOGGER.debug(
-                        "Successfully authenticated, token expires at %s",
-                        self._token_expires,
-                    )
+                    self._token_expires = time.monotonic() + 23 * 3600
+                    LOGGER.debug("Successfully authenticated, token valid for ~23h")
                     LOGGER.debug(
                         "Token preview: %s...",
                         self._token[:LOGGER_TOKEN_PREVIEW_LENGTH]
@@ -379,11 +386,10 @@ class NorthTracker:
         except aiohttp.ClientError as err:
             LOGGER.error("Login failed with client error: %s", err)
             raise AuthenticationError(f"Login failed: {err}") from err
-        except Exception as err:
-            LOGGER.error("Login failed with error: %s", err)
-            if isinstance(err, AuthenticationError):
-                raise
-            raise AuthenticationError(f"Login failed: {err}") from err
+        except (ValueError, KeyError) as err:
+            # Malformed/unexpected login response body
+            LOGGER.error("Login failed to parse response: %s", err)
+            raise AuthenticationError(f"Login failed: invalid response: {err}") from err
 
     async def login(self, username: str, password: str) -> bool:
         """Authenticate with the NorthTracker API and store credentials for future use."""
@@ -802,41 +808,6 @@ class NorthTracker:
             responses.append(response)
 
         return responses
-
-    async def get_geofence_status_for_terminal(self, terminal_id: int) -> bool | None:
-        """Check if all geofences for a terminal are enabled.
-
-        Args:
-            terminal_id: The terminal/device ID
-
-        Returns:
-            True if all geofences are enabled,
-            False if any geofence is disabled,
-            None if no geofences exist for this terminal
-        """
-        geofences_response = await self.get_geofences()
-        if not geofences_response.success:
-            LOGGER.warning("Failed to fetch geofences for status check")
-            return None
-
-        geofences = geofences_response.data.get("geofences", [])
-        terminal_geofences = [
-            gf for gf in geofences if gf.get("TerminalID") == terminal_id
-        ]
-
-        if not terminal_geofences:
-            LOGGER.debug("No geofences found for terminal %d", terminal_id)
-            return None
-
-        # Check if all geofences are enabled (Status == "1")
-        all_enabled = all(gf.get("Status") == "1" for gf in terminal_geofences)
-        LOGGER.debug(
-            "Geofence status for terminal %d: all_enabled=%s (checked %d geofences)",
-            terminal_id,
-            all_enabled,
-            len(terminal_geofences),
-        )
-        return all_enabled
 
 
 class NorthTrackerResponse:

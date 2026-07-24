@@ -2,38 +2,30 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import Any
 
-from homeassistant.components.device_tracker import SourceType
-from homeassistant.components.device_tracker.config_entry import (
+from homeassistant.components.device_tracker import (
+    SourceType,
     TrackerEntity,
     TrackerEntityDescription,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .coordinator import NorthTrackerDataUpdateCoordinator
+from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
-from .base import validate_entity_id
-
-
-@dataclass(kw_only=True)
-class NorthTrackerTrackerEntityDescription(TrackerEntityDescription):
-    """Describes a NorthTracker device tracker entity."""
-
-    pass
-
 
 # Device tracker entity description
-DEVICE_TRACKER_DESCRIPTION = NorthTrackerTrackerEntityDescription(
+DEVICE_TRACKER_DESCRIPTION = TrackerEntityDescription(
     key="location",
     translation_key="location",
 )
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: NorthTrackerConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the device tracker platform and discover new entities."""
     from .base import BasePlatformSetup
@@ -56,11 +48,13 @@ async def async_setup_entry(
 class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
     """Defines a NorthTracker device tracker."""
 
+    _attr_source_type = SourceType.GPS
+
     def __init__(
         self,
         coordinator: NorthTrackerDataUpdateCoordinator,
         device_id: int,
-        description: NorthTrackerTrackerEntityDescription,
+        description: TrackerEntityDescription,
     ) -> None:
         """Initialize the device tracker."""
         super().__init__(coordinator, device_id)
@@ -68,7 +62,7 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         # Use IMEI for stable unique_id
         device = self.device
         identifier = device.imei if device else str(device_id)
-        self._attr_unique_id = validate_entity_id(f"{identifier}_tracker")
+        self._attr_unique_id = f"{identifier}_tracker"
 
     @property
     def _has_valid_position(self) -> bool:
@@ -97,28 +91,6 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         return self.device.longitude
 
     @property
-    def location_name(self) -> str | None:
-        """Return location name when GPS coordinates are not available."""
-        if not self.available:
-            return "unavailable"
-
-        device = self.device
-        if device is None:
-            return "unavailable"
-
-        # If we have valid GPS coordinates, don't set location_name (let HA use coordinates)
-        if self._has_valid_position:
-            return None
-
-        # Return a meaningful state when location is not available
-        return "unknown" if getattr(device, "last_seen", None) else "offline"
-
-    @property
-    def source_type(self) -> SourceType:
-        """Return the source type, eg gps or router, of the device."""
-        return SourceType.GPS
-
-    @property
     def location_accuracy(self) -> int:
         """Return the location accuracy of the device."""
         if not self.available or not self._has_valid_position:
@@ -126,7 +98,7 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         return getattr(self.device, "gps_accuracy", 0)
 
     @property
-    def extra_state_attributes(self) -> dict[str, any] | None:
+    def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra state attributes."""
         if not self.available:
             return None
@@ -157,12 +129,7 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         else:
             attributes["location_status"] = "active"
 
-        return attributes if attributes else None
-
-    @property
-    def should_poll(self) -> bool:
-        """Return False as we use coordinator for updates."""
-        return False
+        return attributes or None
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""

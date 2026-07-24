@@ -2,39 +2,27 @@
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.issue_registry import (
-    IssueSeverity,
-    async_create_issue,
-    async_delete_issue,
-)
+from homeassistant.helpers import issue_registry as ir
 
-from .const import DOMAIN, PLATFORMS, LOGGER
-from .coordinator import NorthTrackerDataUpdateCoordinator
+from .const import DOMAIN, LOGGER, PLATFORMS
+from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .migrations import async_migrate_entry_if_needed
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: NorthTrackerConfigEntry
+) -> bool:
     """Set up NorthTracker from a config entry."""
-    # Check for empty/corrupted config entries
-    if not entry.data:
-        LOGGER.error("Config entry %s has no data - likely corrupted", entry.entry_id)
-        return False
-
     coordinator = NorthTrackerDataUpdateCoordinator(hass, entry)
 
-    try:
-        await coordinator.async_config_entry_first_refresh()
-    except ConfigEntryNotReady:
-        raise
-    except Exception as err:
-        LOGGER.error("Failed to setup NorthTracker integration: %s", err)
-        raise ConfigEntryNotReady from err
+    # async_config_entry_first_refresh raises ConfigEntryNotReady / ConfigEntryAuthFailed
+    # itself, so we must not wrap it and accidentally convert an auth failure into a
+    # retry (which would break the reauth flow).
+    await coordinator.async_config_entry_first_refresh()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    entry.runtime_data = coordinator
 
     # Migrate entity unique_ids from old format (device_id) to new format (IMEI)
     await async_migrate_entry_if_needed(hass, coordinator)
@@ -44,29 +32,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Reload the entry when its options (e.g. scan interval) change
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
     # Clear any previous issues since setup was successful
-    async_delete_issue(hass, DOMAIN, f"{entry.entry_id}_api_error")
-    async_delete_issue(hass, DOMAIN, f"{entry.entry_id}_rate_limit")
+    ir.async_delete_issue(hass, DOMAIN, f"{entry.entry_id}_api_error")
+    ir.async_delete_issue(hass, DOMAIN, f"{entry.entry_id}_rate_limit")
 
     LOGGER.info("NorthTracker integration setup completed for %s", entry.title)
 
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(
+    hass: HomeAssistant, entry: NorthTrackerConfigEntry
+) -> bool:
     """Unload a config entry."""
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        # Clean up coordinator and logout if needed
-        coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][
-            entry.entry_id
-        ]
+        coordinator = entry.runtime_data
         try:
             if coordinator.api.is_authenticated:
                 await coordinator.api.logout()
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             LOGGER.warning("Error during logout: %s", err)
 
-        hass.data[DOMAIN].pop(entry.entry_id)
         LOGGER.info("NorthTracker integration unloaded for %s", entry.title)
     else:
         LOGGER.error("Failed to unload platforms for NorthTracker integration")
@@ -74,9 +63,16 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
+async def async_reload_entry(
+    hass: HomeAssistant, entry: NorthTrackerConfigEntry
+) -> None:
+    """Reload the config entry when its options change."""
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
 async def async_cleanup_stale_devices(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: NorthTrackerConfigEntry,
     coordinator: NorthTrackerDataUpdateCoordinator,
 ) -> None:
     """Remove devices and entities that no longer exist in the API."""
@@ -113,13 +109,13 @@ async def async_cleanup_stale_devices(
 
     # Create an issue if devices were removed
     if devices_to_remove:
-        async_create_issue(
+        ir.async_create_issue(
             hass,
             DOMAIN,
             f"{entry.entry_id}_devices_removed",
             is_fixable=True,
             is_persistent=False,
-            severity=IssueSeverity.WARNING,
+            severity=ir.IssueSeverity.WARNING,
             translation_key="devices_removed",
             translation_placeholders={"devices": ", ".join(devices_to_remove)},
         )

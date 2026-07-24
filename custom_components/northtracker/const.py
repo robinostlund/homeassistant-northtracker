@@ -56,10 +56,9 @@ LOGGER_TOKEN_PREVIEW_LENGTH = 10  # characters to show in token preview
 # Utility Constants
 GPS_COORDINATE_PRECISION = 6  # decimal places for GPS coordinates
 DEVICE_NAME_MAX_LENGTH = 50  # maximum device name length for display
-ENTITY_ID_MAX_LENGTH = 63  # Home Assistant entity ID limit
 
 # Default Values
-DEFAULT_BATTERY_LOW_THRESHOLD = 20  # percent
+DEFAULT_BATTERY_LOW_THRESHOLD = 20.0  # volts - default low battery voltage threshold
 
 # Battery Voltage Thresholds (for number entities)
 MIN_BATTERY_VOLTAGE_THRESHOLD = (

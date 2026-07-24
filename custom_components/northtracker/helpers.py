@@ -3,18 +3,30 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime
+from datetime import datetime, tzinfo
 from typing import Any
-from zoneinfo import ZoneInfo
+
+from homeassistant.util import dt as dt_util
 
 from .const import (
-    LOGGER,
     API_TIMEZONE,
     GPS_COORDINATE_PRECISION,
+    LOGGER,
     SIGNAL_EXCELLENT_THRESHOLD,
     SIGNAL_GOOD_THRESHOLD,
     SIGNAL_POOR_THRESHOLD,
 )
+
+# Cached API timezone. Primed via async_prime_api_timezone() during setup so the
+# synchronous parse below never has to load tz data from disk on the event loop.
+_api_timezone: tzinfo | None = None
+
+
+async def async_prime_api_timezone() -> None:
+    """Load the API timezone off the event loop and cache it for later use."""
+    global _api_timezone
+    if _api_timezone is None:
+        _api_timezone = await dt_util.async_get_time_zone(API_TIMEZONE)
 
 
 def generate_stable_id(serial_number: str) -> int:
@@ -33,7 +45,7 @@ def generate_stable_id(serial_number: str) -> int:
     """
     # Use MD5 hash (fast, deterministic) and take first 8 bytes as int
     # This gives us a large unique number that won't collide with GPS device IDs
-    hash_bytes = hashlib.md5(serial_number.encode()).digest()[:8]
+    hash_bytes = hashlib.md5(serial_number.encode(), usedforsecurity=False).digest()[:8]
     # Use a high base to ensure we're in a different range than GPS device IDs
     # GPS device IDs are typically small (< 100000), so we use 10^9 as offset
     return int.from_bytes(hash_bytes, "big") % (10**9) + 10**9
@@ -56,7 +68,8 @@ def parse_northtracker_timestamp(timestamp_str: str | None) -> datetime | None:
 
     try:
         naive_dt = datetime.fromisoformat(timestamp_str)
-        return naive_dt.replace(tzinfo=ZoneInfo(API_TIMEZONE))
+        tz = _api_timezone or dt_util.get_time_zone(API_TIMEZONE)
+        return naive_dt.replace(tzinfo=tz)
     except (ValueError, TypeError) as err:
         LOGGER.warning("Invalid timestamp format: %s (%s)", timestamp_str, err)
         return None
@@ -76,12 +89,11 @@ def get_signal_quality_text(signal_percentage: int | None) -> str:
 
     if signal_percentage >= SIGNAL_EXCELLENT_THRESHOLD:
         return "Excellent"
-    elif signal_percentage >= SIGNAL_GOOD_THRESHOLD:
+    if signal_percentage >= SIGNAL_GOOD_THRESHOLD:
         return "Good"
-    elif signal_percentage >= SIGNAL_POOR_THRESHOLD:
+    if signal_percentage >= SIGNAL_POOR_THRESHOLD:
         return "Fair"
-    else:
-        return "Poor"
+    return "Poor"
 
 
 def round_gps_coordinate(coordinate: float | None) -> float | None:

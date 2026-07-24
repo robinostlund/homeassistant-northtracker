@@ -11,28 +11,48 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL, CONF_USERNAME
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import NorthTracker, AuthenticationError, APIError, RateLimitError
+from .api import APIError, AuthenticationError, NorthTracker, RateLimitError
 from .const import (
-    DOMAIN,
     DEFAULT_UPDATE_INTERVAL,
-    MIN_UPDATE_INTERVAL,
-    MAX_UPDATE_INTERVAL,
+    DOMAIN,
     LOGGER,
+    MAX_UPDATE_INTERVAL,
+    MIN_UPDATE_INTERVAL,
 )
+
+STEP_USER_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_USERNAME): str,
+        vol.Required(CONF_PASSWORD): str,
+    }
+)
+
+
+async def _async_validate_login(hass, username: str, password: str) -> str | None:
+    """Try to log in and return an error key, or None on success."""
+    api = NorthTracker(async_get_clientsession(hass))
+    try:
+        await api.login(username, password)
+    except AuthenticationError:
+        return "invalid_auth"
+    except RateLimitError:
+        return "rate_limit"
+    except APIError:
+        return "cannot_connect"
+    except Exception:  # noqa: BLE001
+        LOGGER.exception("Unexpected error connecting to NorthTracker API")
+        return "unknown"
+    return None
 
 
 class NorthTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for NorthTracker."""
 
     VERSION = 1
-
-    def __init__(self) -> None:
-        """Initialize the config flow."""
-        self.reauth_entry: ConfigEntry | None = None
 
     @staticmethod
     @callback
@@ -46,210 +66,96 @@ class NorthTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            # Validate scan interval
-            scan_interval = user_input.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+            await self.async_set_unique_id(user_input[CONF_USERNAME])
+            self._abort_if_unique_id_configured()
 
-            if scan_interval < MIN_UPDATE_INTERVAL:
-                errors[CONF_SCAN_INTERVAL] = "scan_interval_too_low"
-            elif scan_interval > MAX_UPDATE_INTERVAL:
-                errors[CONF_SCAN_INTERVAL] = "scan_interval_too_high"
-
-            if not errors:
-                session = async_get_clientsession(self.hass)
-                api = NorthTracker(session)
-                try:
-                    await api.login(
-                        user_input[CONF_USERNAME], user_input[CONF_PASSWORD]
-                    )
-
-                    # Check if already configured
-                    await self.async_set_unique_id(user_input[CONF_USERNAME])
-                    self._abort_if_unique_id_configured()
-
-                    return self.async_create_entry(
-                        title=user_input[CONF_USERNAME], data=user_input
-                    )
-                except AuthenticationError:
-                    errors["base"] = "invalid_auth"
-                except RateLimitError:
-                    errors["base"] = "rate_limit"
-                except APIError:
-                    errors["base"] = "cannot_connect"
-                except Exception:
-                    LOGGER.exception("Unexpected error connecting to NorthTracker API")
-                    errors["base"] = "unknown"
+            error = await _async_validate_login(
+                self.hass, user_input[CONF_USERNAME], user_input[CONF_PASSWORD]
+            )
+            if error:
+                errors["base"] = error
+            else:
+                return self.async_create_entry(
+                    title=user_input[CONF_USERNAME], data=user_input
+                )
 
         return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_USERNAME): str,
-                    vol.Required(CONF_PASSWORD): str,
-                    vol.Optional(
-                        CONF_SCAN_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
-                    ): vol.All(
-                        vol.Coerce(float),
-                        vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL),
-                    ),
-                }
-            ),
-            errors=errors,
+            step_id="user", data_schema=STEP_USER_SCHEMA, errors=errors
         )
 
     async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
         """Handle reauth flow."""
-        self.reauth_entry = self.hass.config_entries.async_get_entry(
-            self.context["entry_id"]
-        )
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle reauth confirmation."""
+        reauth_entry = self._get_reauth_entry()
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            session = async_get_clientsession(self.hass)
-            api = NorthTracker(session)
-            try:
-                await api.login(user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
-
-                # Update the existing entry with new credentials
-                new_data = self.reauth_entry.data.copy()
-                new_data.update(
-                    {
-                        CONF_USERNAME: user_input[CONF_USERNAME],
-                        CONF_PASSWORD: user_input[CONF_PASSWORD],
-                    }
+            username = reauth_entry.data[CONF_USERNAME]
+            error = await _async_validate_login(
+                self.hass, username, user_input[CONF_PASSWORD]
+            )
+            if error:
+                errors["base"] = error
+            else:
+                return self.async_update_reload_and_abort(
+                    reauth_entry,
+                    data_updates={CONF_PASSWORD: user_input[CONF_PASSWORD]},
                 )
-
-                # Update scan interval if provided
-                if CONF_SCAN_INTERVAL in user_input:
-                    new_data[CONF_SCAN_INTERVAL] = user_input[CONF_SCAN_INTERVAL]
-
-                self.hass.config_entries.async_update_entry(
-                    self.reauth_entry, data=new_data, title=user_input[CONF_USERNAME]
-                )
-
-                await self.hass.config_entries.async_reload(self.reauth_entry.entry_id)
-                return self.async_abort(reason="reauth_successful")
-
-            except AuthenticationError:
-                errors["base"] = "invalid_auth"
-            except RateLimitError:
-                errors["base"] = "rate_limit"
-            except APIError:
-                errors["base"] = "cannot_connect"
-            except Exception:
-                LOGGER.exception("Unexpected error during reauth")
-                errors["base"] = "unknown"
-
-        # Show reauth form
-        current_username = (
-            self.reauth_entry.data.get(CONF_USERNAME, "") if self.reauth_entry else ""
-        )
-        current_scan_interval = (
-            self.reauth_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL)
-            if self.reauth_entry
-            else DEFAULT_UPDATE_INTERVAL
-        )
 
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_USERNAME, default=current_username): str,
-                    vol.Required(CONF_PASSWORD): str,
-                    vol.Optional(
-                        CONF_SCAN_INTERVAL, default=current_scan_interval
-                    ): vol.All(
-                        vol.Coerce(float),
-                        vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL),
-                    ),
-                }
-            ),
+            data_schema=vol.Schema({vol.Required(CONF_PASSWORD): str}),
             errors=errors,
-            description_placeholders={"username": current_username},
+            description_placeholders={"username": reauth_entry.data[CONF_USERNAME]},
         )
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle reconfigure flow."""
-        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        reconfigure_entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
 
         if user_input is not None:
-            # If password is empty, keep the existing password
-            if not user_input.get(CONF_PASSWORD):
-                user_input[CONF_PASSWORD] = entry.data.get(CONF_PASSWORD)
+            username = user_input[CONF_USERNAME]
+            # An empty password means "keep the existing one".
+            password = (
+                user_input.get(CONF_PASSWORD) or reconfigure_entry.data[CONF_PASSWORD]
+            )
 
-            # Validate scan interval
-            scan_interval = user_input.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL)
-            if (
-                scan_interval < MIN_UPDATE_INTERVAL
-                or scan_interval > MAX_UPDATE_INTERVAL
-            ):
-                return self.async_show_form(
-                    step_id="reconfigure",
-                    data_schema=self._get_reconfigure_schema(entry),
-                    errors={"scan_interval": "scan_interval_invalid"},
+            await self.async_set_unique_id(username)
+            self._abort_if_unique_id_mismatch(reason="account_mismatch")
+
+            error = await _async_validate_login(self.hass, username, password)
+            if error:
+                errors["base"] = error
+            else:
+                return self.async_update_reload_and_abort(
+                    reconfigure_entry,
+                    title=username,
+                    data_updates={
+                        CONF_USERNAME: username,
+                        CONF_PASSWORD: password,
+                    },
                 )
 
-            session = async_get_clientsession(self.hass)
-            api = NorthTracker(session)
-            try:
-                await api.login(user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
-
-                self.hass.config_entries.async_update_entry(
-                    entry, data=user_input, title=user_input[CONF_USERNAME]
-                )
-
-                await self.hass.config_entries.async_reload(entry.entry_id)
-                return self.async_abort(reason="reconfigure_successful")
-
-            except AuthenticationError:
-                return self.async_show_form(
-                    step_id="reconfigure",
-                    data_schema=self._get_reconfigure_schema(entry),
-                    errors={"base": "invalid_auth"},
-                )
-            except (RateLimitError, APIError):
-                return self.async_show_form(
-                    step_id="reconfigure",
-                    data_schema=self._get_reconfigure_schema(entry),
-                    errors={"base": "cannot_connect"},
-                )
-            except Exception:
-                LOGGER.exception("Unexpected error during reconfigure")
-                return self.async_show_form(
-                    step_id="reconfigure",
-                    data_schema=self._get_reconfigure_schema(entry),
-                    errors={"base": "unknown"},
-                )
-
-        # Show reconfigure form with current values
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=self._get_reconfigure_schema(entry),
-        )
-
-    def _get_reconfigure_schema(self, entry: ConfigEntry) -> vol.Schema:
-        """Get the reconfigure schema with current values as defaults."""
-        return vol.Schema(
-            {
-                vol.Required(
-                    CONF_USERNAME, default=entry.data.get(CONF_USERNAME, "")
-                ): str,
-                vol.Optional(CONF_PASSWORD, default=""): str,
-                vol.Optional(
-                    CONF_SCAN_INTERVAL,
-                    default=entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL),
-                ): vol.All(
-                    vol.Coerce(float),
-                    vol.Range(min=MIN_UPDATE_INTERVAL, max=MAX_UPDATE_INTERVAL),
-                ),
-            }
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_USERNAME,
+                        default=reconfigure_entry.data.get(CONF_USERNAME, ""),
+                    ): str,
+                    vol.Optional(CONF_PASSWORD, default=""): str,
+                }
+            ),
+            errors=errors,
         )
 
 
@@ -260,33 +166,12 @@ class NorthTrackerOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Manage the options."""
-        errors: dict[str, str] = {}
-
         if user_input is not None:
-            # Validate scan interval
-            scan_interval = user_input.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+            return self.async_create_entry(data=user_input)
 
-            if scan_interval < MIN_UPDATE_INTERVAL:
-                errors[CONF_SCAN_INTERVAL] = "scan_interval_too_low"
-            elif scan_interval > MAX_UPDATE_INTERVAL:
-                errors[CONF_SCAN_INTERVAL] = "scan_interval_too_high"
-
-            if not errors:
-                # Update the config entry data with new scan interval
-                new_data = {**self.config_entry.data, CONF_SCAN_INTERVAL: scan_interval}
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry,
-                    data=new_data,
-                )
-
-                # Reload the integration to apply changes
-                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-
-                return self.async_create_entry(title="", data={})
-
-        # Get current scan interval
-        current_scan_interval = self.config_entry.data.get(
-            CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL
+        current_scan_interval = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL,
+            self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL),
         )
 
         return self.async_show_form(
@@ -302,5 +187,4 @@ class NorthTrackerOptionsFlow(OptionsFlow):
                     ),
                 }
             ),
-            errors=errors,
         )

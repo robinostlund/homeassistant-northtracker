@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Callable, TypeVar, Generic, Any
+from collections.abc import Callable
+from typing import Any
 
 from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER, DEVICE_NAME_MAX_LENGTH, ENTITY_ID_MAX_LENGTH
-from .coordinator import NorthTrackerDataUpdateCoordinator
-
-T = TypeVar("T")
+from .const import DEVICE_NAME_MAX_LENGTH, LOGGER
+from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 
 
 def get_supported_descriptions_for_device(
@@ -60,7 +58,7 @@ def get_supported_descriptions_for_device(
     return supported
 
 
-class BasePlatformSetup(Generic[T]):
+class BasePlatformSetup[T]:
     """Base class for setting up NorthTracker platforms with common patterns."""
 
     def __init__(
@@ -88,13 +86,11 @@ class BasePlatformSetup(Generic[T]):
     async def async_setup_entry(
         self,
         hass: HomeAssistant,
-        entry: ConfigEntry,
+        entry: NorthTrackerConfigEntry,
         async_add_entities: AddEntitiesCallback,
     ) -> None:
         """Set up platform entities with common discovery pattern."""
-        coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][
-            entry.entry_id
-        ]
+        coordinator = entry.runtime_data
         added_devices: set[int] = set()
 
         def discover_entities() -> None:
@@ -123,7 +119,7 @@ class BasePlatformSetup(Generic[T]):
         discover_entities()
 
 
-class AdvancedPlatformSetup(BasePlatformSetup[T]):
+class AdvancedPlatformSetup[T](BasePlatformSetup[T]):
     """Advanced platform setup that supports custom entity creation logic.
 
     Useful for platforms like switch that need dynamic entity creation beyond
@@ -157,13 +153,11 @@ class AdvancedPlatformSetup(BasePlatformSetup[T]):
     async def async_setup_entry(
         self,
         hass: HomeAssistant,
-        entry: ConfigEntry,
+        entry: NorthTrackerConfigEntry,
         async_add_entities: AddEntitiesCallback,
     ) -> None:
         """Set up platform entities with advanced discovery pattern."""
-        coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][
-            entry.entry_id
-        ]
+        coordinator = entry.runtime_data
         added_devices: set[int] = set()
 
         def discover_entities() -> None:
@@ -223,30 +217,3 @@ def validate_device_name(name: str) -> str:
         return truncated_name
 
     return name
-
-
-def validate_entity_id(entity_id: str) -> str:
-    """Validate and truncate entity ID to Home Assistant limits.
-
-    Args:
-        entity_id: Original entity ID
-
-    Returns:
-        Validated entity ID truncated to max length if necessary
-    """
-    if not entity_id:
-        return "unknown"
-
-    # Home Assistant entity IDs have a 63 character limit
-    if len(entity_id) > ENTITY_ID_MAX_LENGTH:
-        truncated_id = entity_id[:ENTITY_ID_MAX_LENGTH]
-        LOGGER.debug(
-            "Entity ID truncated from %d to %d characters: '%s' -> '%s'",
-            len(entity_id),
-            len(truncated_id),
-            entity_id,
-            truncated_id,
-        )
-        return truncated_id
-
-    return entity_id

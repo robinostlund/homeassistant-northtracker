@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from .base import NorthTrackerBaseDevice, DeviceCapabilities
 from ..const import LOGGER
 from ..helpers import (
-    parse_northtracker_timestamp,
-    safe_int,
-    safe_float,
     generate_stable_id,
+    parse_northtracker_timestamp,
+    safe_float,
+    safe_int,
 )
+from .base import DeviceCapabilities, NorthTrackerBaseDevice
 
 if TYPE_CHECKING:
     from .gps_device import NorthTrackerGpsDevice
@@ -48,7 +48,7 @@ class NorthTrackerSensorDevice(NorthTrackerBaseDevice):
     """Represents a virtual Bluetooth sensor device connected to a main GPS tracker."""
 
     def __init__(
-        self, parent_device: "NorthTrackerGpsDevice", bt_sensor_data: dict[str, Any]
+        self, parent_device: NorthTrackerGpsDevice, bt_sensor_data: dict[str, Any]
     ) -> None:
         """Initialize a Bluetooth sensor device instance."""
         super().__init__(parent_device.tracker)
@@ -124,7 +124,7 @@ class NorthTrackerSensorDevice(NorthTrackerBaseDevice):
 
     def _get_sensor_data(self) -> dict[str, Any] | None:
         """Get the current sensor data for this Bluetooth sensor from parent."""
-        for sensor in self.parent_device._available_bluetooth_sensors:
+        for sensor in self.parent_device.available_bluetooth_sensors:
             if sensor["serial_number"] == self._serial_number:
                 return sensor.get("latest_sensor_data", {})
         return None

@@ -5,12 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
-from .coordinator import NorthTrackerDataUpdateCoordinator
+from .coordinator import NorthTrackerConfigEntry
 
 # Keys to redact from diagnostics output
 TO_REDACT = {
@@ -26,10 +24,10 @@ TO_REDACT = {
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: NorthTrackerConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
 
     # Build device information
     devices_info = {}
@@ -79,7 +77,7 @@ async def async_get_config_entry_diagnostics(
         "rate_limit_remaining": coordinator.api.rate_limit_remaining,
     }
 
-    diagnostics_data = {
+    return {
         "config_entry": {
             "entry_id": entry.entry_id,
             "title": entry.title,
@@ -96,5 +94,3 @@ async def async_get_config_entry_diagnostics(
         "api": api_info,
         "devices": async_redact_data(devices_info, TO_REDACT),
     }
-
-    return diagnostics_data

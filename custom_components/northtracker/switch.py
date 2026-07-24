@@ -2,23 +2,23 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from homeassistant.components.switch import (
     SwitchDeviceClass,
     SwitchEntity,
     SwitchEntityDescription,
 )
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import LOGGER, DEFAULT_BATTERY_LOW_THRESHOLD
-from .coordinator import NorthTrackerDataUpdateCoordinator
-from .entity import NorthTrackerEntity
+from .const import DEFAULT_BATTERY_LOW_THRESHOLD, LOGGER
+from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .devices import NorthTrackerBaseDevice, NorthTrackerGpsDevice
-from .base import validate_entity_id
+from .entity import NorthTrackerEntity
 
 
 @dataclass(kw_only=True)
@@ -34,18 +34,22 @@ GPS_SWITCH_DESCRIPTIONS: tuple[NorthTrackerSwitchEntityDescription, ...] = (
         key="low_battery_alert_enabled",
         translation_key="low_battery_alert",
         device_class=SwitchDeviceClass.SWITCH,
+        entity_category=EntityCategory.CONFIG,
         value_fn=lambda device: device.low_battery_alert_enabled,
     ),
     NorthTrackerSwitchEntityDescription(
         key="geofence",
         translation_key="geofence",
         device_class=SwitchDeviceClass.SWITCH,
+        entity_category=EntityCategory.CONFIG,
     ),
 )
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: NorthTrackerConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the switch platform and discover new entities."""
     from .base import AdvancedPlatformSetup
@@ -67,9 +71,8 @@ async def async_setup_entry(
             for output_num in device.available_outputs:
                 description = NorthTrackerSwitchEntityDescription(
                     key=f"output_status_{output_num}",
-                    translation_key=f"output_{output_num}",
+                    translation_key="output",
                     device_class=SwitchDeviceClass.SWITCH,
-                    name=f"Output {output_num}",
                 )
                 switch_entity = NorthTrackerSwitch(
                     coordinator, device_id, description, output_number=output_num
@@ -88,9 +91,8 @@ async def async_setup_entry(
             for input_num in device.available_inputs:
                 description = NorthTrackerSwitchEntityDescription(
                     key=f"input_status_{input_num}",
-                    translation_key=f"input_{input_num}",
+                    translation_key="input",
                     device_class=SwitchDeviceClass.SWITCH,
-                    name=f"Input {input_num}",
                 )
                 switch_entity = NorthTrackerSwitch(
                     coordinator, device_id, description, input_number=input_num
@@ -128,44 +130,21 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
         self.entity_description = description
         self._output_number = output_number
         self._input_number = input_number
+        # Dynamic input/output switches share one translation key with a number
+        # placeholder, so they name correctly regardless of how many exist.
+        if output_number is not None:
+            self._attr_translation_placeholders = {"number": str(output_number)}
+        elif input_number is not None:
+            self._attr_translation_placeholders = {"number": str(input_number)}
         # Use IMEI for stable unique_id
         device = self.device
         identifier = device.imei if device else str(device_id)
-        self._attr_unique_id = validate_entity_id(f"{identifier}_{description.key}")
+        self._attr_unique_id = f"{identifier}_{description.key}"
         # Track pending state changes to provide immediate feedback
         self._pending_state: bool | None = None
-        # Initialize geofence state (will be updated in async_added_to_hass)
-        self._geofence_state: bool | None = None
-
-    async def async_added_to_hass(self) -> None:
-        """Run when entity is added to Home Assistant."""
-        await super().async_added_to_hass()
-
-        # For geofence switch, fetch the current status from API
-        if self.entity_description.key == "geofence":
-            device = self.device
-            if device is not None:
-                try:
-                    status = await device.tracker.get_geofence_status_for_terminal(
-                        device.id
-                    )
-                    if status is not None:
-                        self._geofence_state = status
-                        LOGGER.debug(
-                            "Initialized geofence state for '%s': %s",
-                            device.name,
-                            status,
-                        )
-                        self.async_write_ha_state()
-                except Exception as err:
-                    LOGGER.warning(
-                        "Failed to fetch initial geofence status for '%s': %s",
-                        device.name,
-                        err,
-                    )
 
     @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         """Return the state of the switch."""
         # If we have a pending state change, use that for immediate feedback
         if self._pending_state is not None:
@@ -173,21 +152,20 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
 
         device = self.device
         if device is None:
-            return False
+            return None
 
         if self._output_number is not None:
             return device.get_output_status(self._output_number)
-        elif self._input_number is not None:
+        if self._input_number is not None:
             return device.get_input_status(self._input_number)
-        elif self.entity_description.key == "geofence":
-            # Geofence alarm state - track via _geofence_state attribute
-            return self._geofence_state or False
-        elif self.entity_description.value_fn:
+        if self.entity_description.key == "geofence":
+            # Aggregated geofence state, refreshed by the coordinator each update
+            return device.geofence_enabled
+        if self.entity_description.value_fn:
             # Use value_fn from entity description
             return bool(self.entity_description.value_fn(device))
-        else:
-            # Fallback to attribute on device
-            return bool(getattr(device, self.entity_description.key, False))
+        # Fallback to attribute on device
+        return bool(getattr(device, self.entity_description.key, False))
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the switch."""
@@ -250,7 +228,7 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
                 self._pending_state = None
                 self.async_write_ha_state()
             await self.coordinator.async_request_refresh()
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             LOGGER.error("%s: %s", error_msg, err)
             self._pending_state = None
             self.async_write_ha_state()
@@ -264,7 +242,6 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
 
         try:
             self._pending_state = enabled
-            self._geofence_state = enabled
             self.async_write_ha_state()
 
             # Set all geofences for this device
@@ -294,12 +271,11 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
 
             await self.coordinator.async_request_refresh()
 
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             LOGGER.error(
                 "Error setting geofences for device '%s': %s", device.name, err
             )
             self._pending_state = None
-            self._geofence_state = not enabled  # Revert state on error
             self.async_write_ha_state()
 
     def _handle_coordinator_update(self) -> None:

@@ -6,7 +6,8 @@ import re
 from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN, LOGGER
 
@@ -24,7 +25,7 @@ CURRENT_SCHEMA_VERSION = 2
 
 async def async_migrate_entry_if_needed(
     hass: HomeAssistant,
-    coordinator: "NorthTrackerDataUpdateCoordinator",
+    coordinator: NorthTrackerDataUpdateCoordinator,
 ) -> None:
     """Migrate entity unique_ids and device identifiers if needed.
 
@@ -55,7 +56,7 @@ async def async_migrate_entry_if_needed(
 
 async def _async_migrate_device_identifiers(
     hass: HomeAssistant,
-    coordinator: "NorthTrackerDataUpdateCoordinator",
+    coordinator: NorthTrackerDataUpdateCoordinator,
     device_id_to_imei: dict[int, str],
 ) -> None:
     """Migrate device identifiers from device_id to IMEI format."""
@@ -90,7 +91,7 @@ async def _async_migrate_device_identifiers(
                 "Migrated device identifiers: %s -> %s", old_identifier, new_identifier
             )
             migrated_count += 1
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             LOGGER.error("Failed to migrate device %s: %s", device_id, err)
 
     if migrated_count > 0:
@@ -101,7 +102,7 @@ async def _async_migrate_device_identifiers(
 
 async def _async_migrate_entity_unique_ids(
     hass: HomeAssistant,
-    coordinator: "NorthTrackerDataUpdateCoordinator",
+    coordinator: NorthTrackerDataUpdateCoordinator,
     device_id_to_imei: dict[int, str],
 ) -> None:
     """Migrate entity unique_ids from device_id to IMEI format."""
@@ -166,7 +167,7 @@ async def _async_migrate_entity_unique_ids(
                 new_unique_id,
             )
             migrated_count += 1
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             LOGGER.error("Failed to migrate entity %s: %s", entity.entity_id, err)
 
     if migrated_count > 0:
