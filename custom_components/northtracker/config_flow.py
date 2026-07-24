@@ -11,17 +11,17 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL, CONF_USERNAME
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import NorthTracker, AuthenticationError, APIError, RateLimitError
+from .api import APIError, AuthenticationError, NorthTracker, RateLimitError
 from .const import (
-    DOMAIN,
     DEFAULT_UPDATE_INTERVAL,
-    MIN_UPDATE_INTERVAL,
-    MAX_UPDATE_INTERVAL,
+    DOMAIN,
     LOGGER,
+    MAX_UPDATE_INTERVAL,
+    MIN_UPDATE_INTERVAL,
 )
 
 STEP_USER_SCHEMA = vol.Schema(

@@ -4,18 +4,19 @@ from __future__ import annotations
 
 import asyncio
 import time
-import aiohttp
 from typing import Any
 
+import aiohttp
+
 from .const import (
-    LOGGER,
     API_BASE_URL,
-    API_TIMEOUT,
     API_MAX_RETRIES,
     API_RATE_LIMIT_WARNING_THRESHOLD,
+    API_TIMEOUT,
     API_TIMEZONE,
-    LOGGER_TOKEN_PREVIEW_LENGTH,
     DEFAULT_BATTERY_LOW_THRESHOLD,
+    LOGGER,
+    LOGGER_TOKEN_PREVIEW_LENGTH,
 )
 
 
@@ -301,7 +302,7 @@ class NorthTracker:
                     )
                     return NorthTrackerResponse(response_data)
 
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             LOGGER.debug("Request timeout after 30 seconds")
             if retry_count < max_retries:
                 LOGGER.warning(

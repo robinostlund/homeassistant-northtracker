@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Callable, TypeVar, Generic, Any
+from collections.abc import Callable
+from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import LOGGER, DEVICE_NAME_MAX_LENGTH
+from .const import DEVICE_NAME_MAX_LENGTH, LOGGER
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
-
-T = TypeVar("T")
 
 
 def get_supported_descriptions_for_device(
@@ -59,7 +58,7 @@ def get_supported_descriptions_for_device(
     return supported
 
 
-class BasePlatformSetup(Generic[T]):
+class BasePlatformSetup[T]:
     """Base class for setting up NorthTracker platforms with common patterns."""
 
     def __init__(
@@ -120,7 +119,7 @@ class BasePlatformSetup(Generic[T]):
         discover_entities()
 
 
-class AdvancedPlatformSetup(BasePlatformSetup[T]):
+class AdvancedPlatformSetup[T](BasePlatformSetup[T]):
     """Advanced platform setup that supports custom entity creation logic.
 
     Useful for platforms like switch that need dynamic entity creation beyond

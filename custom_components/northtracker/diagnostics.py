@@ -77,7 +77,7 @@ async def async_get_config_entry_diagnostics(
         "rate_limit_remaining": coordinator.api.rate_limit_remaining,
     }
 
-    diagnostics_data = {
+    return {
         "config_entry": {
             "entry_id": entry.entry_id,
             "title": entry.title,
@@ -94,5 +94,3 @@ async def async_get_config_entry_diagnostics(
         "api": api_info,
         "devices": async_redact_data(devices_info, TO_REDACT),
     }
-
-    return diagnostics_data

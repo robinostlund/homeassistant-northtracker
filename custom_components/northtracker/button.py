@@ -8,9 +8,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
-from .entity import NorthTrackerEntity
 from .devices import NorthTrackerGpsDevice
-
+from .entity import NorthTrackerEntity
 
 BUTTON_DESCRIPTION = ButtonEntityDescription(
     key="refresh",

@@ -9,9 +9,9 @@ from typing import Any
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    LOGGER,
     API_TIMEZONE,
     GPS_COORDINATE_PRECISION,
+    LOGGER,
     SIGNAL_EXCELLENT_THRESHOLD,
     SIGNAL_GOOD_THRESHOLD,
     SIGNAL_POOR_THRESHOLD,
@@ -89,12 +89,11 @@ def get_signal_quality_text(signal_percentage: int | None) -> str:
 
     if signal_percentage >= SIGNAL_EXCELLENT_THRESHOLD:
         return "Excellent"
-    elif signal_percentage >= SIGNAL_GOOD_THRESHOLD:
+    if signal_percentage >= SIGNAL_GOOD_THRESHOLD:
         return "Good"
-    elif signal_percentage >= SIGNAL_POOR_THRESHOLD:
+    if signal_percentage >= SIGNAL_POOR_THRESHOLD:
         return "Fair"
-    else:
-        return "Poor"
+    return "Poor"
 
 
 def round_gps_coordinate(coordinate: float | None) -> float | None:

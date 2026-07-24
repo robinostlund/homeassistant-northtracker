@@ -1,0 +1,86 @@
+# Ruff configuration for the NorthTracker custom integration.
+#
+# Mirrors the Home Assistant core ruleset where it makes sense for a HACS
+# custom integration. Unlike current HA core (which targets Python 3.14+ and
+# bans `from __future__ import annotations`), this repo targets Python 3.12+
+# and still relies on future annotations, so those parts are intentionally
+# not mirrored.
+
+target-version = "py312"
+
+[lint]
+select = [
+    "A001",   # Variable shadowing a Python builtin
+    "ASYNC",  # flake8-async
+    "B",      # flake8-bugbear
+    "BLE",    # flake8-blind-except
+    "C4",     # flake8-comprehensions
+    "COM818", # Trailing comma on bare tuple prohibited
+    "D",      # pydocstyle
+    "DTZ",    # flake8-datetimez
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "FLY",    # flynt
+    "FURB",   # refurb
+    "G",      # flake8-logging-format
+    "I",      # isort
+    "ICN001", # import conventions
+    "ISC",    # flake8-implicit-str-concat
+    "LOG",    # flake8-logging
+    "N804",   # First argument of a class method should be named cls
+    "N805",   # First argument of a method should be named self
+    "N806",   # Variable in function should be snake_case
+    "N815",   # Variable in class scope should not be mixedCase
+    "PERF",   # Perflint
+    "PGH",    # pygrep-hooks
+    "PIE",    # flake8-pie
+    "PT",     # flake8-pytest-style
+    "RET",    # flake8-return
+    "RSE",    # flake8-raise
+    "RUF",    # Ruff-specific rules
+    "SIM",    # flake8-simplify
+    "SLF",    # flake8-self
+    "SLOT",   # flake8-slots
+    "T20",    # flake8-print
+    "TID",    # flake8-tidy-imports
+    "TRY",    # tryceratops
+    "UP",     # pyupgrade
+    "W",      # pycodestyle warnings
+]
+
+ignore = [
+    # Handled by the formatter / long lines are acceptable
+    "E501",
+    # Docstring conventions that conflict with the google convention below
+    "D202",
+    "D203",
+    "D213",
+    "D406",
+    "D407",
+    "D413",
+    "D417",
+    # Long messages outside the exception class are fine here
+    "TRY003",
+    # Low-value/noisy: would force restructuring working error-handling flow
+    "TRY300",
+    "TRY301",
+    # Mutable class attributes as ClassVar - noisy for entity descriptions
+    "RUF012",
+    # Rules that conflict with the Ruff formatter
+    "W191",
+    "E111",
+    "E114",
+    "E117",
+    "D206",
+    "D300",
+    "COM812",
+    "COM819",
+    "ISC001",
+]
+
+[lint.per-file-ignores]
+# Relative imports are the norm inside a Home Assistant integration package
+"custom_components/northtracker/**" = ["TID252"]
+
+[lint.pydocstyle]
+convention = "google"

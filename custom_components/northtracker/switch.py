@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from homeassistant.components.switch import (
     SwitchDeviceClass,
@@ -14,10 +15,10 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import LOGGER, DEFAULT_BATTERY_LOW_THRESHOLD
+from .const import DEFAULT_BATTERY_LOW_THRESHOLD, LOGGER
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
-from .entity import NorthTrackerEntity
 from .devices import NorthTrackerBaseDevice, NorthTrackerGpsDevice
+from .entity import NorthTrackerEntity
 
 
 @dataclass(kw_only=True)
@@ -155,17 +156,16 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
 
         if self._output_number is not None:
             return device.get_output_status(self._output_number)
-        elif self._input_number is not None:
+        if self._input_number is not None:
             return device.get_input_status(self._input_number)
-        elif self.entity_description.key == "geofence":
+        if self.entity_description.key == "geofence":
             # Aggregated geofence state, refreshed by the coordinator each update
             return device.geofence_enabled
-        elif self.entity_description.value_fn:
+        if self.entity_description.value_fn:
             # Use value_fn from entity description
             return bool(self.entity_description.value_fn(device))
-        else:
-            # Fallback to attribute on device
-            return bool(getattr(device, self.entity_description.key, False))
+        # Fallback to attribute on device
+        return bool(getattr(device, self.entity_description.key, False))
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the switch."""
@@ -228,7 +228,7 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
                 self._pending_state = None
                 self.async_write_ha_state()
             await self.coordinator.async_request_refresh()
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             LOGGER.error("%s: %s", error_msg, err)
             self._pending_state = None
             self.async_write_ha_state()
@@ -271,7 +271,7 @@ class NorthTrackerSwitch(NorthTrackerEntity, SwitchEntity):
 
             await self.coordinator.async_request_refresh()
 
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             LOGGER.error(
                 "Error setting geofences for device '%s': %s", device.name, err
             )

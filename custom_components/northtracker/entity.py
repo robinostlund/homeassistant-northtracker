@@ -5,10 +5,10 @@ from __future__ import annotations
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MANUFACTURER, CONFIGURATION_URL
+from .base import validate_device_name
+from .const import CONFIGURATION_URL, DOMAIN, MANUFACTURER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .devices import NorthTrackerBaseDevice, NorthTrackerSensorDevice
-from .base import validate_device_name
 
 
 class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):

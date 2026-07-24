@@ -7,23 +7,23 @@ import time
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL, CONF_USERNAME
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.helpers import issue_registry as ir
-from homeassistant.exceptions import ConfigEntryAuthFailed
 
-from .api import NorthTracker, APIError, AuthenticationError, RateLimitError
-from .devices import NorthTrackerGpsDevice, NorthTrackerSensorDevice
-from .helpers import async_prime_api_timezone
+from .api import APIError, AuthenticationError, NorthTracker, RateLimitError
 from .const import (
+    DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     LOGGER,
-    DEFAULT_UPDATE_INTERVAL,
-    MIN_UPDATE_INTERVAL,
     MAX_UPDATE_INTERVAL,
+    MIN_UPDATE_INTERVAL,
 )
+from .devices import NorthTrackerGpsDevice, NorthTrackerSensorDevice
+from .helpers import async_prime_api_timezone
 
 type NorthTrackerConfigEntry = ConfigEntry["NorthTrackerDataUpdateCoordinator"]
 
@@ -119,7 +119,7 @@ class NorthTrackerDataUpdateCoordinator(
                     try:
                         device = NorthTrackerGpsDevice(self.api, unit_data)
                         devices[device_id] = device
-                    except Exception as err:
+                    except Exception as err:  # noqa: BLE001
                         LOGGER.error(
                             "Failed to create GPS device for ID %s: %s", device_id, err
                         )
@@ -139,13 +139,13 @@ class NorthTrackerDataUpdateCoordinator(
                             try:
                                 if devices[device_id].update_gps_data(gps_data):
                                     self._devices_with_changes.add(device_id)
-                            except Exception as err:
+                            except Exception as err:  # noqa: BLE001
                                 LOGGER.error(
                                     "Error updating GPS data for device ID %s: %s",
                                     device_id,
                                     err,
                                 )
-            except Exception as err:
+            except Exception as err:  # noqa: BLE001
                 LOGGER.warning("Error fetching real-time location data: %s", err)
 
             # Create virtual Bluetooth sensor devices
@@ -155,7 +155,7 @@ class NorthTrackerDataUpdateCoordinator(
                         try:
                             bt_device = NorthTrackerSensorDevice(main_device, bt_sensor)
                             devices[bt_device.id] = bt_device
-                        except Exception as err:
+                        except Exception as err:  # noqa: BLE001
                             LOGGER.error("Failed to create Bluetooth device: %s", err)
 
             # 3. Fetch extra details for each GPS device in parallel
@@ -164,7 +164,7 @@ class NorthTrackerDataUpdateCoordinator(
                 try:
                     if await device.async_update():
                         self._devices_with_changes.add(device.id)
-                except Exception as err:
+                except Exception as err:  # noqa: BLE001
                     LOGGER.warning(
                         "Failed to update details for device %s: %s", device.name, err
                     )
@@ -194,7 +194,7 @@ class NorthTrackerDataUpdateCoordinator(
                         for device in main_devices:
                             if device.update_geofence_status(geofences):
                                 self._devices_with_changes.add(device.id)
-                except Exception as err:
+                except Exception as err:  # noqa: BLE001
                     LOGGER.warning("Error fetching geofence status: %s", err)
 
             duration = time.monotonic() - start_time

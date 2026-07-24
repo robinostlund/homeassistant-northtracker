@@ -15,7 +15,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 
-
 # Device tracker entity description
 DEVICE_TRACKER_DESCRIPTION = TrackerEntityDescription(
     key="location",
@@ -130,7 +129,7 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         else:
             attributes["location_status"] = "active"
 
-        return attributes if attributes else None
+        return attributes or None
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""

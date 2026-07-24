@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from homeassistant.components.number import (
     NumberDeviceClass,
@@ -15,10 +16,10 @@ from homeassistant.const import EntityCategory, UnitOfElectricPotential
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import LOGGER, MIN_BATTERY_VOLTAGE_THRESHOLD, MAX_BATTERY_VOLTAGE_THRESHOLD
+from .const import LOGGER, MAX_BATTERY_VOLTAGE_THRESHOLD, MIN_BATTERY_VOLTAGE_THRESHOLD
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
-from .entity import NorthTrackerEntity
 from .devices import NorthTrackerBaseDevice
+from .entity import NorthTrackerEntity
 
 
 @dataclass(kw_only=True)
@@ -120,7 +121,7 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
                     )
                 else:
                     await self.coordinator.async_request_refresh()
-            except Exception as err:
+            except Exception as err:  # noqa: BLE001
                 LOGGER.error(
                     "Error setting low battery threshold for device '%s': %s",
                     device.name,

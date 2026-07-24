@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -24,10 +25,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .const import MIN_SIGNAL_STRENGTH, MAX_SIGNAL_STRENGTH, MAX_BATTERY_VOLTAGE_READING
+from .const import MAX_BATTERY_VOLTAGE_READING, MAX_SIGNAL_STRENGTH, MIN_SIGNAL_STRENGTH
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
-from .entity import NorthTrackerEntity
 from .devices import NorthTrackerBaseDevice
+from .entity import NorthTrackerEntity
 from .helpers import get_signal_quality_text
 
 
@@ -231,4 +232,4 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
                     int(current_value)
                 )
 
-        return attributes if attributes else None
+        return attributes or None

@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
 
-from .const import DOMAIN, PLATFORMS, LOGGER
+from .const import DOMAIN, LOGGER, PLATFORMS
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .migrations import async_migrate_entry_if_needed
 
@@ -53,7 +53,7 @@ async def async_unload_entry(
         try:
             if coordinator.api.is_authenticated:
                 await coordinator.api.logout()
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             LOGGER.warning("Error during logout: %s", err)
 
         LOGGER.info("NorthTracker integration unloaded for %s", entry.title)
