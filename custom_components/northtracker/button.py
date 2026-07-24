@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
-from .coordinator import NorthTrackerDataUpdateCoordinator
+from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 from .devices import NorthTrackerGpsDevice
-from .base import validate_entity_id
 
 
 BUTTON_DESCRIPTION = ButtonEntityDescription(
@@ -24,11 +21,11 @@ BUTTON_DESCRIPTION = ButtonEntityDescription(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: NorthTrackerConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up NorthTracker button entities."""
-    coordinator: NorthTrackerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
 
     entities: list[NorthTrackerRefreshButton] = []
 
@@ -61,7 +58,7 @@ class NorthTrackerRefreshButton(NorthTrackerEntity, ButtonEntity):
         device = self.device
         # Use IMEI for stable unique_id
         identifier = device.imei if device else str(device_id)
-        self._attr_unique_id = validate_entity_id(f"{identifier}_refresh")
+        self._attr_unique_id = f"{identifier}_refresh"
 
     async def async_press(self) -> None:
         """Handle the button press - trigger a data refresh."""

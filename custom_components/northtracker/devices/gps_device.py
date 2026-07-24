@@ -82,6 +82,9 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
         self._device_lock_data: dict[str, Any] = {}
         self._device_gps_data: dict[str, Any] = {}
         self._device_features_data: dict[str, Any] = {}
+        # Aggregated geofence state, refreshed by the coordinator each update.
+        # True = all geofences enabled, False = at least one disabled, None = none exist.
+        self._geofence_enabled: bool | None = None
 
         LOGGER.debug("Initializing GPS device: %s (ID: %s)", self.name, self.id)
 
@@ -142,7 +145,6 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
                         self._device_features_data = features_data[0]
                         data_changed = True
 
-            self._last_update = datetime.now()
             return data_changed
 
         except Exception as err:
@@ -448,6 +450,35 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     def low_battery_alert_enabled(self) -> bool:
         """Return whether low battery alert is enabled."""
         return self._device_features_data.get("LowBatteryAlertEnabled", False)
+
+    @property
+    def geofence_enabled(self) -> bool | None:
+        """Return aggregated geofence state for this device.
+
+        True if all geofences are enabled, False if any is disabled, and None
+        if the device has no geofences (or the state is not yet known).
+        """
+        return self._geofence_enabled
+
+    def update_geofence_status(self, geofences: list[dict[str, Any]]) -> bool:
+        """Update the aggregated geofence state from the full geofence list.
+
+        The API returns every geofence for the account in one call; here we
+        filter to this device (TerminalID) and collapse it to a single state.
+        Returns True if the state changed.
+        """
+        terminal_geofences = [
+            gf for gf in geofences if gf.get("TerminalID") == self.id
+        ]
+        if not terminal_geofences:
+            new_state: bool | None = None
+        else:
+            new_state = all(gf.get("Status") == "1" for gf in terminal_geofences)
+
+        if new_state != self._geofence_enabled:
+            self._geofence_enabled = new_state
+            return True
+        return False
 
     @property
     def low_battery_threshold(self) -> float | None:

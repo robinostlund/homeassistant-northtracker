@@ -67,7 +67,6 @@ class NorthTrackerBaseDevice(ABC):
     def __init__(self, tracker: "NorthTracker") -> None:
         """Initialize the base device."""
         self.tracker = tracker
-        self._last_update: datetime | None = None
 
     @property
     @abstractmethod

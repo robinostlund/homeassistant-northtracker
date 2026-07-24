@@ -11,7 +11,6 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
     EntityCategory,
@@ -26,11 +25,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
 from .const import MIN_SIGNAL_STRENGTH, MAX_SIGNAL_STRENGTH, MAX_BATTERY_VOLTAGE_READING
-from .coordinator import NorthTrackerDataUpdateCoordinator
+from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 from .devices import NorthTrackerBaseDevice
 from .helpers import get_signal_quality_text
-from .base import validate_entity_id
 
 
 @dataclass(kw_only=True)
@@ -65,7 +63,7 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
     NorthTrackerSensorEntityDescription(
         key="odometer",
         translation_key="odometer",
-        state_class=SensorStateClass.TOTAL,
+        state_class=SensorStateClass.TOTAL_INCREASING,
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
         value_fn=lambda device: device.odometer,
@@ -146,7 +144,9 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: NorthTrackerConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform and discover new entities."""
     from .base import BasePlatformSetup
@@ -181,7 +181,7 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
         # Use IMEI for stable unique_id
         device = self.device
         identifier = device.imei if device else str(device_id)
-        self._attr_unique_id = validate_entity_id(f"{identifier}_{description.key}")
+        self._attr_unique_id = f"{identifier}_{description.key}"
 
     @property
     def native_value(self) -> StateType:

@@ -6,19 +6,19 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from homeassistant.components.number import (
+    NumberDeviceClass,
     NumberEntity,
     NumberEntityDescription,
     NumberMode,
 )
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory, UnitOfElectricPotential
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import LOGGER, MIN_BATTERY_VOLTAGE_THRESHOLD, MAX_BATTERY_VOLTAGE_THRESHOLD
-from .coordinator import NorthTrackerDataUpdateCoordinator
+from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 from .devices import NorthTrackerBaseDevice
-from .base import validate_entity_id
 
 
 @dataclass(kw_only=True)
@@ -34,10 +34,12 @@ NUMBER_DESCRIPTIONS: tuple[NorthTrackerNumberEntityDescription, ...] = (
         key="low_battery_threshold",
         translation_key="low_battery_threshold",
         mode=NumberMode.BOX,
+        device_class=NumberDeviceClass.VOLTAGE,
+        entity_category=EntityCategory.CONFIG,
         native_min_value=MIN_BATTERY_VOLTAGE_THRESHOLD,
         native_max_value=MAX_BATTERY_VOLTAGE_THRESHOLD,
         native_step=0.1,
-        native_unit_of_measurement="V",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         entity_registry_enabled_default=False,
         value_fn=lambda device: device.low_battery_threshold,
     ),
@@ -45,7 +47,9 @@ NUMBER_DESCRIPTIONS: tuple[NorthTrackerNumberEntityDescription, ...] = (
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: NorthTrackerConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the number platform and discover new entities."""
     from .base import BasePlatformSetup
@@ -80,7 +84,7 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
         # Use IMEI for stable unique_id
         device = self.device
         identifier = device.imei if device else str(device_id)
-        self._attr_unique_id = validate_entity_id(f"{identifier}_{description.key}")
+        self._attr_unique_id = f"{identifier}_{description.key}"
 
     @property
     def native_value(self) -> float | None:
@@ -93,10 +97,7 @@ class NorthTrackerNumber(NorthTrackerEntity, NumberEntity):
             return None
 
         # Use value_fn from entity description
-        if (
-            hasattr(self.entity_description, "value_fn")
-            and self.entity_description.value_fn
-        ):
+        if self.entity_description.value_fn:
             return self.entity_description.value_fn(device)
         return getattr(device, self.entity_description.key, None)
 

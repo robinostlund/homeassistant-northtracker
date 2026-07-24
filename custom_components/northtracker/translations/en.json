@@ -6,17 +6,14 @@
                 "description": "Please enter your NorthTracker credentials.",
                 "data": {
                     "username": "Username",
-                    "password": "Password",
-                    "scan_interval": "Update Interval (minutes)"
+                    "password": "Password"
                 }
             },
             "reauth_confirm": {
                 "title": "Re-authenticate NorthTracker",
-                "description": "The credentials for NorthTracker ({username}) need to be updated. Please enter your new credentials.",
+                "description": "The credentials for NorthTracker ({username}) need to be updated. Please enter your new password.",
                 "data": {
-                    "username": "Username",
-                    "password": "Password",
-                    "scan_interval": "Update Interval (minutes)"
+                    "password": "Password"
                 }
             },
             "reconfigure": {
@@ -24,8 +21,7 @@
                 "description": "Update your NorthTracker configuration settings. Leave password empty to keep current password.",
                 "data": {
                     "username": "Username",
-                    "password": "Password (optional - leave empty to keep current)",
-                    "scan_interval": "Update Interval (minutes)"
+                    "password": "Password (optional - leave empty to keep current)"
                 }
             }
         },
@@ -33,13 +29,11 @@
             "cannot_connect": "Failed to connect to the NorthTracker API. Please check your network connection.",
             "invalid_auth": "Invalid username or password. Please try again.",
             "rate_limit": "Rate limit exceeded. Please wait a few minutes and try again.",
-            "scan_interval_too_low": "Update interval must be at least 1 minute.",
-            "scan_interval_too_high": "Update interval cannot exceed 24 hours (1440 minutes).",
-            "scan_interval_invalid": "Update interval must be between 1 and 1440 minutes.",
             "unknown": "Unexpected error occurred. Please try again."
         },
         "abort": {
             "already_configured": "This NorthTracker account is already configured.",
+            "account_mismatch": "The credentials you entered are for a different NorthTracker account than the one being reconfigured.",
             "reauth_successful": "Re-authentication was successful.",
             "reconfigure_successful": "Reconfiguration was successful."
         }
@@ -53,10 +47,6 @@
                     "scan_interval": "Update Interval (minutes)"
                 }
             }
-        },
-        "error": {
-            "scan_interval_too_low": "Update interval must be at least 1 minute.",
-            "scan_interval_too_high": "Update interval cannot exceed 24 hours (1440 minutes)."
         }
     },
     "issues": {
@@ -111,41 +101,11 @@
             }
         },
         "switch": {
-            "output_1": {
-                "name": "Output 1"
+            "output": {
+                "name": "Output {number}"
             },
-            "output_2": {
-                "name": "Output 2"
-            },
-            "output_3": {
-                "name": "Output 3"
-            },
-            "output_4": {
-                "name": "Output 4"
-            },
-            "output_5": {
-                "name": "Output 5"
-            },
-            "output_6": {
-                "name": "Output 6"
-            },
-            "input_1": {
-                "name": "Alert Input 1"
-            },
-            "input_2": {
-                "name": "Alert Input 2"
-            },
-            "input_3": {
-                "name": "Alert Input 3"
-            },
-            "input_4": {
-                "name": "Alert Input 4"
-            },
-            "input_5": {
-                "name": "Alert Input 5"
-            },
-            "input_6": {
-                "name": "Alert Input 6"
+            "input": {
+                "name": "Alert Input {number}"
             },
             "low_battery_alert": {
                 "name": "Low Battery Alert"

@@ -3,22 +3,20 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import timedelta, datetime
+import time
+from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.helpers.issue_registry import (
-    IssueSeverity,
-    async_create_issue,
-    async_delete_issue,
-)
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .api import NorthTracker, APIError, AuthenticationError, RateLimitError
 from .devices import NorthTrackerGpsDevice, NorthTrackerSensorDevice
+from .helpers import async_prime_api_timezone
 from .const import (
     DOMAIN,
     LOGGER,
@@ -27,43 +25,24 @@ from .const import (
     MAX_UPDATE_INTERVAL,
 )
 
+type NorthTrackerConfigEntry = ConfigEntry["NorthTrackerDataUpdateCoordinator"]
+
 
 class NorthTrackerDataUpdateCoordinator(
     DataUpdateCoordinator[dict[int, NorthTrackerGpsDevice]]
 ):
     """Class to manage fetching NorthTracker data."""
 
-    config_entry: ConfigEntry
+    config_entry: NorthTrackerConfigEntry
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: NorthTrackerConfigEntry) -> None:
         """Initialize."""
         self.api = NorthTracker(async_get_clientsession(hass))
 
-        # Validate config entry has required data
-        if not entry.data:
-            LOGGER.error(
-                "Config entry has no data - this indicates a corrupted configuration"
-            )
-            raise ValueError("Invalid config entry: no data found")
-
-        # Check for required credentials
-        has_username = (
-            CONF_USERNAME in entry.data
-            or "username" in entry.data
-            or "user" in entry.data
-        )
-        has_password = CONF_PASSWORD in entry.data or "password" in entry.data
-
-        if not has_username or not has_password:
-            LOGGER.error(
-                "Config entry missing required credentials. Available keys: %s",
-                list(entry.data.keys()),
-            )
-            raise ValueError("Invalid config entry: missing credentials")
-
-        # Validate and set update interval
-        update_interval_minutes = entry.data.get(
-            CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL
+        # Validate and set update interval (tunable via the options flow)
+        update_interval_minutes = entry.options.get(
+            CONF_SCAN_INTERVAL,
+            entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_UPDATE_INTERVAL),
         )
         if update_interval_minutes < MIN_UPDATE_INTERVAL:
             LOGGER.warning(
@@ -104,27 +83,19 @@ class NorthTrackerDataUpdateCoordinator(
 
     async def _async_update_data(self) -> dict[int, NorthTrackerGpsDevice]:
         """Fetch data from API endpoint."""
-        start_time = datetime.now()
+        start_time = time.monotonic()
 
         # Reset the devices with changes set at the start of each update
         self._devices_with_changes.clear()
 
+        # Ensure the API timezone is loaded off the event loop before parsing timestamps
+        await async_prime_api_timezone()
+
         try:
             # Authenticate only when needed (token management is handled in API class)
             if not self.api.is_authenticated:
-                # Handle potential key name variations
-                username = (
-                    self.config_entry.data.get(CONF_USERNAME)
-                    or self.config_entry.data.get("username")
-                    or self.config_entry.data.get("user")
-                )
-                password = self.config_entry.data.get(
-                    CONF_PASSWORD
-                ) or self.config_entry.data.get("password")
-
-                if not username or not password:
-                    raise UpdateFailed("Configuration error: missing credentials")
-
+                username = self.config_entry.data[CONF_USERNAME]
+                password = self.config_entry.data[CONF_PASSWORD]
                 await self.api.login(username, password)
 
             # 1. Get the base list of all devices
@@ -213,50 +184,55 @@ class NorthTrackerDataUpdateCoordinator(
                     *[limited_update(task) for task in tasks], return_exceptions=True
                 )
 
-            duration = (datetime.now() - start_time).total_seconds()
+                # 4. Fetch geofence status once for all devices. The API returns
+                # every geofence in a single call, so we filter it per device
+                # rather than making one request per device.
+                try:
+                    resp_geofences = await self.api.get_geofences()
+                    if resp_geofences.success:
+                        geofences = resp_geofences.data.get("geofences", [])
+                        for device in main_devices:
+                            if device.update_geofence_status(geofences):
+                                self._devices_with_changes.add(device.id)
+                except Exception as err:
+                    LOGGER.warning("Error fetching geofence status: %s", err)
+
+            duration = time.monotonic() - start_time
             LOGGER.debug("Updated %d devices in %.2fs", len(devices), duration)
 
             # Clear any previous error issues since update was successful
-            async_delete_issue(
+            ir.async_delete_issue(
                 self.hass, DOMAIN, f"{self.config_entry.entry_id}_api_error"
             )
-            async_delete_issue(
+            ir.async_delete_issue(
                 self.hass, DOMAIN, f"{self.config_entry.entry_id}_rate_limit"
             )
 
             return devices
 
         except AuthenticationError as err:
-            self.config_entry.async_start_reauth(self.hass)
-            async_create_issue(
-                self.hass,
-                DOMAIN,
-                f"{self.config_entry.entry_id}_authentication_failed",
-                is_fixable=False,
-                is_persistent=False,
-                severity=IssueSeverity.ERROR,
-                translation_key="authentication_failed",
-            )
+            # Raising ConfigEntryAuthFailed lets the coordinator base class start the
+            # reauth flow automatically; no need to trigger it manually here.
             raise ConfigEntryAuthFailed(f"Authentication failed: {err}") from err
         except RateLimitError as err:
-            async_create_issue(
+            ir.async_create_issue(
                 self.hass,
                 DOMAIN,
                 f"{self.config_entry.entry_id}_rate_limit",
                 is_fixable=False,
                 is_persistent=False,
-                severity=IssueSeverity.WARNING,
+                severity=ir.IssueSeverity.WARNING,
                 translation_key="rate_limit",
             )
             raise UpdateFailed(f"Rate limit exceeded: {err}") from err
         except APIError as err:
-            async_create_issue(
+            ir.async_create_issue(
                 self.hass,
                 DOMAIN,
                 f"{self.config_entry.entry_id}_api_error",
                 is_fixable=False,
                 is_persistent=False,
-                severity=IssueSeverity.WARNING,
+                severity=ir.IssueSeverity.WARNING,
                 translation_key="api_error",
                 translation_placeholders={"error": str(err)},
             )

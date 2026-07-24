@@ -10,14 +10,12 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from .coordinator import NorthTrackerDataUpdateCoordinator
+from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 from .devices import NorthTrackerBaseDevice
-from .base import validate_entity_id
 
 
 @dataclass(kw_only=True)
@@ -50,7 +48,9 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: NorthTrackerConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the binary sensor platform and discover new entities."""
     from .base import BasePlatformSetup
@@ -85,7 +85,7 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
         # Use IMEI for stable unique_id
         device = self.device
         identifier = device.imei if device else str(device_id)
-        self._attr_unique_id = validate_entity_id(f"{identifier}_{description.key}")
+        self._attr_unique_id = f"{identifier}_{description.key}"
 
     @property
     def is_on(self) -> bool | None:
