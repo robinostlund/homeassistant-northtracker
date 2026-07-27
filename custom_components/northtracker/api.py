@@ -10,8 +10,10 @@ import aiohttp
 
 from .const import (
     API_BASE_URL,
+    API_ERROR_BODY_PREVIEW_LENGTH,
     API_MAX_RETRIES,
     API_RATE_LIMIT_WARNING_THRESHOLD,
+    API_REAUTH_COOLDOWN,
     API_TIMEOUT,
     API_TIMEZONE,
     DEFAULT_BATTERY_LOW_THRESHOLD,
@@ -54,6 +56,8 @@ class NorthTracker:
         self._token: str | None = None
         # Monotonic deadline (time.monotonic) after which the token is considered expired
         self._token_expires: float | None = None
+        # Monotonic deadline before which a 5xx must not trigger a re-authentication
+        self._server_error_reauth_after: float = 0.0
         self._username: str | None = None
         self._password: str | None = None
 
@@ -106,6 +110,58 @@ class NorthTracker:
         if not self._username or not self._password:
             raise AuthenticationError("No credentials available for authentication")
         await self._login(self._username, self._password)
+
+    async def _try_reauthenticate(self, status: int, retry_count: int) -> bool:
+        """Re-authenticate after a 401/5xx and return True if the request should be retried.
+
+        A 401 always deserves a fresh token. The API has also been seen answering
+        5xx for a stale token, so those get one retry too - but at most once per
+        API_REAUTH_COOLDOWN, so that a genuinely broken endpoint does not make us
+        log in again for every single request it fails.
+        """
+        if retry_count != 0 or not self._token:
+            return False
+
+        if status != 401:
+            if time.monotonic() < self._server_error_reauth_after:
+                LOGGER.debug(
+                    "Server error %d - not re-authenticating (cooldown active)", status
+                )
+                return False
+            self._server_error_reauth_after = time.monotonic() + API_REAUTH_COOLDOWN
+            LOGGER.debug("Server error %d - trying a fresh token once", status)
+        else:
+            LOGGER.debug("Authentication error 401 - attempting re-authentication")
+
+        old_token = self._token
+        self._token = None
+        try:
+            await self._ensure_authenticated()
+        except AuthenticationError:
+            LOGGER.warning(
+                "Re-authentication failed after %d error, continuing with original error",
+                status,
+            )
+            # Restore old token and continue with original error handling
+            self._token = old_token
+            return False
+
+        # Only retry if we actually got a new token
+        return self._token != old_token
+
+    async def _log_error_body(self, response: aiohttp.ClientResponse) -> None:
+        """Log the body of a failed response - it usually explains the failure."""
+        try:
+            body = await response.text()
+        except (aiohttp.ClientError, UnicodeDecodeError) as err:
+            LOGGER.debug("Could not read error body from %s: %s", response.url, err)
+            return
+        LOGGER.debug(
+            "Error %d body from %s: %s",
+            response.status,
+            response.url,
+            body[:API_ERROR_BODY_PREVIEW_LENGTH],
+        )
 
     async def _request(
         self,
@@ -173,36 +229,16 @@ class NorthTracker:
                     )
 
                     # Handle authentication errors and potential token expiration (401 + 5xx)
-                    if (
-                        ((response.status == 401) or (500 <= response.status < 600))
-                        and retry_count == 0
-                        and self._token
-                    ):
-                        LOGGER.warning(
-                            "Authentication/server error %d - attempting re-authentication",
-                            response.status,
-                        )
-                        # Save current token for comparison
-                        old_token = self._token
-                        self._token = None
-                        try:
-                            await self._ensure_authenticated()
-                            # Only retry if we got a new token
-                            if self._token != old_token:
-                                LOGGER.debug(
-                                    "Got new token after %d error, retrying request",
-                                    response.status,
-                                )
-                                return await self._request(
-                                    method, url, payload, retry_count + 1, max_retries
-                                )
-                        except AuthenticationError:
-                            LOGGER.warning(
-                                "Re-authentication failed after %d error, continuing with original error",
+                    if (response.status == 401) or (500 <= response.status < 600):
+                        await self._log_error_body(response)
+                        if await self._try_reauthenticate(response.status, retry_count):
+                            LOGGER.debug(
+                                "Got new token after %d error, retrying request",
                                 response.status,
                             )
-                            # Restore old token and continue with original error handling
-                            self._token = old_token
+                            return await self._request(
+                                method, url, payload, retry_count + 1, max_retries
+                            )
 
                     if response.status == 429:
                         if retry_count < max_retries:
@@ -244,36 +280,16 @@ class NorthTracker:
                     )
 
                     # Handle authentication errors and potential token expiration (401 + 5xx)
-                    if (
-                        ((response.status == 401) or (500 <= response.status < 600))
-                        and retry_count == 0
-                        and self._token
-                    ):
-                        LOGGER.warning(
-                            "Authentication/server error %d - attempting re-authentication",
-                            response.status,
-                        )
-                        # Save current token for comparison
-                        old_token = self._token
-                        self._token = None
-                        try:
-                            await self._ensure_authenticated()
-                            # Only retry if we got a new token
-                            if self._token != old_token:
-                                LOGGER.debug(
-                                    "Got new token after %d error, retrying request",
-                                    response.status,
-                                )
-                                return await self._request(
-                                    method, url, payload, retry_count + 1, max_retries
-                                )
-                        except AuthenticationError:
-                            LOGGER.warning(
-                                "Re-authentication failed after %d error, continuing with original error",
+                    if (response.status == 401) or (500 <= response.status < 600):
+                        await self._log_error_body(response)
+                        if await self._try_reauthenticate(response.status, retry_count):
+                            LOGGER.debug(
+                                "Got new token after %d error, retrying request",
                                 response.status,
                             )
-                            # Restore old token and continue with original error handling
-                            self._token = old_token
+                            return await self._request(
+                                method, url, payload, retry_count + 1, max_retries
+                            )
 
                     if response.status == 429:
                         if retry_count < max_retries:

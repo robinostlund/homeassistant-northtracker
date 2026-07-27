@@ -37,6 +37,11 @@ API_MAX_RETRIES = 3
 API_RETRY_DELAY = 1  # seconds
 API_RATE_LIMIT_WARNING_THRESHOLD = 80  # percent
 API_TIMEZONE = "Europe/Stockholm"  # timezone used by NorthTracker API
+# Minimum time between re-authentications triggered by a 5xx response. A broken
+# endpoint keeps answering 5xx, and logging in for every such request would hammer
+# the login endpoint for no gain.
+API_REAUTH_COOLDOWN = 300  # seconds
+API_ERROR_BODY_PREVIEW_LENGTH = 500  # characters of a 5xx body to log
 
 # Device Constants
 MAX_BLUETOOTH_SENSORS_PER_DEVICE = 9  # slots 1-9

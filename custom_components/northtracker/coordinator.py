@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import time
 from datetime import timedelta
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL, CONF_USERNAME
@@ -77,6 +78,19 @@ class NorthTrackerDataUpdateCoordinator(
         # Track devices that have actually changed data to avoid unnecessary entity updates
         self._devices_with_changes: set[int] = set()
 
+        # Last known real-time payload per device ID. Bluetooth sensors are only
+        # discovered from this payload, so it is kept and reused when the
+        # real-time endpoint fails - otherwise those devices would vanish.
+        self._gps_data_cache: dict[int, dict[str, Any]] = {}
+
+        # True when part of the last update failed. The device list may then be
+        # incomplete, which makes it unsafe to remove "stale" devices.
+        self.update_degraded = False
+
+        # Whether the current real-time failure has already been logged, so an
+        # outage lasting hours does not fill the log with the same warning.
+        self._realtime_error_logged = False
+
     def device_has_changes(self, device_id: int) -> bool:
         """Check if a device has changes that require entity updates."""
         return device_id in self._devices_with_changes
@@ -85,8 +99,9 @@ class NorthTrackerDataUpdateCoordinator(
         """Fetch data from API endpoint."""
         start_time = time.monotonic()
 
-        # Reset the devices with changes set at the start of each update
+        # Reset per-update state at the start of each update
         self._devices_with_changes.clear()
+        self.update_degraded = False
 
         # Ensure the API timezone is loaded off the event loop before parsing timestamps
         await async_prime_api_timezone()
@@ -127,26 +142,46 @@ class NorthTrackerDataUpdateCoordinator(
             # 2. Get real-time location data
             try:
                 resp_realtime = await self.api.get_realtime_tracking()
-                if resp_realtime.success:
-                    gps_data_list = resp_realtime.data.get("gps", [])
+                if not resp_realtime.success:
+                    raise APIError("Real-time tracking request returned success=False")
 
-                    for gps_data in gps_data_list:
-                        device_id = gps_data.get("TrackerID")
-                        if device_id is None:
-                            continue
-
-                        if device_id in devices:
-                            try:
-                                if devices[device_id].update_gps_data(gps_data):
-                                    self._devices_with_changes.add(device_id)
-                            except Exception as err:  # noqa: BLE001
-                                LOGGER.error(
-                                    "Error updating GPS data for device ID %s: %s",
-                                    device_id,
-                                    err,
-                                )
+                gps_data_by_device = {
+                    gps_data["TrackerID"]: gps_data
+                    for gps_data in resp_realtime.data.get("gps", [])
+                    if gps_data.get("TrackerID") is not None
+                }
+                self._gps_data_cache = gps_data_by_device
+                if self._realtime_error_logged:
+                    LOGGER.info("Real-time location data is available again")
+                    self._realtime_error_logged = False
             except Exception as err:  # noqa: BLE001
-                LOGGER.warning("Error fetching real-time location data: %s", err)
+                # Fall back to the last known payload. Bluetooth sensor devices are
+                # discovered from it, so dropping it would remove those devices and
+                # their entities until the endpoint recovers.
+                self.update_degraded = True
+                gps_data_by_device = self._gps_data_cache
+                # Only warn on the first failure; an outage can last for hours.
+                log = LOGGER.debug if self._realtime_error_logged else LOGGER.warning
+                log(
+                    "Error fetching real-time location data, %s: %s",
+                    "reusing last known data"
+                    if gps_data_by_device
+                    else "no cached data available",
+                    err,
+                )
+                self._realtime_error_logged = True
+
+            for device_id, gps_data in gps_data_by_device.items():
+                device = devices.get(device_id)
+                if device is None:
+                    continue
+                try:
+                    if device.update_gps_data(gps_data):
+                        self._devices_with_changes.add(device_id)
+                except Exception as err:  # noqa: BLE001
+                    LOGGER.error(
+                        "Error updating GPS data for device ID %s: %s", device_id, err
+                    )
 
             # Create virtual Bluetooth sensor devices
             for main_device in list(devices.values()):

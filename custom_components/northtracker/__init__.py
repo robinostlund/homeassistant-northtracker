@@ -76,6 +76,20 @@ async def async_cleanup_stale_devices(
     coordinator: NorthTrackerDataUpdateCoordinator,
 ) -> None:
     """Remove devices and entities that no longer exist in the API."""
+    # Never delete anything based on a partial device list. A failing endpoint
+    # (for example real-time tracking, which is where Bluetooth sensors come
+    # from) would otherwise permanently remove those devices and their entities.
+    if coordinator.update_degraded:
+        LOGGER.warning(
+            "Skipping stale device cleanup: the last update was incomplete, "
+            "so the device list cannot be trusted"
+        )
+        return
+
+    if not coordinator.data:
+        LOGGER.debug("Skipping stale device cleanup: no devices returned by the API")
+        return
+
     device_registry = dr.async_get(hass)
 
     # Get current device IMEIs from the API (identifiers are now IMEI-based)
