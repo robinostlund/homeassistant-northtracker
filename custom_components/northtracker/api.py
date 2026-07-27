@@ -11,15 +11,23 @@ import aiohttp
 from .const import (
     API_BASE_URL,
     API_ERROR_BODY_PREVIEW_LENGTH,
+    API_MAX_REALTIME_PAGES,
     API_MAX_RETRIES,
     API_RATE_LIMIT_WARNING_THRESHOLD,
     API_REAUTH_COOLDOWN,
     API_TIMEOUT,
     API_TIMEZONE,
-    DEFAULT_BATTERY_LOW_THRESHOLD,
     LOGGER,
     LOGGER_TOKEN_PREVIEW_LENGTH,
 )
+
+
+def _as_int(value: Any, default: int) -> int:
+    """Return value as int, falling back to default for anything unparsable."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 class NorthTrackerException(Exception):
@@ -46,6 +54,7 @@ class NorthTracker:
         self.session = session
         self.base_url = API_BASE_URL
         self.http_headers = {
+            "Accept": "application/json",
             "Content-Type": "application/json",
             "Timezone": API_TIMEZONE,
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -424,11 +433,6 @@ class NorthTracker:
             self._token = None
             self._token_expires = None
 
-    async def get_tracking_details(self) -> NorthTrackerResponse:
-        """Get tracking details from the API."""
-        url = f"{self.base_url}/user/realtimetracking/get"
-        return await self._get_data(url)
-
     async def get_all_units_details(self) -> NorthTrackerResponse:
         """Get details for all units."""
         LOGGER.debug("Fetching all units details from API")
@@ -441,17 +445,67 @@ class NorthTracker:
             LOGGER.warning("Failed to fetch all units details")
         return response
 
+    def _realtime_tracking_url(self, page: int) -> str:
+        """Build the URL for one page of real-time tracking data."""
+        return (
+            f"{self.base_url}/user/realtimetracking/latest-units-data"
+            f"?lang=en&page={page}&order_by=&order_dir=&only_marker_detail=0"
+        )
+
     async def get_realtime_tracking(self) -> NorthTrackerResponse:
-        """Fetch real-time location data for all devices."""
+        """Fetch real-time location data for all devices.
+
+        The unit list is paginated by the API, so every page is fetched and the
+        units are merged into a single flat "gps" list.
+        """
         LOGGER.debug("Fetching real-time tracking data from API")
-        url = f"{self.base_url}/user/realtimetracking/get?lang=en"
-        response = await self._get_data(url)
-        if response.success:
-            gps_count = len(response.data.get("gps", []))
-            LOGGER.debug("Successfully fetched GPS data for %d devices", gps_count)
-        else:
-            LOGGER.warning("Failed to fetch real-time tracking data")
-        return response
+
+        units: list[dict[str, Any]] = []
+        payload: dict[str, Any] = {}
+        page = 1
+
+        while True:
+            response = await self._get_data(self._realtime_tracking_url(page))
+            if not response.success:
+                LOGGER.warning(
+                    "Failed to fetch real-time tracking data (page %d)", page
+                )
+                return response
+
+            data = response.data if isinstance(response.data, dict) else {}
+            if not payload:
+                # Keep the non-paginated parts (sensor, blt, ...) from the first page
+                payload = dict(data)
+
+            gps = data.get("gps")
+            if isinstance(gps, dict):
+                # Laravel paginator: {"current_page": 1, "last_page": 2, "data": [...]}
+                units.extend(gps.get("data") or [])
+                current_page = _as_int(gps.get("current_page"), page)
+                last_page = _as_int(gps.get("last_page"), page)
+            else:
+                # Defensive: a plain list means there is nothing to paginate
+                units.extend(gps or [])
+                current_page = last_page = page
+
+            if current_page >= last_page:
+                break
+            if page >= API_MAX_REALTIME_PAGES:
+                LOGGER.warning(
+                    "Stopping after %d pages of real-time tracking data (last page: %d)",
+                    page,
+                    last_page,
+                )
+                break
+            page += 1
+
+        payload["gps"] = units
+        LOGGER.debug(
+            "Successfully fetched GPS data for %d devices (%d page(s))",
+            len(units),
+            page,
+        )
+        return NorthTrackerResponse({"success": True, "data": payload})
 
     async def get_unit_details(
         self, device_id: int, device_type: str
@@ -486,239 +540,6 @@ class NorthTracker:
             LOGGER.warning("Failed to fetch lock status for device ID %d", device_id)
         return response
 
-    async def update_unit_features(
-        self, device_imei: str, features_data: dict
-    ) -> NorthTrackerResponse:
-        """Update unit features/settings."""
-        LOGGER.debug("Updating unit features for device IMEI %s", device_imei)
-        url = f"{self.base_url}/user/terminal/enable-features"
-
-        # Ensure the payload has the correct structure
-        payload = {"Imeis": [device_imei], "Settings": features_data}
-
-        # Debug: Log the payload structure (without sensitive data)
-        settings_keys = (
-            list(features_data.keys())[:10]
-            if isinstance(features_data, dict)
-            else "Not a dict"
-        )
-        LOGGER.debug(
-            "Sending payload to enable-features API - Imeis: %s, Settings keys: %s (total: %d)",
-            payload["Imeis"],
-            settings_keys,
-            len(features_data) if isinstance(features_data, dict) else 0,
-        )
-
-        response = await self._post_data(url, payload)
-        if response.success:
-            LOGGER.debug(
-                "Successfully updated unit features for device IMEI %s", device_imei
-            )
-        else:
-            LOGGER.warning(
-                "Failed to update unit features for device IMEI %s", device_imei
-            )
-        return response
-
-    async def set_low_battery_alert(
-        self,
-        device_imei: str,
-        enabled: bool,
-        threshold: float = DEFAULT_BATTERY_LOW_THRESHOLD,
-    ) -> NorthTrackerResponse:
-        """Enable/disable low battery alert and set threshold."""
-        LOGGER.debug(
-            "Setting low battery alert for device IMEI %s: enabled=%s, threshold=%.1f",
-            device_imei,
-            enabled,
-            threshold,
-        )
-
-        # Use the generic settings update method
-        settings_updates = {
-            "LowBatteryAlertEnabled": 1
-            if enabled
-            else 0,  # Convert boolean to 1/0 as API expects
-            "LowBatteryThreshold": str(
-                threshold
-            ),  # Convert to string as shown in example
-            "SendLowBatteryCommand": True,
-        }
-
-        return await self.update_unit_features_settings(device_imei, settings_updates)
-
-    async def update_unit_features_settings(
-        self, device_imei: str, settings_updates: dict
-    ) -> NorthTrackerResponse:
-        """Update device settings with a generic, reusable payload structure.
-
-        Args:
-            device_imei: Device IMEI
-            settings_updates: Dictionary of settings to update (e.g. {"LowBatteryAlertEnabled": True})
-        """
-        LOGGER.debug(
-            "Updating generic settings for device IMEI %s: %s",
-            device_imei,
-            settings_updates,
-        )
-
-        # Create the base settings structure that the API expects
-        base_settings = {
-            "ID": "",
-            "ProfileName": "",
-            "ProfileDescription": "",
-            "TripType": "",
-            "TripTypeSettings": {
-                "default_trip": 0,
-                "private_trip": 0,
-                "onmap_during_workinghour": 0,
-                "businessTripDays": "",
-            },
-            "CarBenefitSettings": {
-                "benefit_type": "",
-                "fuel_consumption_company": "",
-                "vehicle_type": "",
-                "currency": "",
-                "fuel_consumption_private": "",
-            },
-            "CarBenefitEnabled": False,
-            "GreenDrivingSensitivity": "",
-            "OverspeedingThreshold": "",
-            "SaveConfiguration": False,
-            "GreenDrivingEnabled": False,
-            "OverSpeedingEnabled": False,
-            "WorkingHoursEnabled": False,
-            "FromApp": "false",
-            "SaveCarBenefit": False,
-            "SaveWorkingHours": False,
-            "SendEcoDrivingCommand": False,
-            "SendOverspeedingCommand": False,
-            "IsKorjournalUnit": False,
-        }
-
-        # Apply the specific updates
-        final_settings = {**base_settings, **settings_updates}
-
-        LOGGER.debug(
-            "Sending generic settings update with %d base fields + %d custom fields",
-            len(base_settings),
-            len(settings_updates),
-        )
-
-        return await self.update_unit_features(device_imei, final_settings)
-
-    async def output_turn_on(
-        self, device_id: int, output_number: int
-    ) -> NorthTrackerResponse:
-        """Turn on a digital output."""
-        LOGGER.debug("Turning on output %d for device ID %d", output_number, device_id)
-        url = f"{self.base_url}/user/terminal/relaysetting/sendmsg"
-        payload = {
-            "terminal_id": device_id,
-            "doutnumber": output_number,
-            "doutvalue": 1,
-        }
-        response = await self._post_data(url, payload)
-        if response.success:
-            LOGGER.debug(
-                "Successfully sent turn ON command for output %d, device ID %d",
-                output_number,
-                device_id,
-            )
-        else:
-            LOGGER.warning(
-                "Failed to turn on output %d for device ID %d", output_number, device_id
-            )
-        return response
-
-    async def output_turn_off(
-        self, device_id: int, output_number: int
-    ) -> NorthTrackerResponse:
-        """Turn off a digital output."""
-        LOGGER.debug("Turning off output %d for device ID %d", output_number, device_id)
-        url = f"{self.base_url}/user/terminal/relaysetting/sendmsg"
-        payload = {
-            "terminal_id": device_id,
-            "doutnumber": output_number,
-            "doutvalue": 0,
-        }
-        response = await self._post_data(url, payload)
-        if response.success:
-            LOGGER.debug(
-                "Successfully sent turn OFF command for output %d, device ID %d",
-                output_number,
-                device_id,
-            )
-        else:
-            LOGGER.warning(
-                "Failed to turn off output %d for device ID %d",
-                output_number,
-                device_id,
-            )
-        return response
-
-    async def input_turn_on(
-        self, device_id: int, input_number: int
-    ) -> NorthTrackerResponse:
-        """Enable alert for a digital input."""
-        LOGGER.debug(
-            "Enabling alert for input %d on device ID %d", input_number, device_id
-        )
-        # Note: This might use a different endpoint than outputs - may need adjustment
-        url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
-        payload = {"terminal_id": device_id, "dinnumber": input_number, "dinvalue": 1}
-        response = await self._post_data(url, payload)
-        if response.success:
-            LOGGER.debug(
-                "Successfully enabled alert for input %d, device ID %d",
-                input_number,
-                device_id,
-            )
-        else:
-            LOGGER.warning(
-                "Failed to enable alert for input %d on device ID %d",
-                input_number,
-                device_id,
-            )
-        return response
-
-    async def input_turn_off(
-        self, device_id: int, input_number: int
-    ) -> NorthTrackerResponse:
-        """Disable alert for a digital input."""
-        LOGGER.debug(
-            "Disabling alert for input %d on device ID %d", input_number, device_id
-        )
-        # Note: This might use a different endpoint than outputs - may need adjustment
-        url = f"{self.base_url}/user/terminal/dinsetting/sendmsg"
-        payload = {"terminal_id": device_id, "dinnumber": input_number, "dinvalue": 0}
-        response = await self._post_data(url, payload)
-        if response.success:
-            LOGGER.debug(
-                "Successfully disabled alert for input %d, device ID %d",
-                input_number,
-                device_id,
-            )
-        else:
-            LOGGER.warning(
-                "Failed to disable alert for input %d on device ID %d",
-                input_number,
-                device_id,
-            )
-        return response
-
-    async def output_check_ack(self, ack_id: int) -> NorthTrackerResponse:
-        """Check acknowledgment for output command."""
-        LOGGER.debug("Checking acknowledgment for ID %d", ack_id)
-        url = f"{self.base_url}/user/terminal/relaysetting/check-ack"
-        payload = {"id": ack_id}
-        response = await self._post_data(url, payload)
-        if response.success:
-            LOGGER.debug("Successfully checked acknowledgment for ID %d", ack_id)
-        else:
-            LOGGER.warning("Failed to check acknowledgment for ID %d", ack_id)
-        return response
-
     # -------------------------------------------------------------------------
     # Geofence Methods
     # -------------------------------------------------------------------------
@@ -738,92 +559,6 @@ class NorthTracker:
         else:
             LOGGER.warning("Failed to fetch geofences")
         return response
-
-    async def set_geofence_status(
-        self, geofence_id: int, group_identifier: str, enabled: bool
-    ) -> NorthTrackerResponse:
-        """Enable or disable a geofence.
-
-        Args:
-            geofence_id: The geofence ID
-            group_identifier: The group identifier for the geofence
-            enabled: True to enable, False to disable
-
-        Returns:
-            Response indicating success/failure
-        """
-        status = "1" if enabled else "0"
-        LOGGER.debug(
-            "Setting geofence %d status to %s (enabled=%s)",
-            geofence_id,
-            status,
-            enabled,
-        )
-        url = f"{self.base_url}/user/geofence/state/group-update"
-        payload = {
-            "status": status,
-            "geofence_id": geofence_id,
-            "group_identifier": group_identifier,
-        }
-        response = await self._post_data(url, payload)
-        if response.success:
-            LOGGER.debug(
-                "Successfully set geofence %d status to %s", geofence_id, status
-            )
-        else:
-            LOGGER.warning("Failed to set geofence %d status", geofence_id)
-        return response
-
-    async def set_all_geofences_status(
-        self, terminal_id: int, enabled: bool
-    ) -> list[NorthTrackerResponse]:
-        """Enable or disable all geofences for a specific terminal.
-
-        Args:
-            terminal_id: The terminal/device ID
-            enabled: True to enable all, False to disable all
-
-        Returns:
-            List of responses for each geofence update
-        """
-        LOGGER.debug(
-            "Setting all geofences for terminal %d to enabled=%s", terminal_id, enabled
-        )
-
-        # First get all geofences
-        geofences_response = await self.get_geofences()
-        if not geofences_response.success:
-            LOGGER.error("Failed to fetch geofences for bulk update")
-            return [geofences_response]
-
-        geofences = geofences_response.data.get("geofences", [])
-
-        # Filter geofences for this terminal
-        terminal_geofences = [
-            gf for gf in geofences if gf.get("TerminalID") == terminal_id
-        ]
-
-        if not terminal_geofences:
-            LOGGER.debug("No geofences found for terminal %d", terminal_id)
-            return []
-
-        LOGGER.debug(
-            "Found %d geofences for terminal %d, updating...",
-            len(terminal_geofences),
-            terminal_id,
-        )
-
-        # Update each geofence
-        responses = []
-        for gf in terminal_geofences:
-            response = await self.set_geofence_status(
-                geofence_id=gf.get("ID"),
-                group_identifier=gf.get("GroupIdentifier", ""),
-                enabled=enabled,
-            )
-            responses.append(response)
-
-        return responses
 
 
 class NorthTrackerResponse:

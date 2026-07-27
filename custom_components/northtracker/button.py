@@ -5,11 +5,14 @@ from __future__ import annotations
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .devices import NorthTrackerGpsDevice
 from .entity import NorthTrackerEntity
+
+# All data comes from the coordinator, so there is no per-entity polling to limit.
+PARALLEL_UPDATES = 0
 
 BUTTON_DESCRIPTION = ButtonEntityDescription(
     key="refresh",
@@ -21,7 +24,7 @@ BUTTON_DESCRIPTION = ButtonEntityDescription(
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: NorthTrackerConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up NorthTracker button entities."""
     coordinator = entry.runtime_data

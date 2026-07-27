@@ -43,13 +43,15 @@ custom_components/northtracker/
 │   ├── gps_device.py    # GPS tracker device
 │   └── sensor_device.py # Bluetooth sensor device
 ├── sensor.py            # Sensor entities
-├── binary_sensor.py     # Binary sensor entities
-├── switch.py            # Switch entities (digital outputs)
-├── button.py            # Button entities
+├── binary_sensor.py     # Binary sensor entities (incl. digital I/O status)
+├── button.py            # Button entities (local refresh)
 ├── device_tracker.py    # Device tracker entity
-├── number.py            # Number entities
 └── diagnostics.py       # Diagnostic data export
 ```
+
+The integration is read-only: it never writes to the NorthTracker API. Keep it that
+way - new features report state, and anything configurable belongs in the NorthTracker
+web UI. That is also why there are no switch or number platforms.
 
 ## Debug Logging
 

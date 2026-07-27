@@ -10,10 +10,13 @@ from homeassistant.components.device_tracker import (
     TrackerEntityDescription,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
+
+# All data comes from the coordinator, so there is no per-entity polling to limit.
+PARALLEL_UPDATES = 0
 
 # Device tracker entity description
 DEVICE_TRACKER_DESCRIPTION = TrackerEntityDescription(
@@ -25,7 +28,7 @@ DEVICE_TRACKER_DESCRIPTION = TrackerEntityDescription(
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: NorthTrackerConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the device tracker platform and discover new entities."""
     from .base import BasePlatformSetup

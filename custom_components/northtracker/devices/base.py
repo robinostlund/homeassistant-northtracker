@@ -35,17 +35,16 @@ class DeviceCapabilities:
     has_report_frequency: bool = False
     has_last_seen: bool = False
 
-    # Binary sensor capabilities
+    # Binary sensor capabilities. The integration is read-only, so states that
+    # are configured in the NorthTracker web UI are reported, never set.
     has_bluetooth_enabled: bool = False
     has_door_sensor: bool = False
-
-    # Switch capabilities
     has_low_battery_alert: bool = False
     has_geofence: bool = False
     has_digital_outputs: bool = False
     has_digital_inputs: bool = False
 
-    # Number capabilities
+    # Sensor capabilities (continued)
     has_low_battery_threshold: bool = False
 
     # Button capabilities
@@ -54,8 +53,6 @@ class DeviceCapabilities:
     # Sensor keys that this device type supports (for dynamic entity creation)
     supported_sensors: list[str] = field(default_factory=list)
     supported_binary_sensors: list[str] = field(default_factory=list)
-    supported_switches: list[str] = field(default_factory=list)
-    supported_numbers: list[str] = field(default_factory=list)
 
 
 class NorthTrackerBaseDevice(ABC):
@@ -122,14 +119,6 @@ class NorthTrackerBaseDevice(ABC):
     def supports_binary_sensor(self, sensor_key: str) -> bool:
         """Check if device supports a specific binary sensor."""
         return sensor_key in self.capabilities.supported_binary_sensors
-
-    def supports_switch(self, switch_key: str) -> bool:
-        """Check if device supports a specific switch."""
-        return switch_key in self.capabilities.supported_switches
-
-    def supports_number(self, number_key: str) -> bool:
-        """Check if device supports a specific number entity."""
-        return number_key in self.capabilities.supported_numbers
 
     # Common optional properties with default implementations
     @property

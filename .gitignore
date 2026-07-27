@@ -1,5 +1,6 @@
 # Development and documentation files
 dev-notes/
+dev-files/
 NOTES.md
 test.py
 test_*.py

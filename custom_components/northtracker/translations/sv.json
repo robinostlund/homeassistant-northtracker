@@ -98,20 +98,9 @@
             },
             "battery_percentage": {
                 "name": "Batteri"
-            }
-        },
-        "switch": {
-            "output": {
-                "name": "Utgång {number}"
             },
-            "input": {
-                "name": "Larma Ingång {number}"
-            },
-            "low_battery_alert": {
-                "name": "Låg Batterispänning Larm"
-            },
-            "geofence": {
-                "name": "Geofence Larm"
+            "low_battery_threshold": {
+                "name": "Låg Batterispänning Tröskel"
             }
         },
         "binary_sensor": {
@@ -120,16 +109,23 @@
             },
             "bluetooth_enabled": {
                 "name": "Bluetooth Aktiverad"
+            },
+            "digital_input": {
+                "name": "Ingång {number}"
+            },
+            "digital_output": {
+                "name": "Utgång {number}"
+            },
+            "low_battery_alert": {
+                "name": "Låg Batterispänning Larm"
+            },
+            "geofence": {
+                "name": "Geofence Larm"
             }
         },
         "device_tracker": {
             "location": {
                 "name": "Plats"
-            }
-        },
-        "number": {
-            "low_battery_threshold": {
-                "name": "Låg Batterispänning Tröskel"
             }
         },
         "button": {

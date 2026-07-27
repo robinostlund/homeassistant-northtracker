@@ -60,9 +60,7 @@
                     "90": "mdi:battery-90",
                     "100": "mdi:battery"
                 }
-            }
-        },
-        "number": {
+            },
             "low_battery_threshold": {
                 "default": "mdi:battery-alert"
             }
@@ -77,76 +75,11 @@
             },
             "bluetooth_enabled": {
                 "default": "mdi:bluetooth"
-            }
-        },
-        "switch": {
-            "output_1": {
-                "default": "mdi:toggle-switch-variant-off",
-                "state": {
-                    "on": "mdi:toggle-switch-variant"
-                }
             },
-            "output_2": {
-                "default": "mdi:toggle-switch-variant-off",
-                "state": {
-                    "on": "mdi:toggle-switch-variant"
-                }
+            "digital_input": {
+                "default": "mdi:import"
             },
-            "output_3": {
-                "default": "mdi:toggle-switch-variant-off",
-                "state": {
-                    "on": "mdi:toggle-switch-variant"
-                }
-            },
-            "output_4": {
-                "default": "mdi:toggle-switch-variant-off",
-                "state": {
-                    "on": "mdi:toggle-switch-variant"
-                }
-            },
-            "output_5": {
-                "default": "mdi:toggle-switch-variant-off",
-                "state": {
-                    "on": "mdi:toggle-switch-variant"
-                }
-            },
-            "output_6": {
-                "default": "mdi:toggle-switch-variant-off",
-                "state": {
-                    "on": "mdi:toggle-switch-variant"
-                }
-            },
-            "input_1": {
-                "default": "mdi:toggle-switch-variant-off",
-                "state": {
-                    "on": "mdi:toggle-switch-variant"
-                }
-            },
-            "input_2": {
-                "default": "mdi:toggle-switch-variant-off",
-                "state": {
-                    "on": "mdi:toggle-switch-variant"
-                }
-            },
-            "input_3": {
-                "default": "mdi:toggle-switch-variant-off",
-                "state": {
-                    "on": "mdi:toggle-switch-variant"
-                }
-            },
-            "input_4": {
-                "default": "mdi:toggle-switch-variant-off",
-                "state": {
-                    "on": "mdi:toggle-switch-variant"
-                }
-            },
-            "input_5": {
-                "default": "mdi:toggle-switch-variant-off",
-                "state": {
-                    "on": "mdi:toggle-switch-variant"
-                }
-            },
-            "input_6": {
+            "digital_output": {
                 "default": "mdi:toggle-switch-variant-off",
                 "state": {
                     "on": "mdi:toggle-switch-variant"

@@ -22,7 +22,7 @@ from homeassistant.const import (
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
 from .const import MAX_BATTERY_VOLTAGE_READING, MAX_SIGNAL_STRENGTH, MIN_SIGNAL_STRENGTH
@@ -30,6 +30,9 @@ from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordina
 from .devices import NorthTrackerBaseDevice
 from .entity import NorthTrackerEntity
 from .helpers import get_signal_quality_text
+
+# All data comes from the coordinator, so there is no per-entity polling to limit.
+PARALLEL_UPDATES = 0
 
 
 @dataclass(kw_only=True)
@@ -101,6 +104,16 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
         value_fn=lambda device: device.speed,
     ),
     NorthTrackerSensorEntityDescription(
+        key="low_battery_threshold",
+        translation_key="low_battery_threshold",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        suggested_display_precision=1,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        value_fn=lambda device: device.low_battery_threshold,
+    ),
+    NorthTrackerSensorEntityDescription(
         key="report_frequency",
         translation_key="report_frequency",
         state_class=SensorStateClass.MEASUREMENT,
@@ -147,7 +160,7 @@ SENSOR_DESCRIPTIONS: tuple[NorthTrackerSensorEntityDescription, ...] = (
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: NorthTrackerConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the sensor platform and discover new entities."""
     from .base import BasePlatformSetup

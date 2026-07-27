@@ -13,14 +13,13 @@ LOGGER = getLogger(__package__)
 MANUFACTURER = "NorthTracker"
 CONFIGURATION_URL = "https://gps.northtracker.com"
 
-# Platforms
+# Platforms. The integration is read-only: everything the API can change is
+# configured in the NorthTracker web UI, so no controllable platforms here.
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
     Platform.DEVICE_TRACKER,
-    Platform.NUMBER,
     Platform.SENSOR,
-    Platform.SWITCH,
 ]
 
 # Defaults
@@ -42,6 +41,7 @@ API_TIMEZONE = "Europe/Stockholm"  # timezone used by NorthTracker API
 # the login endpoint for no gain.
 API_REAUTH_COOLDOWN = 300  # seconds
 API_ERROR_BODY_PREVIEW_LENGTH = 500  # characters of a 5xx body to log
+API_MAX_REALTIME_PAGES = 20  # safety stop when paging through real-time tracking data
 
 # Device Constants
 MAX_BLUETOOTH_SENSORS_PER_DEVICE = 9  # slots 1-9
@@ -62,14 +62,5 @@ LOGGER_TOKEN_PREVIEW_LENGTH = 10  # characters to show in token preview
 GPS_COORDINATE_PRECISION = 6  # decimal places for GPS coordinates
 DEVICE_NAME_MAX_LENGTH = 50  # maximum device name length for display
 
-# Default Values
-DEFAULT_BATTERY_LOW_THRESHOLD = 20.0  # volts - default low battery voltage threshold
-
-# Battery Voltage Thresholds (for number entities)
-MIN_BATTERY_VOLTAGE_THRESHOLD = (
-    10.0  # volts - minimum allowed low battery voltage threshold
-)
-MAX_BATTERY_VOLTAGE_THRESHOLD = (
-    30.0  # volts - maximum allowed low battery voltage threshold
-)
+# Battery Voltage
 MAX_BATTERY_VOLTAGE_READING = 50.0  # volts - maximum reasonable battery voltage reading

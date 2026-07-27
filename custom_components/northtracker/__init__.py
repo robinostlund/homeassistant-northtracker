@@ -39,7 +39,7 @@ async def async_setup_entry(
     ir.async_delete_issue(hass, DOMAIN, f"{entry.entry_id}_api_error")
     ir.async_delete_issue(hass, DOMAIN, f"{entry.entry_id}_rate_limit")
 
-    LOGGER.info("NorthTracker integration setup completed for %s", entry.title)
+    LOGGER.debug("NorthTracker integration setup completed for %s", entry.title)
 
     return True
 
@@ -56,7 +56,7 @@ async def async_unload_entry(
         except Exception as err:  # noqa: BLE001
             LOGGER.warning("Error during logout: %s", err)
 
-        LOGGER.info("NorthTracker integration unloaded for %s", entry.title)
+        LOGGER.debug("NorthTracker integration unloaded for %s", entry.title)
     else:
         LOGGER.error("Failed to unload platforms for NorthTracker integration")
 

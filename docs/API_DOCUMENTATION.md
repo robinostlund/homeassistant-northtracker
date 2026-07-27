@@ -316,14 +316,21 @@ Get real-time GPS data for all devices.
 
 ### GET /user/realtimetracking/get
 
-Alternative endpoint for real-time tracking (used by integration).
-
-**Query Parameters:**
-- `lang` (optional): Language code
+**Removed by NorthTracker (confirmed 2026-07-27).** The route still exists but the
+controller behind it crashes, so it answers `500 Server Error` with an HTML body for
+every request. The web client no longer calls it. Use
+`/user/realtimetracking/latest-units-data` instead; it returns the same unit payload,
+but `data.gps` is a paginated object rather than a plain list.
 
 ---
 
 ## Device Control Commands
+
+> **Not used by this integration.** The integration is read-only: it never writes to
+> the API. These endpoints are documented for reference only, and the two `sendmsg`
+> ones below appear to be legacy - the web client uses
+> `relaysetting/sendmsg-collection` and `dout-control-via-din` instead
+> (see "Write endpoints used by the web client").
 
 ### POST /user/terminal/relaysetting/sendmsg
 
@@ -796,11 +803,18 @@ Known device models:
 3. **Device Details**: Call `/user/terminal/edit-terminal` for each device
 4. **Real-time Data**: Poll `/user/realtimetracking/latest-units-data` periodically
 
-### Controlling Digital Outputs
+### Digital Outputs
 
-1. Send command via `/user/terminal/relaysetting/sendmsg`
-2. Poll `/user/terminal/relaysetting/check-ack` to verify command was received
-3. Update local state when acknowledged
+The integration only reports output state (from the `Dout<N>Status` fields in
+`get-all-units-details`, labelled via `relaySettings` in `edit-terminal`). Outputs are
+switched in the NorthTracker web UI, which sends the full relay state at once:
+
+```
+POST /user/terminal/relaysetting/sendmsg-collection
+{"imei": "...", "dout1": 1, "dout2": 0, "dout3": 0,
+ "dout1_name": "Kylskåp", "dout2_name": "DOUT2", "dout3_name": "DOUT3",
+ "dout1_auto_control_disable": 0, "dout2_auto_control_disable": 0}
+```
 
 ### Token Management
 
@@ -821,25 +835,38 @@ The API returns rate limit headers:
 
 ## Endpoints Used by This Integration
 
+All read-only - the integration never writes to the API.
+
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/login` | POST | Authentication |
 | `/user/logout` | POST | Logout |
-| `/user/terminal/list` | GET | Device discovery |
-| `/user/terminal/get-all-units-details` | GET | Full device details |
-| `/user/terminal/edit-terminal` | POST | Single device details |
-| `/user/realtimetracking/get` | GET | GPS/sensor data |
-| `/user/terminal/get-unit-features` | POST | Device features |
-| `/user/terminal/enable-features` | POST | Update features |
+| `/user/terminal/get-all-units-details` | GET | Device list and full details |
+| `/user/realtimetracking/latest-units-data` | GET | GPS/sensor data (paginated) |
+| `/user/terminal/edit-terminal` | POST | Single device details, DIN/DOUT labels |
+| `/user/terminal/get-unit-features` | POST | Device features (low battery alert) |
 | `/user/terminal/access/lockstatus` | POST | Lock status |
-| `/user/terminal/relaysetting/sendmsg` | POST | Control outputs |
-| `/user/terminal/relaysetting/check-ack` | GET | Verify command |
-| `/user/terminal/dinsetting/sendmsg` | POST | Control inputs |
 | `/user/geofence/get/list` | GET | List geofences |
-| `/user/geofence/state/group-update` | POST | Enable/disable geofence |
-| `/user/ble-settings/get-all-paired-sensors` | GET | List BLE sensors |
-| `/user/ble-settings/get-settings` | POST | Get BLE sensor settings |
-| `/user/ble-settings/save-settings-params` | POST | Update BLE sensor settings |
+
+Note: `get-all-units-details` still works but the web client has moved to
+`/user/terminal/get-units?device_type=...` and `/user/terminal/list`, so it is the most
+likely candidate to be retired next.
+
+---
+
+## Write endpoints used by the web client
+
+Not called by the integration; documented so the read-only fields above can be traced
+back to where they are configured.
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/user/terminal/enable-features` | POST | Low battery alert and threshold |
+| `/user/terminal/relaysetting/sendmsg-collection` | POST | Set all relay outputs at once |
+| `/user/terminal/dout-control-via-din` | POST | Configure a DIN to drive a DOUT |
+| `/user/geofence/state/group-update` | POST | Enable/disable a geofence |
+| `/user/ble-settings/save-settings` | POST | Toggle BLE sensor readings |
+| `/user/ble-settings/save-settings-params` | POST | BLE sensor thresholds/alerts |
 
 ---
 
@@ -849,6 +876,10 @@ These endpoints exist but are not used by the integration:
 
 | Endpoint | Purpose |
 |----------|---------|
+| `/user/terminal/get-dout-settings` | Relay labels, values and auto-control flags |
+| `/user/terminal/get-auto-dout-settings` | DIN labels and DIN-to-DOUT automation |
+| `/user/ble-settings/get-all-paired-sensors` | Paired BLE sensors, independent of realtime data |
+| `/user/ble-settings/get-settings` | Per-sensor settings and thresholds |
 | `/user/triplog/*` | Trip history |
 | `/user/get-address` | Reverse geocoding |
 | `/administration/*` | Account management |

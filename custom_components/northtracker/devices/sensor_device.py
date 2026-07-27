@@ -39,8 +39,6 @@ BLUETOOTH_SENSOR_CAPABILITIES = DeviceCapabilities(
     supported_binary_sensors=[
         "door_sensor",
     ],
-    supported_switches=[],
-    supported_numbers=[],
 )
 
 

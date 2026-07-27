@@ -15,12 +15,18 @@ if TYPE_CHECKING:
     from .coordinator import NorthTrackerDataUpdateCoordinator
 
 # Current schema version - increment when making breaking changes
-CURRENT_SCHEMA_VERSION = 2
+CURRENT_SCHEMA_VERSION = 3
 
 # Schema version history:
 # 1: Initial version - used device_id for unique_id (e.g., "66131_temperature")
 # 2: Changed to IMEI for unique_id and device identifiers
 #    - All devices have IMEI field (GPS uses device IMEI, Bluetooth uses SerialNumber as IMEI)
+# 3: Integration became read-only - the switch and number platforms were dropped,
+#    so their entities are removed from the registry instead of lingering as
+#    unavailable leftovers. Digital I/O and the alert flags are binary sensors now.
+
+# Platforms this integration no longer provides; their registry entries are stale.
+REMOVED_PLATFORM_DOMAINS = ("switch", "number")
 
 
 async def async_migrate_entry_if_needed(
@@ -52,6 +58,38 @@ async def async_migrate_entry_if_needed(
 
     # Then migrate entity unique_ids
     await _async_migrate_entity_unique_ids(hass, coordinator, device_id_to_imei)
+
+    # Finally drop entities from platforms this integration no longer provides
+    await _async_remove_stale_platform_entities(hass, coordinator)
+
+
+async def _async_remove_stale_platform_entities(
+    hass: HomeAssistant,
+    coordinator: NorthTrackerDataUpdateCoordinator,
+) -> None:
+    """Remove entities left behind by platforms that no longer exist.
+
+    The switches and number entities wrote to the API. Now that the integration
+    is read-only they are gone, and their registry entries would otherwise stay
+    forever as unavailable entities.
+    """
+    entity_registry = er.async_get(hass)
+    removed: list[str] = []
+
+    for entity in er.async_entries_for_config_entry(
+        entity_registry, coordinator.config_entry.entry_id
+    ):
+        if entity.domain in REMOVED_PLATFORM_DOMAINS:
+            entity_registry.async_remove(entity.entity_id)
+            removed.append(entity.entity_id)
+
+    if removed:
+        LOGGER.info(
+            "Removed %d entities from platforms that are no longer provided "
+            "(the integration is read-only now): %s",
+            len(removed),
+            ", ".join(removed),
+        )
 
 
 async def _async_migrate_device_identifiers(

@@ -98,23 +98,7 @@
             },
             "battery_percentage": {
                 "name": "Battery"
-            }
-        },
-        "switch": {
-            "output": {
-                "name": "Output {number}"
             },
-            "input": {
-                "name": "Alert Input {number}"
-            },
-            "low_battery_alert": {
-                "name": "Low Battery Alert"
-            },
-            "geofence": {
-                "name": "Geofence Alarm"
-            }
-        },
-        "number": {
             "low_battery_threshold": {
                 "name": "Low Battery Threshold"
             }
@@ -130,6 +114,18 @@
             },
             "bluetooth_enabled": {
                 "name": "Bluetooth Enabled"
+            },
+            "digital_input": {
+                "name": "Input {number}"
+            },
+            "digital_output": {
+                "name": "Output {number}"
+            },
+            "low_battery_alert": {
+                "name": "Low Battery Alert"
+            },
+            "geofence": {
+                "name": "Geofence Alarm"
             }
         },
         "device_tracker": {

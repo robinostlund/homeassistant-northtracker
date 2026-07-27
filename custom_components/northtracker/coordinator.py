@@ -62,7 +62,7 @@ class NorthTrackerDataUpdateCoordinator(
 
         update_interval = timedelta(minutes=update_interval_minutes)
 
-        LOGGER.info(
+        LOGGER.debug(
             "NorthTracker coordinator initialized with a %.2f minute update interval.",
             update_interval_minutes,
         )

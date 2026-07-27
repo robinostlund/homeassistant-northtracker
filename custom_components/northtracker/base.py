@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import DEVICE_NAME_MAX_LENGTH, LOGGER
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
@@ -23,7 +23,7 @@ def get_supported_descriptions_for_device(
     Args:
         device: The device to check capabilities for
         descriptions: List of entity descriptions to filter
-        platform_type: Type of platform ("sensor", "binary_sensor", "switch", "number")
+        platform_type: Type of platform ("sensor", "binary_sensor", "device_tracker")
 
     Returns:
         List of descriptions supported by the device
@@ -39,12 +39,6 @@ def get_supported_descriptions_for_device(
                 supported.append(description)
         elif platform_type == "binary_sensor":
             if device.supports_binary_sensor(key):
-                supported.append(description)
-        elif platform_type == "switch":
-            if device.supports_switch(key):
-                supported.append(description)
-        elif platform_type == "number":
-            if device.supports_number(key):
                 supported.append(description)
         elif platform_type == "device_tracker":
             # Device tracker is only for GPS devices with location
@@ -73,7 +67,7 @@ class BasePlatformSetup[T]:
         """Initialize base platform setup.
 
         Args:
-            platform_name: Name of the platform (e.g., "sensor", "switch")
+            platform_name: Name of the platform (e.g., "sensor", "binary_sensor")
             entity_class: The entity class to create
             entity_descriptions: List of entity descriptions to check
             create_entity_callback: Function to create entity instances
@@ -87,7 +81,7 @@ class BasePlatformSetup[T]:
         self,
         hass: HomeAssistant,
         entry: NorthTrackerConfigEntry,
-        async_add_entities: AddEntitiesCallback,
+        async_add_entities: AddConfigEntryEntitiesCallback,
     ) -> None:
         """Set up platform entities with common discovery pattern."""
         coordinator = entry.runtime_data
@@ -122,8 +116,8 @@ class BasePlatformSetup[T]:
 class AdvancedPlatformSetup[T](BasePlatformSetup[T]):
     """Advanced platform setup that supports custom entity creation logic.
 
-    Useful for platforms like switch that need dynamic entity creation beyond
-    simple entity descriptions.
+    Useful for platforms like binary_sensor that need dynamic entity creation
+    beyond simple entity descriptions.
     """
 
     def __init__(
@@ -154,7 +148,7 @@ class AdvancedPlatformSetup[T](BasePlatformSetup[T]):
         self,
         hass: HomeAssistant,
         entry: NorthTrackerConfigEntry,
-        async_add_entities: AddEntitiesCallback,
+        async_add_entities: AddConfigEntryEntitiesCallback,
     ) -> None:
         """Set up platform entities with advanced discovery pattern."""
         coordinator = entry.runtime_data
@@ -166,7 +160,7 @@ class AdvancedPlatformSetup[T](BasePlatformSetup[T]):
 
             for device_id, device in coordinator.data.items():
                 if device_id not in added_devices:
-                    # Create custom entities (e.g., dynamic switches)
+                    # Create custom entities (e.g., dynamic digital I/O sensors)
                     if self.custom_entity_creator:
                         self.custom_entity_creator(
                             device, device_id, coordinator, new_entities

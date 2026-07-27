@@ -23,6 +23,26 @@ from .base import DeviceCapabilities, NorthTrackerBaseDevice
 if TYPE_CHECKING:
     from ..api import NorthTracker
 
+# The API spells I/O numbers out in its label keys ("DINTwoBtnLabel")
+_ORDINAL_WORDS = (
+    "One",
+    "Two",
+    "Three",
+    "Four",
+    "Five",
+    "Six",
+    "Seven",
+    "Eight",
+    "Nine",
+)
+
+
+def _ordinal_word(number: int) -> str:
+    """Return the spelled-out form of an I/O number as the API writes it."""
+    if 1 <= number <= len(_ORDINAL_WORDS):
+        return _ORDINAL_WORDS[number - 1]
+    return str(number)
+
 
 # Define GPS device capabilities once
 GPS_DEVICE_CAPABILITIES = DeviceCapabilities(
@@ -37,15 +57,13 @@ GPS_DEVICE_CAPABILITIES = DeviceCapabilities(
     has_odometer=True,
     has_report_frequency=True,
     has_last_seen=True,
+    has_low_battery_threshold=True,
     # Binary sensor capabilities
     has_bluetooth_enabled=True,
-    # Switch capabilities
     has_low_battery_alert=True,
     has_geofence=True,
     has_digital_outputs=True,
     has_digital_inputs=True,
-    # Number capabilities
-    has_low_battery_threshold=True,
     # Button capabilities
     has_refresh=True,
     # Supported entity keys
@@ -57,16 +75,12 @@ GPS_DEVICE_CAPABILITIES = DeviceCapabilities(
         "network_signal",
         "speed",
         "report_frequency",
+        "low_battery_threshold",
     ],
     supported_binary_sensors=[
         "bluetooth_enabled",
-    ],
-    supported_switches=[
         "low_battery_alert_enabled",
-        "geofence",
-    ],
-    supported_numbers=[
-        "low_battery_threshold",
+        "geofence_enabled",
     ],
 )
 
@@ -434,7 +448,7 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
         return bool(bluetooth_enabled)
 
     # -------------------------------------------------------------------------
-    # Switch/Control properties
+    # Alert/state properties (read-only)
     # -------------------------------------------------------------------------
 
     @property
@@ -445,7 +459,8 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     @property
     def low_battery_alert_enabled(self) -> bool:
         """Return whether low battery alert is enabled."""
-        return self._device_features_data.get("LowBatteryAlertEnabled", False)
+        # The API reports this as 0/1, not as a bool
+        return bool(self._device_features_data.get("LowBatteryAlertEnabled", False))
 
     @property
     def geofence_enabled(self) -> bool | None:
@@ -510,14 +525,42 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
         return status.lower() == "on" if isinstance(status, str) else bool(status)
 
     def get_output_status(self, output_number: int) -> bool:
-        """Get the status of a digital output (used by switch entities)."""
+        """Get the status of a digital output (used by binary sensor entities)."""
         state = self.get_digital_output_state(output_number)
         return state if state is not None else False
 
     def get_input_status(self, input_number: int) -> bool:
-        """Get the status of a digital input (used by switch entities)."""
+        """Get the status of a digital input (used by binary sensor entities)."""
         state = self.get_digital_input_state(input_number)
         return state if state is not None else False
+
+    def get_digital_input_label(self, input_number: int) -> str | None:
+        """Return the user-defined label for a digital input, if the API has one.
+
+        Labels live in the edit-terminal response as DINsettings, keyed by the
+        spelled-out input number ("DINTwoBtnLabel").
+        """
+        settings = self._device_data_extra.get("DINsettings") or []
+        return self._get_io_label(settings, f"DIN{_ordinal_word(input_number)}BtnLabel")
+
+    def get_digital_output_label(self, output_number: int) -> str | None:
+        """Return the user-defined label for a digital output, if the API has one.
+
+        Labels live in the edit-terminal response as relaySettings, keyed by the
+        spelled-out output number ("DoutBtnLabelOne").
+        """
+        settings = self._device_data_extra.get("relaySettings") or []
+        return self._get_io_label(
+            settings, f"DoutBtnLabel{_ordinal_word(output_number)}"
+        )
+
+    @staticmethod
+    def _get_io_label(settings: list[Any], key: str) -> str | None:
+        """Pick a label out of the first I/O settings entry."""
+        if not settings or not isinstance(settings[0], dict):
+            return None
+        label = settings[0].get(key)
+        return label.strip() if isinstance(label, str) and label.strip() else None
 
     # -------------------------------------------------------------------------
     # Info properties
@@ -541,4 +584,5 @@ class NorthTrackerGpsDevice(NorthTrackerBaseDevice):
     @property
     def sos_alarm_enabled(self) -> bool:
         """Return whether SOS alarm is enabled."""
-        return bool(self._device_data_extra.get("SoSAlarmEnabled", False))
+        # The API spells this "SosAlarmEnabled"; the old "SoSAlarmEnabled" never matched.
+        return bool(self._device_data_extra.get("SosAlarmEnabled", False))

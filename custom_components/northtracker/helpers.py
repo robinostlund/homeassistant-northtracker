@@ -126,6 +126,12 @@ def safe_int(value: Any, default: int | None = None) -> int | None:
     try:
         return int(value)
     except (ValueError, TypeError):
+        pass
+    # The API sends some integer fields as decimal strings ("31.0" for Azimuth),
+    # which int() rejects outright.
+    try:
+        return int(float(value))
+    except (ValueError, TypeError):
         return default
 
 
