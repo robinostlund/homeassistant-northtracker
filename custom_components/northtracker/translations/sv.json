@@ -2,7 +2,7 @@
     "config": {
         "step": {
             "user": {
-                "title": "NorthTracker Autentisering",
+                "title": "NorthTracker-autentisering",
                 "description": "Vänligen ange dina inloggningsuppgifter för NorthTracker.",
                 "data": {
                     "username": "Användarnamn",
@@ -41,7 +41,7 @@
     "options": {
         "step": {
             "init": {
-                "title": "NorthTracker Inställningar",
+                "title": "NorthTracker-inställningar",
                 "description": "Justera inställningarna för din NorthTracker integration.",
                 "data": {
                     "scan_interval": "Uppdateringsintervall (minuter)"
@@ -50,20 +50,8 @@
         }
     },
     "issues": {
-        "api_error": {
-            "title": "NorthTracker API-fel",
-            "description": "NorthTracker integrationen stötte på ett API-fel: {error}. Integrationen kommer att fortsätta försöka automatiskt."
-        },
-        "rate_limit": {
-            "title": "NorthTracker Hastighetsgräns Överskriden",
-            "description": "NorthTracker API:ets hastighetsgräns har överskridits. Överväg att öka uppdateringsintervallet i integrationsinställningarna."
-        },
-        "authentication_failed": {
-            "title": "NorthTracker Autentisering Misslyckades",
-            "description": "NorthTracker integrationen kunde inte autentisera. Vänligen konfigurera om integrationen med giltiga inloggningsuppgifter."
-        },
         "devices_removed": {
-            "title": "NorthTracker Enheter Borttagna",
+            "title": "NorthTracker-enheter borttagna",
             "description": "Följande enheter har tagits bort från ditt NorthTracker konto och har rensats bort: {devices}"
         }
     },
@@ -100,7 +88,7 @@
                 "name": "Batteri"
             },
             "low_battery_threshold": {
-                "name": "Låg Batterispänning Tröskel"
+                "name": "Tröskel för låg batterispänning"
             }
         },
         "binary_sensor": {
@@ -108,7 +96,7 @@
                 "name": "Dörrsensor"
             },
             "bluetooth_enabled": {
-                "name": "Bluetooth Aktiverad"
+                "name": "Bluetooth aktiverad"
             },
             "digital_input": {
                 "name": "Ingång {number}"
@@ -117,10 +105,10 @@
                 "name": "Utgång {number}"
             },
             "low_battery_alert": {
-                "name": "Låg Batterispänning Larm"
+                "name": "Larm för låg batterispänning"
             },
             "geofence": {
-                "name": "Geofence Larm"
+                "name": "Geofence-larm"
             }
         },
         "device_tracker": {

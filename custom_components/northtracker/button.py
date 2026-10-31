@@ -7,8 +7,8 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from .base import BasePlatformSetup
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
-from .devices import NorthTrackerGpsDevice
 from .entity import NorthTrackerEntity
 
 # All data comes from the coordinator, so there is no per-entity polling to limit.
@@ -26,22 +26,20 @@ async def async_setup_entry(
     entry: NorthTrackerConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up NorthTracker button entities."""
-    coordinator = entry.runtime_data
+    """Set up the button platform and discover new entities."""
 
-    entities: list[NorthTrackerRefreshButton] = []
+    def create_button_entity(coordinator, device_id, description):
+        """Create a button entity instance."""
+        return NorthTrackerRefreshButton(coordinator, device_id)
 
-    for device_id, device in coordinator.data.items():
-        # Only create refresh buttons for main GPS devices, not Bluetooth sensors
-        if isinstance(device, NorthTrackerGpsDevice):
-            entities.append(
-                NorthTrackerRefreshButton(
-                    coordinator=coordinator,
-                    device_id=device_id,
-                )
-            )
+    platform_setup = BasePlatformSetup(
+        platform_name="button",
+        entity_class=NorthTrackerRefreshButton,
+        entity_descriptions=[BUTTON_DESCRIPTION],
+        create_entity_callback=create_button_entity,
+    )
 
-    async_add_entities(entities)
+    await platform_setup.async_setup_entry(hass, entry, async_add_entities)
 
 
 class NorthTrackerRefreshButton(NorthTrackerEntity, ButtonEntity):

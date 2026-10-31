@@ -8,7 +8,7 @@ from homeassistant.helpers import issue_registry as ir
 
 from .const import DOMAIN, LOGGER, PLATFORMS
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
-from .migrations import async_migrate_entry_if_needed
+from .migrations import CURRENT_MINOR_VERSION, async_migrate_registry
 
 
 async def async_setup_entry(
@@ -24,8 +24,15 @@ async def async_setup_entry(
 
     entry.runtime_data = coordinator
 
-    # Migrate entity unique_ids from old format (device_id) to new format (IMEI)
-    await async_migrate_entry_if_needed(hass, coordinator)
+    # The registry migration needs the device list from the API, so it runs here
+    # rather than in async_migrate_entry. It is only recorded as done when the
+    # update was complete; a partial device list would leave entities behind.
+    if entry.minor_version < CURRENT_MINOR_VERSION:
+        await async_migrate_registry(hass, coordinator)
+        if not coordinator.update_degraded:
+            hass.config_entries.async_update_entry(
+                entry, minor_version=CURRENT_MINOR_VERSION
+            )
 
     # Clean up stale devices and entities
     await async_cleanup_stale_devices(hass, entry, coordinator)
@@ -34,10 +41,6 @@ async def async_setup_entry(
 
     # Reload the entry when its options (e.g. scan interval) change
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
-
-    # Clear any previous issues since setup was successful
-    ir.async_delete_issue(hass, DOMAIN, f"{entry.entry_id}_api_error")
-    ir.async_delete_issue(hass, DOMAIN, f"{entry.entry_id}_rate_limit")
 
     LOGGER.debug("NorthTracker integration setup completed for %s", entry.title)
 
@@ -68,6 +71,17 @@ async def async_reload_entry(
 ) -> None:
     """Reload the config entry when its options change."""
     await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: NorthTrackerConfigEntry, device_entry: dr.DeviceEntry
+) -> bool:
+    """Allow removing a device from the UI once the API no longer reports it."""
+    current_imeis = {device.imei for device in entry.runtime_data.data.values()}
+    return not any(
+        domain == DOMAIN and identifier in current_imeis
+        for domain, identifier in device_entry.identifiers
+    )
 
 
 async def async_cleanup_stale_devices(
@@ -127,7 +141,7 @@ async def async_cleanup_stale_devices(
             hass,
             DOMAIN,
             f"{entry.entry_id}_devices_removed",
-            is_fixable=True,
+            is_fixable=False,
             is_persistent=False,
             severity=ir.IssueSeverity.WARNING,
             translation_key="devices_removed",

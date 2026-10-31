@@ -12,13 +12,3 @@ updates:
       prefix: "ci"
     labels:
       - "enhancement"
-
-  # Python dependencies
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    commit-message:
-      prefix: "deps"
-    labels:
-      - "enhancement"

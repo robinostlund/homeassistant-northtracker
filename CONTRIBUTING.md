@@ -15,14 +15,14 @@ Thank you for your interest in contributing to the Home Assistant NorthTracker I
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.14+ (the version your Home Assistant release requires)
 - Home Assistant development environment
 - Access to a NorthTracker device or API documentation
 
 ### Installing Dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install homeassistant ruff
 ```
 
 ### Project Structure

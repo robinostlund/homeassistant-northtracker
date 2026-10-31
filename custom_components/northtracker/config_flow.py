@@ -53,6 +53,8 @@ class NorthTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for NorthTracker."""
 
     VERSION = 1
+    # Bump together with migrations.CURRENT_MINOR_VERSION
+    MINOR_VERSION = 2
 
     @staticmethod
     @callback

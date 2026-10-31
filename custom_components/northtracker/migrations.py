@@ -14,22 +14,24 @@ from .const import DOMAIN, LOGGER
 if TYPE_CHECKING:
     from .coordinator import NorthTrackerDataUpdateCoordinator
 
-# Current schema version - increment when making breaking changes
-CURRENT_SCHEMA_VERSION = 3
+# Config entry minor version once the registry is migrated. Keep it in sync with
+# NorthTrackerConfigFlow.MINOR_VERSION so new entries skip the migration.
+CURRENT_MINOR_VERSION = 2
 
-# Schema version history:
-# 1: Initial version - used device_id for unique_id (e.g., "66131_temperature")
-# 2: Changed to IMEI for unique_id and device identifiers
-#    - All devices have IMEI field (GPS uses device IMEI, Bluetooth uses SerialNumber as IMEI)
-# 3: Integration became read-only - the switch and number platforms were dropped,
-#    so their entities are removed from the registry instead of lingering as
-#    unavailable leftovers. Digital I/O and the alert flags are binary sensors now.
+# Minor version history:
+# 1: Entries created before the registry migration was tracked. Their registry may
+#    still hold any of these older formats:
+#    - device_id based unique_ids and device identifiers (e.g. "66131_temperature")
+#      instead of IMEI based ones (GPS uses the device IMEI, Bluetooth sensors
+#      their SerialNumber)
+#    - switch and number entities from before the integration became read-only
+# 2: Registry migrated to IMEI identifiers, read-only platforms only.
 
 # Platforms this integration no longer provides; their registry entries are stale.
 REMOVED_PLATFORM_DOMAINS = ("switch", "number")
 
 
-async def async_migrate_entry_if_needed(
+async def async_migrate_registry(
     hass: HomeAssistant,
     coordinator: NorthTrackerDataUpdateCoordinator,
 ) -> None:
@@ -212,16 +214,3 @@ async def _async_migrate_entity_unique_ids(
         LOGGER.info(
             "Successfully migrated %d entity unique_ids to IMEI format", migrated_count
         )
-
-
-def get_unique_id(imei: str, key: str) -> str:
-    """Generate a unique_id using IMEI.
-
-    Args:
-        imei: The device IMEI
-        key: The entity key (e.g., "temperature", "tracker")
-
-    Returns:
-        Formatted unique_id string
-    """
-    return f"{imei}_{key}"

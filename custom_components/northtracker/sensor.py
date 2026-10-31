@@ -25,6 +25,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
+from .base import BasePlatformSetup
 from .const import MAX_BATTERY_VOLTAGE_READING, MAX_SIGNAL_STRENGTH, MIN_SIGNAL_STRENGTH
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .devices import NorthTrackerBaseDevice
@@ -163,7 +164,6 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the sensor platform and discover new entities."""
-    from .base import BasePlatformSetup
 
     def create_sensor_entity(coordinator, device_id, description):
         """Create a sensor entity instance."""
@@ -200,9 +200,6 @@ class NorthTrackerSensor(NorthTrackerEntity, SensorEntity):
     @property
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
-        if not self.available:
-            return None
-
         device = self.device
         if device is None:
             return None

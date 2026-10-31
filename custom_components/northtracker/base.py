@@ -23,7 +23,7 @@ def get_supported_descriptions_for_device(
     Args:
         device: The device to check capabilities for
         descriptions: List of entity descriptions to filter
-        platform_type: Type of platform ("sensor", "binary_sensor", "device_tracker")
+        platform_type: Type of platform ("sensor", "binary_sensor", "device_tracker", "button")
 
     Returns:
         List of descriptions supported by the device
@@ -43,6 +43,9 @@ def get_supported_descriptions_for_device(
         elif platform_type == "device_tracker":
             # Device tracker is only for GPS devices with location
             if hasattr(device, "capabilities") and device.capabilities.has_location:
+                supported.append(description)
+        elif platform_type == "button":
+            if device.capabilities.has_refresh:
                 supported.append(description)
         else:
             # Fallback: include if device has the attribute

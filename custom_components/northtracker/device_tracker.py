@@ -12,6 +12,7 @@ from homeassistant.components.device_tracker import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from .base import BasePlatformSetup
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .entity import NorthTrackerEntity
 
@@ -31,7 +32,6 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the device tracker platform and discover new entities."""
-    from .base import BasePlatformSetup
 
     def create_device_tracker_entity(coordinator, device_id, description):
         """Create a device tracker entity instance."""
@@ -82,30 +82,27 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
     @property
     def latitude(self) -> float | None:
         """Return latitude value of the device."""
-        if not self.available or not self._has_valid_position:
+        if not self._has_valid_position:
             return None
         return self.device.latitude
 
     @property
     def longitude(self) -> float | None:
         """Return longitude value of the device."""
-        if not self.available or not self._has_valid_position:
+        if not self._has_valid_position:
             return None
         return self.device.longitude
 
     @property
     def location_accuracy(self) -> int:
         """Return the location accuracy of the device."""
-        if not self.available or not self._has_valid_position:
+        if not self._has_valid_position:
             return 0
         return getattr(self.device, "gps_accuracy", 0)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra state attributes."""
-        if not self.available:
-            return None
-
         device = self.device
         if device is None:
             return None
@@ -118,11 +115,6 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
         if course is not None:
             attributes["course"] = course
 
-        # Include GPS accuracy only if we have a position
-        gps_accuracy = getattr(device, "gps_accuracy", 0)
-        if self._has_valid_position and gps_accuracy > 0:
-            attributes["gps_accuracy"] = gps_accuracy
-
         # Add location status
         has_position = self._has_valid_position
         has_last_seen = getattr(device, "last_seen", None) is not None
@@ -133,9 +125,3 @@ class NorthTrackerDeviceTracker(NorthTrackerEntity, TrackerEntity):
             attributes["location_status"] = "active"
 
         return attributes or None
-
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        # Only trigger update if this device has actual data changes
-        if self.coordinator.device_has_changes(self._device_id):
-            super()._handle_coordinator_update()
