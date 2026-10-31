@@ -15,6 +15,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from .base import AdvancedPlatformSetup
 from .const import LOGGER
 from .coordinator import NorthTrackerConfigEntry, NorthTrackerDataUpdateCoordinator
 from .devices import NorthTrackerBaseDevice
@@ -59,9 +60,10 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[NorthTrackerBinarySensorEntityDescription, ...
         key="door_sensor",
         translation_key="door_sensor",
         device_class=BinarySensorDeviceClass.OPENING,
+        # Invert: contact (closed) -> off, no contact (open) -> on; unknown stays None
         value_fn=lambda device: (
-            not device.magnetic_contact
-        ),  # Invert: True=closed->False, False=open->True
+            None if device.magnetic_contact is None else not device.magnetic_contact
+        ),
     ),
 )
 
@@ -72,7 +74,6 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the binary sensor platform and discover new entities."""
-    from .base import AdvancedPlatformSetup
 
     def create_binary_sensor_entity(coordinator, device_id, description):
         """Create a binary sensor entity instance."""
@@ -167,9 +168,6 @@ class NorthTrackerBinarySensor(NorthTrackerEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """Return the state of the binary sensor."""
-        if not self.available:
-            return None
-
         device = self.device
         if device is None:
             return None

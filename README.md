@@ -54,9 +54,9 @@ A custom Home Assistant integration for NorthTracker GPS tracking devices, provi
 2. Click **"+ Add Integration"**
 3. Search for **"NorthTracker"**
 4. Enter your NorthTracker credentials:
-  - **Username**: Your NorthTracker username
-  - **Password**: Your NorthTracker password
-   - **Update Interval**: How often to fetch data (20-300 seconds, default: 30)
+   - **Username**: Your NorthTracker username
+   - **Password**: Your NorthTracker password
+5. Optionally adjust the **Update Interval** afterwards under **Configure** (1-1440 minutes, default: 15)
 
 ### Reconfiguration
 

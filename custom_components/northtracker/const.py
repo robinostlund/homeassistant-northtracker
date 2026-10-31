@@ -26,7 +26,7 @@ PLATFORMS: list[Platform] = [
 DEFAULT_UPDATE_INTERVAL = 15  # minutes
 
 # Validation Constants
-MIN_UPDATE_INTERVAL = 0.17  # 10 seconds in minutes (10/60 ≈ 0.17)
+MIN_UPDATE_INTERVAL = 1  # minutes; the cloud API is rate limited
 MAX_UPDATE_INTERVAL = 1440  # minutes
 
 # API Constants

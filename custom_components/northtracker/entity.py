@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -9,6 +10,18 @@ from .base import validate_device_name
 from .const import CONFIGURATION_URL, DOMAIN, MANUFACTURER
 from .coordinator import NorthTrackerDataUpdateCoordinator
 from .devices import NorthTrackerBaseDevice, NorthTrackerSensorDevice
+
+
+def _build_device_info(device: NorthTrackerBaseDevice) -> DeviceInfo:
+    """Return the device info for a device, using the IMEI as stable identifier."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, device.imei)},
+        name=validate_device_name(device.name),
+        manufacturer=MANUFACTURER,
+        model=device.model,
+        serial_number=device.imei,
+        configuration_url=CONFIGURATION_URL,
+    )
 
 
 class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
@@ -25,21 +38,17 @@ class NorthTrackerEntity(CoordinatorEntity[NorthTrackerDataUpdateCoordinator]):
 
         device = self.device
         if device:
-            # Build base device info - use IMEI as stable identifier
-            device_info = DeviceInfo(
-                identifiers={(DOMAIN, device.imei)},
-                name=validate_device_name(device.name),
-                manufacturer=MANUFACTURER,
-                model=device.model,
-                serial_number=device.imei,
-                configuration_url=CONFIGURATION_URL,
-            )
+            device_info = _build_device_info(device)
 
-            # Add via_device for Bluetooth sensors to link them to their parent GPS device
-            if isinstance(device, NorthTrackerSensorDevice) and hasattr(
-                device, "parent_device"
-            ):
-                device_info["via_device"] = (DOMAIN, device.parent_device.imei)
+            # Link Bluetooth sensors to their parent GPS device. via_device_id needs
+            # the parent's registry id, so make sure the parent is registered first;
+            # it may not be yet when its entities live on a platform set up later.
+            if isinstance(device, NorthTrackerSensorDevice):
+                parent_entry = dr.async_get(coordinator.hass).async_get_or_create(
+                    config_entry_id=coordinator.config_entry.entry_id,
+                    **_build_device_info(device.parent_device),
+                )
+                device_info["via_device_id"] = parent_entry.id
 
             self._attr_device_info = device_info
         else:

@@ -11,7 +11,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -75,9 +74,6 @@ class NorthTrackerDataUpdateCoordinator(
             update_interval=update_interval,
         )
 
-        # Track devices that have actually changed data to avoid unnecessary entity updates
-        self._devices_with_changes: set[int] = set()
-
         # Last known real-time payload per device ID. Bluetooth sensors are only
         # discovered from this payload, so it is kept and reused when the
         # real-time endpoint fails - otherwise those devices would vanish.
@@ -91,16 +87,11 @@ class NorthTrackerDataUpdateCoordinator(
         # outage lasting hours does not fill the log with the same warning.
         self._realtime_error_logged = False
 
-    def device_has_changes(self, device_id: int) -> bool:
-        """Check if a device has changes that require entity updates."""
-        return device_id in self._devices_with_changes
-
     async def _async_update_data(self) -> dict[int, NorthTrackerGpsDevice]:
         """Fetch data from API endpoint."""
         start_time = time.monotonic()
 
         # Reset per-update state at the start of each update
-        self._devices_with_changes.clear()
         self.update_degraded = False
 
         # Ensure the API timezone is loaded off the event loop before parsing timestamps
@@ -176,8 +167,7 @@ class NorthTrackerDataUpdateCoordinator(
                 if device is None:
                     continue
                 try:
-                    if device.update_gps_data(gps_data):
-                        self._devices_with_changes.add(device_id)
+                    device.update_gps_data(gps_data)
                 except Exception as err:  # noqa: BLE001
                     LOGGER.error(
                         "Error updating GPS data for device ID %s: %s", device_id, err
@@ -197,8 +187,7 @@ class NorthTrackerDataUpdateCoordinator(
             async def update_device_details(device: NorthTrackerGpsDevice) -> None:
                 """Update a single device's details."""
                 try:
-                    if await device.async_update():
-                        self._devices_with_changes.add(device.id)
+                    await device.async_update()
                 except Exception as err:  # noqa: BLE001
                     LOGGER.warning(
                         "Failed to update details for device %s: %s", device.name, err
@@ -227,21 +216,12 @@ class NorthTrackerDataUpdateCoordinator(
                     if resp_geofences.success:
                         geofences = resp_geofences.data.get("geofences", [])
                         for device in main_devices:
-                            if device.update_geofence_status(geofences):
-                                self._devices_with_changes.add(device.id)
+                            device.update_geofence_status(geofences)
                 except Exception as err:  # noqa: BLE001
                     LOGGER.warning("Error fetching geofence status: %s", err)
 
             duration = time.monotonic() - start_time
             LOGGER.debug("Updated %d devices in %.2fs", len(devices), duration)
-
-            # Clear any previous error issues since update was successful
-            ir.async_delete_issue(
-                self.hass, DOMAIN, f"{self.config_entry.entry_id}_api_error"
-            )
-            ir.async_delete_issue(
-                self.hass, DOMAIN, f"{self.config_entry.entry_id}_rate_limit"
-            )
 
             return devices
 
@@ -250,27 +230,8 @@ class NorthTrackerDataUpdateCoordinator(
             # reauth flow automatically; no need to trigger it manually here.
             raise ConfigEntryAuthFailed(f"Authentication failed: {err}") from err
         except RateLimitError as err:
-            ir.async_create_issue(
-                self.hass,
-                DOMAIN,
-                f"{self.config_entry.entry_id}_rate_limit",
-                is_fixable=False,
-                is_persistent=False,
-                severity=ir.IssueSeverity.WARNING,
-                translation_key="rate_limit",
-            )
             raise UpdateFailed(f"Rate limit exceeded: {err}") from err
         except APIError as err:
-            ir.async_create_issue(
-                self.hass,
-                DOMAIN,
-                f"{self.config_entry.entry_id}_api_error",
-                is_fixable=False,
-                is_persistent=False,
-                severity=ir.IssueSeverity.WARNING,
-                translation_key="api_error",
-                translation_placeholders={"error": str(err)},
-            )
             raise UpdateFailed(f"API error: {err}") from err
         except Exception as err:
             LOGGER.exception("Unexpected error communicating with API")

@@ -2,7 +2,7 @@
     "config": {
         "step": {
             "user": {
-                "title": "NorthTracker Authentication",
+                "title": "NorthTracker authentication",
                 "description": "Please enter your NorthTracker credentials.",
                 "data": {
                     "username": "Username",
@@ -41,54 +41,42 @@
     "options": {
         "step": {
             "init": {
-                "title": "NorthTracker Options",
+                "title": "NorthTracker options",
                 "description": "Adjust your NorthTracker integration settings.",
                 "data": {
-                    "scan_interval": "Update Interval (minutes)"
+                    "scan_interval": "Update interval (minutes)"
                 }
             }
         }
     },
     "issues": {
-        "api_error": {
-            "title": "NorthTracker API Error",
-            "description": "The NorthTracker integration encountered an API error: {error}. The integration will continue to retry automatically."
-        },
-        "rate_limit": {
-            "title": "NorthTracker Rate Limit Exceeded",
-            "description": "The NorthTracker API rate limit has been exceeded. Consider increasing the update interval in the integration options."
-        },
-        "authentication_failed": {
-            "title": "NorthTracker Authentication Failed",
-            "description": "The NorthTracker integration failed to authenticate. Please reconfigure the integration with valid credentials."
-        },
         "devices_removed": {
-            "title": "NorthTracker Devices Removed",
+            "title": "NorthTracker devices removed",
             "description": "The following devices were removed from your NorthTracker account and have been cleaned up: {devices}"
         }
     },
     "entity": {
         "sensor": {
             "last_seen": {
-                "name": "Last Seen"
+                "name": "Last seen"
             },
             "battery_voltage": {
-                "name": "Battery Voltage"
+                "name": "Battery voltage"
             },
             "odometer": {
                 "name": "Odometer"
             },
             "gps_signal": {
-                "name": "GPS Signal"
+                "name": "GPS signal"
             },
             "network_signal": {
-                "name": "Network Signal"
+                "name": "Network signal"
             },
             "speed": {
                 "name": "Speed"
             },
             "report_frequency": {
-                "name": "Report Frequency"
+                "name": "Report frequency"
             },
             "temperature": {
                 "name": "Temperature"
@@ -100,7 +88,7 @@
                 "name": "Battery"
             },
             "low_battery_threshold": {
-                "name": "Low Battery Threshold"
+                "name": "Low battery threshold"
             }
         },
         "button": {
@@ -110,10 +98,10 @@
         },
         "binary_sensor": {
             "door_sensor": {
-                "name": "Door Sensor"
+                "name": "Door sensor"
             },
             "bluetooth_enabled": {
-                "name": "Bluetooth Enabled"
+                "name": "Bluetooth enabled"
             },
             "digital_input": {
                 "name": "Input {number}"
@@ -122,10 +110,10 @@
                 "name": "Output {number}"
             },
             "low_battery_alert": {
-                "name": "Low Battery Alert"
+                "name": "Low battery alert"
             },
             "geofence": {
-                "name": "Geofence Alarm"
+                "name": "Geofence alarm"
             }
         },
         "device_tracker": {
