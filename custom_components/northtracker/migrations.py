@@ -101,19 +101,24 @@ async def _async_migrate_device_identifiers(
 ) -> None:
     """Migrate device identifiers from device_id to IMEI format."""
     device_registry = dr.async_get(hass)
+    entry_id = coordinator.config_entry.entry_id
     migrated_count = 0
 
     for device_id, imei in device_id_to_imei.items():
         old_identifier = (DOMAIN, str(device_id))
         new_identifier = (DOMAIN, imei)
 
-        # Find device with old identifier
-        device_entry = device_registry.async_get_device(identifiers={old_identifier})
+        # Find this entry's device with the old identifier
+        device_entry = device_registry.async_get_device_by_identifier(
+            old_identifier, entry_id
+        )
         if device_entry is None:
             continue
 
         # Check if device with new identifier already exists
-        existing = device_registry.async_get_device(identifiers={new_identifier})
+        existing = device_registry.async_get_device_by_identifier(
+            new_identifier, entry_id
+        )
         if existing and existing.id != device_entry.id:
             LOGGER.warning(
                 "Cannot migrate device %s: device with new identifier %s already exists",
